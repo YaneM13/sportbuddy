@@ -18,7 +18,7 @@ export default function NotificationsScreen() {
 
     const { data, error } = await supabase
       .from('notifications')
-      .select('*, events(title)')
+      .select('*, events(title), event_participants(user_id)')
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false });
 
@@ -97,8 +97,10 @@ export default function NotificationsScreen() {
 
       {notifications.map((notif) => (
         <View key={notif.id} style={[styles.card, notif.is_read && styles.cardRead]}>
-          <Text style={styles.cardMessage}>{notif.message}</Text>
-          <Text style={styles.cardEvent}>Event: {notif.events?.title}</Text>
+          <TouchableOpacity onPress={() => router.push({ pathname: '/user-profile', params: { userId: notif.event_participants?.user_id } } as any)}>
+           <Text style={styles.cardMessage}>{notif.message}</Text>
+          </TouchableOpacity>
+           <Text style={styles.cardEvent}>Event: {notif.events?.title}</Text>
           <Text style={styles.cardTime}>{new Date(notif.created_at).toLocaleDateString()}</Text>
 
           {!notif.is_read && (

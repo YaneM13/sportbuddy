@@ -17,8 +17,24 @@ export default function LoginScreen() {
       else router.replace('/');
     } else {
       const { error } = await supabase.auth.signUp({ email, password });
-      if (error) Alert.alert('Error', error.message);
-      else Alert.alert('Success', 'Check your email to confirm your account!');
+      if (error) {
+        Alert.alert('Error', error.message);
+      } else {
+        Alert.alert(
+          'Welcome to SportBuddy! 🏆',
+          'Your account has been created! We recommend adding a profile photo so other players can recognise you.',
+          [
+            {
+              text: 'Add photo later',
+              onPress: () => router.replace('/'),
+            },
+            {
+              text: 'Add photo now',
+              onPress: () => router.replace('/settings' as any),
+            },
+          ]
+        );
+      }
     }
     setLoading(false);
   }

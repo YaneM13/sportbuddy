@@ -2,15 +2,9 @@ import { supabase } from '@/lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [age, setAge] = useState('');
-  const [city, setCity] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -26,17 +20,11 @@ export default function SettingsScreen() {
 
     const { data } = await supabase
       .from('profiles')
-      .select('*')
+      .select('avatar_url')
       .eq('id', session.user.id)
       .single();
 
-    if (data) {
-      setFirstName(data.first_name || '');
-      setLastName(data.last_name || '');
-      setAge(data.age?.toString() || '');
-      setCity(data.city || '');
-      setAvatarUrl(data.avatar_url || '');
-    }
+    if (data?.avatar_url) setAvatarUrl(data.avatar_url);
   }
 
   async function handlePickImage() {
@@ -86,54 +74,6 @@ export default function SettingsScreen() {
     setLoading(false);
   }
 
-  async function handleSaveDetails() {
-    if (!firstName || !lastName) {
-      Alert.alert('Error', 'Please enter your first and last name');
-      return;
-    }
-
-    setLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-
-    const { error } = await supabase.from('profiles').upsert({
-      id: session.user.id,
-      first_name: firstName,
-      last_name: lastName,
-      age: age ? parseInt(age) : null,
-      city,
-    });
-
-    if (error) Alert.alert('Error', error.message);
-    else Alert.alert('Success', 'Details saved!');
-    setLoading(false);
-  }
-
-  async function handleChangePassword() {
-    if (!newPassword || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
-    }
-    if (newPassword.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
-      return;
-    }
-
-    setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) Alert.alert('Error', error.message);
-    else {
-      Alert.alert('Success', 'Password changed successfully!');
-      setNewPassword('');
-      setConfirmPassword('');
-    }
-    setLoading(false);
-  }
-
   async function handleDeleteAccount() {
     Alert.alert(
       'Delete account',
@@ -172,43 +112,23 @@ export default function SettingsScreen() {
               <Text style={styles.avatarText}>{user ? getInitials(user.email) : ''}</Text>
             </View>
           )}
-          <TouchableOpacity style={styles.changePhotoBtn} onPress={handlePickImage}>
-            <Text style={styles.changePhotoText}>Change photo</Text>
+          <TouchableOpacity style={styles.changePhotoBtn} onPress={handlePickImage} disabled={loading}>
+            <Text style={styles.changePhotoText}>{loading ? 'Uploading...' : 'Change photo'}</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Personal details</Text>
+        <Text style={styles.sectionTitle}>Account</Text>
 
-        <Text style={styles.label}>First name</Text>
-        <TextInput style={styles.input} placeholder="Enter first name" value={firstName} onChangeText={setFirstName} />
-
-        <Text style={styles.label}>Last name</Text>
-        <TextInput style={styles.input} placeholder="Enter last name" value={lastName} onChangeText={setLastName} />
-
-        <Text style={styles.label}>Age</Text>
-        <TextInput style={styles.input} placeholder="Enter age" value={age} onChangeText={setAge} keyboardType="numeric" />
-
-        <Text style={styles.label}>City</Text>
-        <TextInput style={styles.input} placeholder="Enter city" value={city} onChangeText={setCity} />
-
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSaveDetails} disabled={loading}>
-          <Text style={styles.saveBtnText}>{loading ? 'Saving...' : 'Save details'}</Text>
+        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/personal-details' as any)}>
+          <Text style={styles.menuItemText}>Personal details</Text>
+          <Text style={styles.menuArrow}>→</Text>
         </TouchableOpacity>
-      </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Change password</Text>
-
-        <Text style={styles.label}>New password</Text>
-        <TextInput style={styles.input} placeholder="Enter new password" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
-
-        <Text style={styles.label}>Confirm password</Text>
-        <TextInput style={styles.input} placeholder="Confirm new password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
-
-        <TouchableOpacity style={styles.saveBtn} onPress={handleChangePassword} disabled={loading}>
-          <Text style={styles.saveBtnText}>{loading ? 'Saving...' : 'Save new password'}</Text>
+        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/change-password' as any)}>
+          <Text style={styles.menuItemText}>Change password</Text>
+          <Text style={styles.menuArrow}>→</Text>
         </TouchableOpacity>
       </View>
 
@@ -290,32 +210,23 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#0F6E56',
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#444',
-    marginBottom: 8,
-  },
-  input: {
-    width: '100%',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    marginBottom: 16,
-    fontSize: 15,
-  },
-  saveBtn: {
-    width: '100%',
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#1D9E75',
+  menuItem: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: '#e0e0e0',
+    marginBottom: 12,
   },
-  saveBtnText: {
+  menuItemText: {
     fontSize: 15,
-    fontWeight: 'bold',
-    color: '#fff',
+    color: '#1a1a1a',
+  },
+  menuArrow: {
+    fontSize: 16,
+    color: '#888',
   },
   deleteBtn: {
     width: '100%',

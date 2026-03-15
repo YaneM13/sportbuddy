@@ -38,6 +38,8 @@ export default function RootLayout() {
         <Stack.Screen name="settings" />
         <Stack.Screen name="rate-players" />
         <Stack.Screen name="user-profile" />
+        <Stack.Screen name="personal-details" />
+        <Stack.Screen name="change-password" />
         <Stack.Screen name="modal" />
       </Stack>
       <StatusBar style="auto" />
