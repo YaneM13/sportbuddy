@@ -23,8 +23,8 @@
       "package": "com.yane31.SportBuddy"
     },
     "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+    "output": "single",
+    "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
@@ -52,6 +52,12 @@
         "projectId": "e7709b1f-aabd-49a4-86c9-f6c7ae3b16db"
       }
     },
-    "owner": "yane31"
+    "owner": "yane31",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/e7709b1f-aabd-49a4-86c9-f6c7ae3b16db"
+    }
   }
 }
