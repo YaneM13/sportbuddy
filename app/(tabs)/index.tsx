@@ -7,16 +7,26 @@ export default function HomeScreen() {
   const [user, setUser] = useState<any>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user) fetchAvatar(session.user.id);
+      if (session?.user) {
+        fetchAvatar(session.user.id);
+        fetchUnreadCount(session.user.id);
+      }
     });
 
     supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) fetchAvatar(session.user.id);
+      if (session?.user) {
+        fetchAvatar(session.user.id);
+        fetchUnreadCount(session.user.id);
+      } else {
+        setUnreadCount(0);
+        setAvatarUrl('');
+      }
     });
   }, []);
 
@@ -29,6 +39,15 @@ export default function HomeScreen() {
     if (data?.avatar_url) setAvatarUrl(data.avatar_url + '?t=' + Date.now());
   }
 
+  async function fetchUnreadCount(userId: string) {
+    const { count } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('is_read', false);
+    setUnreadCount(count || 0);
+  }
+
   const getInitials = (email: string) => {
     return email.substring(0, 2).toUpperCase();
   };
@@ -36,6 +55,7 @@ export default function HomeScreen() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setAvatarUrl('');
+    setUnreadCount(0);
     setMenuVisible(false);
   };
 
@@ -44,11 +64,18 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <Text style={styles.logo}>SportBuddy 🏆</Text>
         {user ? (
-          <TouchableOpacity style={styles.avatar} onPress={() => setMenuVisible(true)}>
-            {avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-            ) : (
-              <Text style={styles.avatarText}>{getInitials(user.email)}</Text>
+          <TouchableOpacity style={styles.avatarContainer} onPress={() => setMenuVisible(true)}>
+            <View style={styles.avatar}>
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+              ) : (
+                <Text style={styles.avatarText}>{getInitials(user.email)}</Text>
+              )}
+            </View>
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
             )}
           </TouchableOpacity>
         ) : (
@@ -92,8 +119,15 @@ export default function HomeScreen() {
               <Text style={styles.menuItemText}>My events</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuVisible(false); router.push('/notifications' as any); }}>
-              <Text style={styles.menuItemText}>Notifications</Text>
+            <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuVisible(false); router.push('/notifications' as any); fetchUnreadCount(user?.id); }}>
+              <View style={styles.menuItemRow}>
+                <Text style={styles.menuItemText}>Notifications</Text>
+                {unreadCount > 0 && (
+                  <View style={styles.menuBadge}>
+                    <Text style={styles.menuBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuVisible(false); router.push('/settings' as any); }}>
@@ -139,6 +173,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#0F6E56',
   },
+  avatarContainer: {
+    position: 'relative',
+  },
   avatar: {
     width: 36,
     height: 36,
@@ -155,6 +192,25 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 14,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#E24B4A',
+    borderRadius: 99,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#fff',
+  },
+  badgeText: {
+    fontSize: 10,
     fontWeight: 'bold',
     color: '#fff',
   },
@@ -248,6 +304,11 @@ const styles = StyleSheet.create({
   menuItemLast: {
     borderBottomWidth: 0,
   },
+  menuItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   menuItemText: {
     fontSize: 15,
     color: '#1a1a1a',
@@ -255,5 +316,19 @@ const styles = StyleSheet.create({
   menuItemLogout: {
     fontSize: 15,
     color: '#E24B4A',
+  },
+  menuBadge: {
+    backgroundColor: '#E24B4A',
+    borderRadius: 99,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  menuBadgeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#fff',
   },
 });

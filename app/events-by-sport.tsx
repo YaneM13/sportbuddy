@@ -157,10 +157,7 @@ export default function EventsBySportScreen() {
       {events.length === 0 && (
         <View style={styles.empty}>
           <Text style={styles.emptyText}>No {sport} events nearby</Text>
-          <Text style={styles.emptySubtext}>Be the first to create one!</Text>
-          <TouchableOpacity style={styles.createBtn} onPress={() => router.push('/create-event' as any)}>
-            <Text style={styles.createBtnText}>Create an event</Text>
-          </TouchableOpacity>
+          <Text style={styles.emptySubtext}>There are currently no events for this sport in your area.</Text>
         </View>
       )}
 
@@ -191,7 +188,10 @@ export default function EventsBySportScreen() {
             </View>
 
             <Text style={styles.cardTitle}>{event.title}</Text>
-            <Text style={styles.cardDetail}>📍 {event.location}</Text>
+{event.description && (
+  <Text style={styles.cardDescription}>{event.description}</Text>
+)}
+<Text style={styles.cardDetail}>📍 {event.location}</Text>
             <Text style={styles.cardDetail}>📅 {event.date} at {event.time} — {event.end_time}</Text>
             {event.max_players ? (
               <Text style={styles.cardDetail}>👥 {event.max_players} players needed</Text>
@@ -372,5 +372,11 @@ const styles = StyleSheet.create({
     color: '#534AB7',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  cardDescription: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 8,
+    fontStyle: 'italic',
   },
 });

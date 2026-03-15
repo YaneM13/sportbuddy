@@ -23,6 +23,7 @@ const skillLevels = ['Beginner', 'Intermediate', 'Advanced'];
 
 export default function CreateEventScreen() {
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [sport, setSport] = useState('');
   const [location, setLocation] = useState('');
@@ -123,6 +124,7 @@ export default function CreateEventScreen() {
 
     const { error } = await supabase.from('events').insert({
       title,
+      description,
       category,
       sport,
       location,
@@ -159,6 +161,18 @@ export default function CreateEventScreen() {
         placeholder="e.g. Football in the park"
         value={title}
         onChangeText={setTitle}
+      />
+
+      <Text style={styles.label}>
+        Description <Text style={styles.optional}>(optional)</Text>
+      </Text>
+      <TextInput
+        style={[styles.input, styles.textArea]}
+        placeholder="e.g. Bring your own ball, wear sports shoes..."
+        value={description}
+        onChangeText={setDescription}
+        multiline
+        numberOfLines={3}
       />
 
       <Text style={styles.label}>Category</Text>
@@ -343,6 +357,11 @@ const styles = StyleSheet.create({
     color: '#444',
     marginBottom: 8,
   },
+  optional: {
+    fontSize: 12,
+    color: '#888',
+    fontWeight: '400',
+  },
   input: {
     width: '100%',
     padding: 16,
@@ -351,6 +370,11 @@ const styles = StyleSheet.create({
     borderColor: '#e0e0e0',
     marginBottom: 8,
     fontSize: 15,
+  },
+  textArea: {
+    height: 90,
+    textAlignVertical: 'top',
+    marginBottom: 20,
   },
   suggestions: {
     backgroundColor: '#fff',
