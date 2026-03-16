@@ -31,6 +31,7 @@ export default function EventsBySportScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [userLocation, setUserLocation] = useState<any>(null);
+  const [participantStatuses, setParticipantStatuses] = useState<{ [key: string]: string }>({});
 
   const color = categoryColors[category as string] || { bg: '#F1EFE8', text: '#444441' };
 
@@ -55,7 +56,7 @@ export default function EventsBySportScreen() {
 
   async function fetchEvents(coords?: any) {
     const { data, error } = await supabase
-      .from('events')
+      .from('events_with_counts')
       .select('*')
       .eq('sport', sport)
       .order('created_at', { ascending: false });
@@ -84,6 +85,21 @@ export default function EventsBySportScreen() {
     }
 
     setEvents(filtered);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const { data: participants } = await supabase
+        .from('event_participants')
+        .select('event_id, status')
+        .eq('user_id', session.user.id);
+
+      const statusMap: { [key: string]: string } = {};
+      (participants || []).forEach((p: any) => {
+        statusMap[p.event_id] = p.status;
+      });
+      setParticipantStatuses(statusMap);
+    }
+
     setLoading(false);
     setRefreshing(false);
   }
@@ -126,8 +142,59 @@ export default function EventsBySportScreen() {
       );
     }
 
+    setParticipantStatuses({ ...participantStatuses, [eventId]: 'pending' });
     Alert.alert('Request sent', 'The organiser will review your request!');
   }
+
+  const renderJoinButton = (event: any) => {
+    const isOwner = user && user.id === event.created_by;
+    const status = participantStatuses[event.id];
+    const isFull = event.max_players && event.approved_count >= event.max_players;
+
+    if (isOwner) {
+      return (
+        <TouchableOpacity
+          style={styles.editBtn}
+          onPress={(e) => { e.stopPropagation(); router.push({ pathname: '/edit-event', params: { id: event.id } } as any); }}
+        >
+          <Text style={styles.editBtnText}>Edit event</Text>
+        </TouchableOpacity>
+      );
+    }
+
+    if (status === 'approved') {
+      return (
+        <View style={styles.approvedBtn}>
+          <Text style={styles.approvedBtnText}>✅ Already joined</Text>
+        </View>
+      );
+    }
+
+    if (status === 'pending') {
+      return (
+        <View style={styles.pendingBtn}>
+          <Text style={styles.pendingBtnText}>⏳ Waiting for approval</Text>
+        </View>
+      );
+    }
+
+    if (isFull) {
+      return (
+        <View style={styles.fullBtn}>
+          <Text style={styles.fullBtnText}>🔴 Event is full</Text>
+        </View>
+      );
+    }
+
+    return (
+      <TouchableOpacity
+        style={styles.joinBtn}
+        onPress={(e) => { e.stopPropagation(); handleJoin(event.id, event.created_by); }}
+      >
+        <Text style={styles.joinBtnText}>Join event</Text>
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
     return (
@@ -162,13 +229,16 @@ export default function EventsBySportScreen() {
       )}
 
       {events.map((event) => {
-        const isOwner = user && user.id === event.created_by;
         const distance = userLocation && event.latitude && event.longitude
           ? getDistanceKm(userLocation.latitude, userLocation.longitude, event.latitude, event.longitude).toFixed(1)
           : null;
 
         return (
-          <View key={event.id} style={styles.card}>
+          <TouchableOpacity
+            key={event.id}
+            style={styles.card}
+            onPress={() => router.push({ pathname: '/event-details', params: { id: event.id } } as any)}
+          >
             <View style={styles.cardHeader}>
               {event.skill_level && (
                 <View style={styles.skillBadge}>
@@ -180,7 +250,7 @@ export default function EventsBySportScreen() {
                   <Text style={styles.distanceText}>{distance} km</Text>
                 </View>
               )}
-              {isOwner && (
+              {user && user.id === event.created_by && (
                 <View style={styles.ownerBadge}>
                   <Text style={styles.ownerText}>My event</Text>
                 </View>
@@ -188,32 +258,21 @@ export default function EventsBySportScreen() {
             </View>
 
             <Text style={styles.cardTitle}>{event.title}</Text>
-{event.description && (
-  <Text style={styles.cardDescription}>{event.description}</Text>
-)}
-<Text style={styles.cardDetail}>📍 {event.location}</Text>
+            {event.description && (
+              <Text style={styles.cardDescription}>{event.description}</Text>
+            )}
+            <Text style={styles.cardDetail}>📍 {event.location}</Text>
             <Text style={styles.cardDetail}>📅 {event.date} at {event.time} — {event.end_time}</Text>
             {event.max_players ? (
-              <Text style={styles.cardDetail}>👥 {event.max_players} players needed</Text>
+              <Text style={styles.cardDetail}>👥 {event.approved_count || 0} / {event.max_players} players</Text>
             ) : (
               <Text style={styles.cardDetail}>👥 Unlimited participants</Text>
             )}
 
             <View style={styles.cardActions}>
-              {isOwner ? (
-                <TouchableOpacity
-                  style={styles.editBtn}
-                  onPress={() => router.push({ pathname: '/edit-event', params: { id: event.id } } as any)}
-                >
-                  <Text style={styles.editBtnText}>Edit event</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity style={styles.joinBtn} onPress={() => handleJoin(event.id, event.created_by)}>
-                  <Text style={styles.joinBtnText}>Join event</Text>
-                </TouchableOpacity>
-              )}
+              {renderJoinButton(event)}
             </View>
-          </View>
+          </TouchableOpacity>
         );
       })}
     </ScrollView>
@@ -277,18 +336,7 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: '#888',
-    marginBottom: 24,
-  },
-  createBtn: {
-    backgroundColor: '#1D9E75',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 99,
-  },
-  createBtnText: {
-    color: '#fff',
-    fontWeight: '500',
-    fontSize: 14,
+    textAlign: 'center',
   },
   card: {
     backgroundColor: '#fff',
@@ -343,6 +391,12 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     marginBottom: 8,
   },
+  cardDescription: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
   cardDetail: {
     fontSize: 14,
     color: '#555',
@@ -362,6 +416,39 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
   },
+  pendingBtn: {
+    backgroundColor: '#FAEEDA',
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  pendingBtnText: {
+    color: '#BA7517',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  approvedBtn: {
+    backgroundColor: '#E1F5EE',
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  approvedBtnText: {
+    color: '#0F6E56',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  fullBtn: {
+    backgroundColor: '#FCEBEB',
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  fullBtnText: {
+    color: '#E24B4A',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
   editBtn: {
     backgroundColor: '#EEEDFE',
     padding: 12,
@@ -372,11 +459,5 @@ const styles = StyleSheet.create({
     color: '#534AB7',
     fontWeight: 'bold',
     fontSize: 14,
-  },
-  cardDescription: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 8,
-    fontStyle: 'italic',
   },
 });

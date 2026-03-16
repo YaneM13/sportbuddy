@@ -6,32 +6,47 @@ import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'reac
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [nickname, setNickname] = useState('');
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
 
   async function handleAuth() {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter email and password');
+      return;
+    }
+
+    if (!isLogin && (!firstName || !lastName || !nickname)) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
     setLoading(true);
+
     if (isLogin) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) Alert.alert('Error', error.message);
       else router.replace('/');
     } else {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) {
         Alert.alert('Error', error.message);
-      } else {
+      } else if (data.user) {
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          first_name: firstName,
+          last_name: lastName,
+          nickname,
+        });
+
         Alert.alert(
           'Welcome to SportBuddy! 🏆',
           'Your account has been created! We recommend adding a profile photo so other players can recognise you.',
           [
-            {
-              text: 'Add photo later',
-              onPress: () => router.replace('/'),
-            },
-            {
-              text: 'Add photo now',
-              onPress: () => router.replace('/settings' as any),
-            },
+            { text: 'Add photo later', onPress: () => router.replace('/') },
+            { text: 'Add photo now', onPress: () => router.replace('/settings' as any) },
           ]
         );
       }
@@ -43,6 +58,30 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>SportBuddy 🏆</Text>
       <Text style={styles.subtitle}>{isLogin ? 'Sign in to your account' : 'Create a new account'}</Text>
+
+      {!isLogin && (
+        <>
+          <TextInput
+            style={styles.input}
+            placeholder="First name"
+            value={firstName}
+            onChangeText={setFirstName}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Last name"
+            value={lastName}
+            onChangeText={setLastName}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Nickname"
+            value={nickname}
+            onChangeText={setNickname}
+            autoCapitalize="none"
+          />
+        </>
+      )}
 
       <TextInput
         style={styles.input}

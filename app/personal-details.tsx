@@ -6,6 +6,7 @@ import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity } from
 export default function PersonalDetailsScreen() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [nickname, setNickname] = useState('');
   const [age, setAge] = useState('');
   const [city, setCity] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,14 +28,15 @@ export default function PersonalDetailsScreen() {
     if (data) {
       setFirstName(data.first_name || '');
       setLastName(data.last_name || '');
+      setNickname(data.nickname || '');
       setAge(data.age?.toString() || '');
       setCity(data.city || '');
     }
   }
 
   async function handleSave() {
-    if (!firstName || !lastName) {
-      Alert.alert('Error', 'Please enter your first and last name');
+    if (!firstName || !lastName || !nickname) {
+      Alert.alert('Error', 'Please enter your first name, last name and nickname');
       return;
     }
 
@@ -46,6 +48,7 @@ export default function PersonalDetailsScreen() {
       id: session.user.id,
       first_name: firstName,
       last_name: lastName,
+      nickname,
       age: age ? parseInt(age) : null,
       city,
     });
@@ -71,6 +74,9 @@ export default function PersonalDetailsScreen() {
 
       <Text style={styles.label}>Last name</Text>
       <TextInput style={styles.input} placeholder="Enter last name" value={lastName} onChangeText={setLastName} />
+
+      <Text style={styles.label}>Nickname</Text>
+      <TextInput style={styles.input} placeholder="Enter nickname" value={nickname} onChangeText={setNickname} autoCapitalize="none" />
 
       <Text style={styles.label}>Age</Text>
       <TextInput style={styles.input} placeholder="Enter age" value={age} onChangeText={setAge} keyboardType="numeric" />

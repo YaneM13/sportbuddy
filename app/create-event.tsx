@@ -237,10 +237,12 @@ export default function CreateEventScreen() {
       <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowDatePicker(true)}>
         <Text style={styles.pickerText}>{formatDate(date)}</Text>
       </TouchableOpacity>
+     
       {showDatePicker && (
         <DateTimePicker
           value={date}
           mode="date"
+          minimumDate={new Date()}
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={(event, selectedDate) => {
             setShowDatePicker(false);

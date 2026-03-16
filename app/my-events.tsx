@@ -21,7 +21,7 @@ export default function MyEventsScreen() {
     }
 
     const { data, error } = await supabase
-      .from('events')
+      .from('events_with_counts')
       .select('*')
       .eq('created_by', session.user.id)
       .order('created_at', { ascending: false });
@@ -76,7 +76,11 @@ export default function MyEventsScreen() {
       {events.map((event) => {
         const color = getCategoryColor(event.category);
         return (
-          <View key={event.id} style={styles.card}>
+          <TouchableOpacity
+            key={event.id}
+            style={styles.card}
+            onPress={() => router.push({ pathname: '/event-details', params: { id: event.id } } as any)}
+          >
             <View style={styles.cardHeader}>
               <View style={[styles.categoryBadge, { backgroundColor: color.bg }]}>
                 <Text style={[styles.categoryText, { color: color.text }]}>{event.sport}</Text>
@@ -92,7 +96,7 @@ export default function MyEventsScreen() {
             <Text style={styles.cardDetail}>📍 {event.location}</Text>
             <Text style={styles.cardDetail}>📅 {event.date} at {event.time} — {event.end_time}</Text>
             {event.max_players ? (
-              <Text style={styles.cardDetail}>👥 {event.max_players} players needed</Text>
+              <Text style={styles.cardDetail}>👥 {event.approved_count || 0} / {event.max_players} players</Text>
             ) : (
               <Text style={styles.cardDetail}>👥 Unlimited participants</Text>
             )}
@@ -100,18 +104,18 @@ export default function MyEventsScreen() {
             <View style={styles.cardActions}>
               <TouchableOpacity
                 style={styles.editBtn}
-                onPress={() => router.push({ pathname: '/edit-event', params: { id: event.id } } as any)}
+                onPress={(e) => { e.stopPropagation(); router.push({ pathname: '/edit-event', params: { id: event.id } } as any); }}
               >
                 <Text style={styles.editBtnText}>Edit event</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.rateBtn}
-                onPress={() => router.push({ pathname: '/rate-players', params: { event_id: event.id } } as any)}
+                onPress={(e) => { e.stopPropagation(); router.push({ pathname: '/rate-players', params: { event_id: event.id } } as any); }}
               >
                 <Text style={styles.rateBtnText}>Rate players</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </TouchableOpacity>
         );
       })}
     </ScrollView>
