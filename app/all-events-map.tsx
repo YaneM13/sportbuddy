@@ -3,7 +3,9 @@ import { supabase } from '@/lib/supabase';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+const screenHeight = Dimensions.get('window').height;
 
 export default function AllEventsMapScreen() {
   const [events, setEvents] = useState<any[]>([]);
@@ -117,7 +119,7 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   mapContainer: {
-    flex: 1,
+    height: screenHeight - 200,
     margin: 16,
     borderRadius: 16,
     overflow: 'hidden',
