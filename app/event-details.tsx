@@ -1,3 +1,4 @@
+import BackButton from '@/components/BackButton';
 import { sendPushNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -158,9 +159,7 @@ export default function EventDetailsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-        <Text style={styles.backText}>← Back</Text>
-      </TouchableOpacity>
+      <BackButton />
 
       <Text style={styles.title}>{event?.title}</Text>
 
@@ -181,16 +180,16 @@ export default function EventDetailsScreen() {
       </View>
 
       <View style={styles.joinContainer}>
-  {renderJoinButton()}
-  {isParticipant && (
-    <TouchableOpacity
-      style={styles.chatBtn}
-      onPress={() => router.push({ pathname: '/event-chat', params: { event_id: event?.id, event_title: event?.title } } as any)}
-    >
-      <Text style={styles.chatBtnText}>💬 Group chat</Text>
-    </TouchableOpacity>
-  )}
-</View>
+        {renderJoinButton()}
+        {isParticipant && (
+          <TouchableOpacity
+            style={styles.chatBtn}
+            onPress={() => router.push({ pathname: '/event-chat', params: { event_id: event?.id, event_title: event?.title } } as any)}
+          >
+            <Text style={styles.chatBtnText}>💬 Group chat</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {isParticipant && (
         <View style={styles.participantsSection}>
@@ -244,14 +243,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  backBtn: {
-    marginBottom: 16,
-  },
-  backText: {
-    fontSize: 14,
-    color: '#1D9E75',
-    fontWeight: '500',
   },
   title: {
     fontSize: 26,
