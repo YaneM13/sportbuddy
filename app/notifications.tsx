@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function NotificationsScreen() {
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [joinRequests, setJoinRequests] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'requests' | 'messages'>('requests');
 
   useEffect(() => {
     fetchNotifications();
@@ -18,12 +20,17 @@ export default function NotificationsScreen() {
 
     const { data, error } = await supabase
       .from('notifications')
-      .select('*, events(title), event_participants(user_id)')
+      .select('*, events(title, id), event_participants(user_id)')
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false });
 
     if (error) Alert.alert('Error', error.message);
-    else setNotifications(data || []);
+    else {
+      const requests = (data || []).filter((n: any) => n.participant_id);
+      const msgs = (data || []).filter((n: any) => !n.participant_id);
+      setJoinRequests(requests);
+      setMessages(msgs);
+    }
     setLoading(false);
     setRefreshing(false);
   }
@@ -87,40 +94,82 @@ export default function NotificationsScreen() {
       </TouchableOpacity>
 
       <Text style={styles.title}>Notifications</Text>
-      <Text style={styles.subtitle}>Pull down to refresh</Text>
 
-      {notifications.length === 0 && (
-        <View style={styles.empty}>
-          <Text style={styles.emptyText}>No notifications yet</Text>
-        </View>
+      <View style={styles.tabs}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'requests' && styles.tabActive]}
+          onPress={() => setActiveTab('requests')}
+        >
+          <Text style={[styles.tabText, activeTab === 'requests' && styles.tabTextActive]}>
+            Join requests {joinRequests.filter(n => !n.is_read).length > 0 && `(${joinRequests.filter(n => !n.is_read).length})`}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'messages' && styles.tabActive]}
+          onPress={() => setActiveTab('messages')}
+        >
+          <Text style={[styles.tabText, activeTab === 'messages' && styles.tabTextActive]}>
+            Messages {messages.filter(n => !n.is_read).length > 0 && `(${messages.filter(n => !n.is_read).length})`}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {activeTab === 'requests' && (
+        <>
+          {joinRequests.length === 0 && (
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>No join requests yet</Text>
+            </View>
+          )}
+          {joinRequests.map((notif) => (
+            <View key={notif.id} style={[styles.card, notif.is_read && styles.cardRead]}>
+              <TouchableOpacity onPress={() => router.push({ pathname: '/user-profile', params: { userId: notif.event_participants?.user_id } } as any)}>
+                <Text style={styles.cardMessage}>{notif.message}</Text>
+              </TouchableOpacity>
+              <Text style={styles.cardEvent}>Event: {notif.events?.title}</Text>
+              <Text style={styles.cardTime}>{new Date(notif.created_at).toLocaleDateString()}</Text>
+
+              {!notif.is_read && (
+                <View style={styles.actions}>
+                  <TouchableOpacity style={styles.approveBtn} onPress={() => handleApprove(notif)}>
+                    <Text style={styles.approveBtnText}>Approve</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.rejectBtn} onPress={() => handleReject(notif)}>
+                    <Text style={styles.rejectBtnText}>Reject</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {notif.is_read && (
+                <View style={styles.statusContainer}>
+                  <Text style={styles.statusText}>Reviewed</Text>
+                </View>
+              )}
+            </View>
+          ))}
+        </>
       )}
 
-      {notifications.map((notif) => (
-        <View key={notif.id} style={[styles.card, notif.is_read && styles.cardRead]}>
-          <TouchableOpacity onPress={() => router.push({ pathname: '/user-profile', params: { userId: notif.event_participants?.user_id } } as any)}>
-           <Text style={styles.cardMessage}>{notif.message}</Text>
-          </TouchableOpacity>
-           <Text style={styles.cardEvent}>Event: {notif.events?.title}</Text>
-          <Text style={styles.cardTime}>{new Date(notif.created_at).toLocaleDateString()}</Text>
-
-          {!notif.is_read && (
-            <View style={styles.actions}>
-              <TouchableOpacity style={styles.approveBtn} onPress={() => handleApprove(notif)}>
-                <Text style={styles.approveBtnText}>Approve</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.rejectBtn} onPress={() => handleReject(notif)}>
-                <Text style={styles.rejectBtnText}>Reject</Text>
-              </TouchableOpacity>
+      {activeTab === 'messages' && (
+        <>
+          {messages.length === 0 && (
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>No messages yet</Text>
             </View>
           )}
-
-          {notif.is_read && (
-            <View style={styles.statusContainer}>
-              <Text style={styles.statusText}>Reviewed</Text>
-            </View>
-          )}
-        </View>
-      ))}
+          {messages.map((notif) => (
+            <TouchableOpacity
+              key={notif.id}
+              style={[styles.card, notif.is_read && styles.cardRead]}
+              onPress={() => router.push({ pathname: '/event-chat', params: { event_id: notif.event_id, event_title: notif.events?.title } } as any)}
+            >
+              <Text style={styles.cardMessage}>{notif.message}</Text>
+              <Text style={styles.cardEvent}>Event: {notif.events?.title}</Text>
+              <Text style={styles.cardTime}>{new Date(notif.created_at).toLocaleDateString()}</Text>
+            </TouchableOpacity>
+          ))}
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -151,12 +200,32 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: '#1D9E75',
-    marginBottom: 4,
+    marginBottom: 16,
   },
-  subtitle: {
-    fontSize: 14,
+  tabs: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: '#e0e0e0',
+    overflow: 'hidden',
+  },
+  tab: {
+    flex: 1,
+    padding: 12,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  tabActive: {
+    backgroundColor: '#1D9E75',
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '500',
     color: '#888',
-    marginBottom: 24,
+  },
+  tabTextActive: {
+    color: '#fff',
   },
   empty: {
     alignItems: 'center',

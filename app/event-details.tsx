@@ -181,8 +181,16 @@ export default function EventDetailsScreen() {
       </View>
 
       <View style={styles.joinContainer}>
-        {renderJoinButton()}
-      </View>
+  {renderJoinButton()}
+  {isParticipant && (
+    <TouchableOpacity
+      style={styles.chatBtn}
+      onPress={() => router.push({ pathname: '/event-chat', params: { event_id: event?.id, event_title: event?.title } } as any)}
+    >
+      <Text style={styles.chatBtnText}>💬 Group chat</Text>
+    </TouchableOpacity>
+  )}
+</View>
 
       {isParticipant && (
         <View style={styles.participantsSection}>
@@ -382,5 +390,17 @@ const styles = StyleSheet.create({
   participantArrow: {
     fontSize: 16,
     color: '#888',
+  },
+  chatBtn: {
+    backgroundColor: '#E6F1FB',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  chatBtnText: {
+    color: '#185FA5',
+    fontWeight: 'bold',
+    fontSize: 15,
   },
 });
