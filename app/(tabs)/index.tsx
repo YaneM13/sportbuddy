@@ -8,6 +8,7 @@ export default function HomeScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showAvatarBanner, setShowAvatarBanner] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -26,6 +27,7 @@ export default function HomeScreen() {
       } else {
         setUnreadCount(0);
         setAvatarUrl('');
+        setShowAvatarBanner(false);
       }
     });
   }, []);
@@ -36,7 +38,12 @@ export default function HomeScreen() {
       .select('avatar_url')
       .eq('id', userId)
       .single();
-    if (data?.avatar_url) setAvatarUrl(data.avatar_url + '?t=' + Date.now());
+    if (data?.avatar_url) {
+      setAvatarUrl(data.avatar_url + '?t=' + Date.now());
+      setShowAvatarBanner(false);
+    } else {
+      setShowAvatarBanner(true);
+    }
   }
 
   async function fetchUnreadCount(userId: string) {
@@ -56,6 +63,7 @@ export default function HomeScreen() {
     await supabase.auth.signOut();
     setAvatarUrl('');
     setUnreadCount(0);
+    setShowAvatarBanner(false);
     setMenuVisible(false);
   };
 
@@ -84,6 +92,16 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
       </View>
+
+      {showAvatarBanner && (
+        <TouchableOpacity
+          style={styles.avatarBanner}
+          onPress={() => { setShowAvatarBanner(false); router.push('/settings' as any); }}
+        >
+          <Text style={styles.avatarBannerText}>📸 Add a profile photo so others can recognise you</Text>
+          <Text style={styles.avatarBannerClose} onPress={() => setShowAvatarBanner(false)}>✕</Text>
+        </TouchableOpacity>
+      )}
 
       <Text style={styles.subtitle}>Find sports events near you</Text>
 
@@ -116,7 +134,11 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuVisible(false); router.push('/my-events' as any); }}>
-              <Text style={styles.menuItemText}>My events</Text>
+              <Text style={styles.menuItemText}>My created events</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuVisible(false); router.push('/my-joined-events' as any); }}>
+              <Text style={styles.menuItemText}>Events I joined</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuVisible(false); router.push('/notifications' as any); fetchUnreadCount(user?.id); }}>
@@ -213,6 +235,27 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  avatarBanner: {
+    backgroundColor: '#E6F1FB',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  avatarBannerText: {
+    fontSize: 13,
+    color: '#185FA5',
+    flex: 1,
+    marginRight: 8,
+  },
+  avatarBannerClose: {
+    fontSize: 14,
+    color: '#185FA5',
+    fontWeight: 'bold',
+    padding: 4,
   },
   subtitle: {
     fontSize: 16,

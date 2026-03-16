@@ -1,3 +1,5 @@
+import { router } from 'expo-router';
+import { useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
@@ -17,9 +19,14 @@ interface EventMapProps {
 }
 
 export default function EventMap({ events, userLatitude, userLongitude }: EventMapProps) {
+  const webViewRef = useRef<any>(null);
+
   const markers = events
     .filter(e => e.latitude && e.longitude)
-    .map(e => `L.marker([${e.latitude}, ${e.longitude}]).addTo(map).bindPopup("<b>${e.title}</b><br>${e.sport}<br>${e.location}");`)
+    .map(e => `
+      var marker_${e.id.replace(/-/g, '_')} = L.marker([${e.latitude}, ${e.longitude}]).addTo(map);
+      marker_${e.id.replace(/-/g, '_')}.bindPopup("<b>${e.title}</b><br>${e.sport}<br>${e.location}<br><button onclick='window.ReactNativeWebView.postMessage(\"${e.id}\")' style='margin-top:6px;padding:6px 12px;background:#1D9E75;color:white;border:none;border-radius:8px;cursor:pointer;'>View details</button>");
+    `)
     .join('\n');
 
   const html = `
@@ -63,9 +70,16 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
   return (
     <View style={styles.container}>
       <WebView
+        ref={webViewRef}
         source={{ html }}
         style={styles.map}
         scrollEnabled={false}
+        onMessage={(event) => {
+          const eventId = event.nativeEvent.data;
+          if (eventId) {
+            router.push({ pathname: '/event-details', params: { id: eventId } } as any);
+          }
+        }}
       />
     </View>
   );
