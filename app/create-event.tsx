@@ -2,8 +2,8 @@ import { sendPushNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
-import { router } from 'expo-router';
-import { useRef, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const categories = [
@@ -23,6 +23,7 @@ const sportsByCategory: any = {
 const skillLevels = ['Beginner', 'Intermediate', 'Advanced'];
 
 export default function CreateEventScreen() {
+  const params = useLocalSearchParams();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -44,6 +45,15 @@ export default function CreateEventScreen() {
   const searchTimeout = useRef<any>(null);
 
   const isWatchSport = category === 'watch';
+
+  useEffect(() => {
+    if (params.pickedLat && params.pickedLon && params.pickedAddress) {
+      setSelectedLat(parseFloat(params.pickedLat as string));
+      setSelectedLon(parseFloat(params.pickedLon as string));
+      setLocation(params.pickedAddress as string);
+      setLocationSuggestions([]);
+    }
+  }, [params.pickedLat, params.pickedLon, params.pickedAddress]);
 
   const formatDate = (d: Date) => {
     const day = d.getDate().toString().padStart(2, '0');
@@ -231,12 +241,21 @@ export default function CreateEventScreen() {
       )}
 
       <Text style={styles.label}>Location</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="e.g. Todor Proeski Arena, Skopje"
-        value={location}
-        onChangeText={searchLocation}
-      />
+      <View style={styles.locationRow}>
+        <TextInput
+          style={[styles.input, styles.locationInput]}
+          placeholder="e.g. Todor Proeski Arena, Skopje"
+          value={location}
+          onChangeText={searchLocation}
+        />
+        <TouchableOpacity
+          style={styles.mapPickBtn}
+          onPress={() => router.push('/pick-location' as any)}
+        >
+          <Text style={styles.mapPickBtnText}>📍 Map</Text>
+        </TouchableOpacity>
+      </View>
+
       {locationSuggestions.length > 0 && (
         <View style={styles.suggestions}>
           {locationSuggestions.map((item, index) => (
@@ -411,6 +430,28 @@ const styles = StyleSheet.create({
     height: 90,
     textAlignVertical: 'top',
     marginBottom: 20,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-start',
+    marginBottom: 0,
+  },
+  locationInput: {
+    flex: 1,
+    marginBottom: 8,
+  },
+  mapPickBtn: {
+    backgroundColor: '#E1F5EE',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapPickBtnText: {
+    fontSize: 13,
+    color: '#0F6E56',
+    fontWeight: '500',
   },
   suggestions: {
     backgroundColor: '#fff',

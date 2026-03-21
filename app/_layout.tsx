@@ -73,6 +73,7 @@ export default function RootLayout() {
         <Stack.Screen name="event-chat" />
         <Stack.Screen name="personal-details" />
         <Stack.Screen name="change-password" />
+        <Stack.Screen name="pick-location" />
         <Stack.Screen name="modal" />
       </Stack>
       <StatusBar style="auto" />
