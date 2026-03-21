@@ -11,7 +11,7 @@ const sports = [
     category: 'Individual sports',
     color: '#E6F1FB',
     textColor: '#185FA5',
-    items: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Badminton', 'Swimming'],
+    items: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Padel', 'Swimming'],
   },
   {
     category: 'Water sports',

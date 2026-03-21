@@ -71,6 +71,20 @@ export default function RatePlayersScreen() {
       </View>
     );
   }
+  if (!loading && participants.length === 0) {
+    return (
+      <View style={styles.centered}>
+        <View style={styles.emptyModal}>
+          <Text style={styles.emptyModalEmoji}>👥</Text>
+          <Text style={styles.emptyModalTitle}>No players to rate</Text>
+          <Text style={styles.emptyModalText}>There are no approved participants for this event.</Text>
+          <TouchableOpacity style={styles.emptyModalBtn} onPress={() => router.back()}>
+            <Text style={styles.emptyModalBtnText}>Go back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -207,5 +221,42 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  emptyModal: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 32,
+    alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: '#e0e0e0',
+    margin: 24,
+  },
+  emptyModalEmoji: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  emptyModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyModalText: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  emptyModalBtn: {
+    backgroundColor: '#1D9E75',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  emptyModalBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 });

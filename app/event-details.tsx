@@ -3,7 +3,7 @@ import { sendPushNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function EventDetailsScreen() {
   const { id } = useLocalSearchParams();
@@ -101,6 +101,22 @@ export default function EventDetailsScreen() {
     Alert.alert('Request sent', 'The organiser will review your request!');
   }
 
+  function handleDirections() {
+    if (!event?.latitude || !event?.longitude) {
+      Alert.alert('Error', 'Location not available for this event');
+      return;
+    }
+    const lat = event.latitude;
+    const lon = event.longitude;
+    const label = encodeURIComponent(event.location);
+    const url = Platform.OS === 'ios'
+      ? `maps://?q=${label}&ll=${lat},${lon}`
+      : `google.navigation:q=${lat},${lon}`;
+    Linking.openURL(url).catch(() => {
+      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`);
+    });
+  }
+
   const renderJoinButton = () => {
     const isOwner = user && user.id === event?.created_by;
     const isFull = event?.max_players && event?.approved_count >= event?.max_players;
@@ -181,6 +197,13 @@ export default function EventDetailsScreen() {
 
       <View style={styles.joinContainer}>
         {renderJoinButton()}
+
+        {isParticipant && (
+          <TouchableOpacity style={styles.directionsBtn} onPress={handleDirections}>
+            <Text style={styles.directionsBtnText}>🗺️ Get directions</Text>
+          </TouchableOpacity>
+        )}
+
         {isParticipant && (
           <TouchableOpacity
             style={styles.chatBtn}
@@ -269,6 +292,7 @@ const styles = StyleSheet.create({
   },
   joinContainer: {
     marginBottom: 24,
+    gap: 10,
   },
   joinBtn: {
     backgroundColor: '#1D9E75',
@@ -322,6 +346,28 @@ const styles = StyleSheet.create({
   },
   editBtnText: {
     color: '#534AB7',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+  directionsBtn: {
+    backgroundColor: '#E1F5EE',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  directionsBtnText: {
+    color: '#0F6E56',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+  chatBtn: {
+    backgroundColor: '#E6F1FB',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  chatBtnText: {
+    color: '#185FA5',
     fontWeight: 'bold',
     fontSize: 15,
   },
@@ -381,17 +427,5 @@ const styles = StyleSheet.create({
   participantArrow: {
     fontSize: 16,
     color: '#888',
-  },
-  chatBtn: {
-    backgroundColor: '#E6F1FB',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  chatBtnText: {
-    color: '#185FA5',
-    fontWeight: 'bold',
-    fontSize: 15,
   },
 });

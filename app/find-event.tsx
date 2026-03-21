@@ -15,7 +15,7 @@ const categories = [
     label: 'Individual sports',
     emoji: '🏃',
     color: { bg: '#E6F1FB', text: '#185FA5', border: '#B5D4F4' },
-    sports: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Badminton', 'Swimming'],
+    sports: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Padel', 'Swimming'],
   },
   {
     id: 'water',

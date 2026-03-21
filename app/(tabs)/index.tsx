@@ -9,6 +9,7 @@ export default function HomeScreen() {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const [showAvatarBanner, setShowAvatarBanner] = useState(false);
+  const [displayName, setDisplayName] = useState('');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -28,6 +29,7 @@ export default function HomeScreen() {
         setUnreadCount(0);
         setAvatarUrl('');
         setShowAvatarBanner(false);
+        setDisplayName('');
       }
     });
   }, []);
@@ -35,7 +37,7 @@ export default function HomeScreen() {
   async function fetchAvatar(userId: string) {
     const { data } = await supabase
       .from('profiles')
-      .select('avatar_url')
+      .select('avatar_url, first_name, last_name, nickname')
       .eq('id', userId)
       .single();
     if (data?.avatar_url) {
@@ -43,6 +45,11 @@ export default function HomeScreen() {
       setShowAvatarBanner(false);
     } else {
       setShowAvatarBanner(true);
+    }
+    if (data?.nickname) {
+      setDisplayName('@' + data.nickname);
+    } else if (data?.first_name) {
+      setDisplayName(data.first_name + ' ' + (data.last_name || ''));
     }
   }
 
@@ -64,6 +71,7 @@ export default function HomeScreen() {
     setAvatarUrl('');
     setUnreadCount(0);
     setShowAvatarBanner(false);
+    setDisplayName('');
     setMenuVisible(false);
   };
 
@@ -126,7 +134,7 @@ export default function HomeScreen() {
                   <Text style={styles.menuAvatarText}>{user ? getInitials(user.email) : ''}</Text>
                 </View>
               )}
-              <Text style={styles.menuEmail}>{user?.email}</Text>
+              <Text style={styles.menuDisplayName}>{displayName || user?.email}</Text>
             </View>
 
             <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuVisible(false); router.push('/my-profile' as any); }}>
@@ -334,9 +342,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
   },
-  menuEmail: {
-    fontSize: 12,
-    color: '#888',
+  menuDisplayName: {
+    fontSize: 13,
+    color: '#1a1a1a',
+    fontWeight: '500',
     flex: 1,
   },
   menuItem: {

@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity } from 'react-native';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -55,82 +55,123 @@ export default function LoginScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>SportBuddy 🏆</Text>
-      <Text style={styles.subtitle}>{isLogin ? 'Sign in to your account' : 'Create a new account'}</Text>
-
-      {!isLogin && (
-        <>
-          <TextInput
-            style={styles.input}
-            placeholder="First name"
-            value={firstName}
-            onChangeText={setFirstName}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Last name"
-            value={lastName}
-            onChangeText={setLastName}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Nickname"
-            value={nickname}
-            onChangeText={setNickname}
-            autoCapitalize="none"
-          />
-        </>
-      )}
-
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-
-      <TouchableOpacity style={styles.buttonGreen} onPress={handleAuth} disabled={loading}>
-        <Text style={styles.buttonTextGreen}>{loading ? 'Loading...' : isLogin ? 'Sign in' : 'Register'}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
-        <Text style={styles.switchText}>
-          {isLogin ? "Don't have an account? Register" : 'Already have an account? Sign in'}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.title}>SportBuddy 🏆</Text>
+        <Text style={styles.subtitle}>
+          {isLogin ? 'Sign in to your account' : 'Create a new account'}
         </Text>
-      </TouchableOpacity>
-    </View>
+
+        {!isLogin && (
+          <>
+            <Text style={styles.label}>First name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your first name"
+              placeholderTextColor="#aaa"
+              value={firstName}
+              onChangeText={setFirstName}
+            />
+
+            <Text style={styles.label}>Last name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your last name"
+              placeholderTextColor="#aaa"
+              value={lastName}
+              onChangeText={setLastName}
+            />
+
+            <Text style={styles.label}>Nickname</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Choose a nickname"
+              placeholderTextColor="#aaa"
+              value={nickname}
+              onChangeText={setNickname}
+              autoCapitalize="none"
+            />
+          </>
+        )}
+
+        <Text style={styles.label}>Email</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your email"
+          placeholderTextColor="#aaa"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+
+        <Text style={styles.label}>Password</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your password"
+          placeholderTextColor="#aaa"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+
+        <TouchableOpacity
+          style={styles.buttonGreen}
+          onPress={handleAuth}
+          disabled={loading}
+        >
+          <Text style={styles.buttonTextGreen}>
+            {loading ? 'Loading...' : isLogin ? 'Sign in' : 'Register'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
+          <Text style={styles.switchText}>
+            {isLogin ? "Don't have an account? Register" : 'Already have an account? Sign in'}
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: '#fff',
+  },
+  content: {
+    flexGrow: 1,
+    justifyContent: 'center',
     padding: 24,
+    paddingTop: 60,
+    paddingBottom: 40,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#1D9E75',
     marginBottom: 8,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
     color: '#888',
-    marginBottom: 40,
+    marginBottom: 32,
+    textAlign: 'center',
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#444',
+    marginBottom: 6,
   },
   input: {
     width: '100%',
@@ -140,6 +181,8 @@ const styles = StyleSheet.create({
     borderColor: '#e0e0e0',
     marginBottom: 16,
     fontSize: 16,
+    color: '#1a1a1a',
+    backgroundColor: '#fff',
   },
   buttonGreen: {
     width: '100%',
@@ -148,6 +191,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1D9E75',
     alignItems: 'center',
     marginBottom: 16,
+    marginTop: 8,
   },
   buttonTextGreen: {
     fontSize: 16,
@@ -157,5 +201,6 @@ const styles = StyleSheet.create({
   switchText: {
     fontSize: 14,
     color: '#1D9E75',
+    textAlign: 'center',
   },
 });

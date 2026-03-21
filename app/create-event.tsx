@@ -14,7 +14,7 @@ const categories = [
 
 const sportsByCategory: any = {
   team: ['Football', 'Basketball', 'Basketball 3x3', 'Volleyball', 'Beach Volleyball', 'Rugby', 'Cricket', 'Handball'],
-  individual: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Badminton', 'Swimming'],
+  individual: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Padel', 'Swimming'],
   water: ['Kayaking', 'Paddleboarding', 'Rafting', 'Fishing'],
   watch: ['Stadium', 'Sports bar / Cafe', 'Open air'],
 };

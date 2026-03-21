@@ -1,3 +1,4 @@
+import BackButton from '@/components/BackButton';
 import { supabase } from '@/lib/supabase';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -13,7 +14,7 @@ const categories = [
 
 const sportsByCategory: any = {
   team: ['Football', 'Basketball', 'Basketball 3x3', 'Volleyball', 'Beach Volleyball', 'Rugby', 'Cricket', 'Handball'],
-  individual: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Badminton', 'Swimming'],
+  individual: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Padel', 'Swimming'],
   water: ['Kayaking', 'Paddleboarding', 'Rafting', 'Fishing'],
   watch: ['Stadium', 'Sports bar / Cafe', 'Open air'],
 };
@@ -92,6 +93,17 @@ export default function EditEventScreen() {
     return `${hours}:${minutes}`;
   };
 
+  function handleBack() {
+    Alert.alert(
+      'Discard changes?',
+      'Are you sure you want to go back? Any unsaved changes will be lost.',
+      [
+        { text: 'Stay', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: () => router.back() },
+      ]
+    );
+  }
+
   async function handleSave() {
     if (!title || !category || !sport || !location) {
       Alert.alert('Error', 'Please fill in all fields');
@@ -147,6 +159,8 @@ export default function EditEventScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <BackButton onPress={handleBack} />
+
       <Text style={styles.title}>Edit event</Text>
 
       <Text style={styles.label}>Title</Text>
@@ -195,6 +209,7 @@ export default function EditEventScreen() {
         <DateTimePicker
           value={date}
           mode="date"
+          minimumDate={new Date()}
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={(event, selectedDate) => {
             setShowDatePicker(false);
