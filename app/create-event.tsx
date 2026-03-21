@@ -1,3 +1,4 @@
+import { sendPushNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
@@ -38,6 +39,7 @@ export default function CreateEventScreen() {
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
   const [players, setPlayers] = useState('');
   const [skillLevel, setSkillLevel] = useState('');
+  const [isAlert, setIsAlert] = useState(false);
   const [loading, setLoading] = useState(false);
   const searchTimeout = useRef<any>(null);
 
@@ -122,7 +124,7 @@ export default function CreateEventScreen() {
       return;
     }
 
-    const { error } = await supabase.from('events').insert({
+    const { data: newEvent, error } = await supabase.from('events').insert({
       title,
       description,
       category,
@@ -136,14 +138,35 @@ export default function CreateEventScreen() {
       created_by: session.user.id,
       latitude,
       longitude,
-    });
+      is_alert: isAlert,
+    }).select().single();
 
     if (error) {
       Alert.alert('Error', JSON.stringify(error));
-    } else {
-      Alert.alert('Success', 'Event created!');
-      router.replace('/');
+      setLoading(false);
+      return;
     }
+
+    if (isAlert && latitude && longitude) {
+      const { data: nearbyUsers } = await supabase
+        .from('profiles')
+        .select('id, push_token, favorite_sport')
+        .eq('favorite_sport', sport)
+        .not('push_token', 'is', null);
+
+      for (const profile of nearbyUsers || []) {
+        if (profile.push_token && profile.id !== session.user.id) {
+          await sendPushNotification(
+            profile.push_token,
+            '🔔 Alert Event!',
+            `New ${sport} event nearby: ${title}`
+          );
+        }
+      }
+    }
+
+    Alert.alert('Success', 'Event created!');
+    router.replace('/');
     setLoading(false);
   }
 
@@ -237,7 +260,6 @@ export default function CreateEventScreen() {
       <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowDatePicker(true)}>
         <Text style={styles.pickerText}>{formatDate(date)}</Text>
       </TouchableOpacity>
-     
       {showDatePicker && (
         <DateTimePicker
           value={date}
@@ -322,6 +344,18 @@ export default function CreateEventScreen() {
           </View>
         </>
       )}
+
+      <TouchableOpacity
+        style={[styles.alertToggle, isAlert && styles.alertToggleActive]}
+        onPress={() => setIsAlert(!isAlert)}
+      >
+        <Text style={[styles.alertToggleText, isAlert && styles.alertToggleTextActive]}>
+          🔔 {isAlert ? 'Alert event — ON' : 'Alert event — OFF'}
+        </Text>
+        <Text style={[styles.alertToggleDesc, isAlert && styles.alertToggleDescActive]}>
+          Notify all nearby users who love this sport
+        </Text>
+      </TouchableOpacity>
 
       <TouchableOpacity style={styles.createBtn} onPress={handleCreate} disabled={loading}>
         <Text style={styles.createBtnText}>{loading ? 'Creating...' : 'Create event'}</Text>
@@ -456,6 +490,34 @@ const styles = StyleSheet.create({
     color: '#0F6E56',
     fontWeight: '500',
     fontSize: 14,
+  },
+  alertToggle: {
+    backgroundColor: '#F1EFE8',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  alertToggleActive: {
+    backgroundColor: '#FAEEDA',
+    borderColor: '#BA7517',
+  },
+  alertToggleText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#444',
+    marginBottom: 4,
+  },
+  alertToggleTextActive: {
+    color: '#BA7517',
+  },
+  alertToggleDesc: {
+    fontSize: 12,
+    color: '#888',
+  },
+  alertToggleDescActive: {
+    color: '#BA7517',
   },
   createBtn: {
     width: '100%',
