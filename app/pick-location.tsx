@@ -1,11 +1,11 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 
 export default function PickLocationScreen() {
-  const { callback } = useLocalSearchParams();
   const [userLocation, setUserLocation] = useState<any>(null);
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [selectedAddress, setSelectedAddress] = useState('');
@@ -48,14 +48,14 @@ export default function PickLocationScreen() {
     reverseGeocode(latitude, longitude);
   }
 
-  function handleConfirm() {
+  async function handleConfirm() {
     if (!selectedLocation) return;
+    await AsyncStorage.setItem('pickedLocation', JSON.stringify({
+      lat: selectedLocation.latitude,
+      lon: selectedLocation.longitude,
+      address: selectedAddress,
+    }));
     router.back();
-    router.setParams({
-      pickedLat: selectedLocation.latitude.toString(),
-      pickedLon: selectedLocation.longitude.toString(),
-      pickedAddress: selectedAddress,
-    });
   }
 
   if (loading) {

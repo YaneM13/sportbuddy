@@ -1,9 +1,10 @@
 import { sendPushNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const categories = [
@@ -23,7 +24,6 @@ const sportsByCategory: any = {
 const skillLevels = ['Beginner', 'Intermediate', 'Advanced'];
 
 export default function CreateEventScreen() {
-  const params = useLocalSearchParams();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -46,14 +46,24 @@ export default function CreateEventScreen() {
 
   const isWatchSport = category === 'watch';
 
-  useEffect(() => {
-    if (params.pickedLat && params.pickedLon && params.pickedAddress) {
-      setSelectedLat(parseFloat(params.pickedLat as string));
-      setSelectedLon(parseFloat(params.pickedLon as string));
-      setLocation(params.pickedAddress as string);
-      setLocationSuggestions([]);
-    }
-  }, [params.pickedLat, params.pickedLon, params.pickedAddress]);
+  useFocusEffect(
+    useCallback(() => {
+      async function checkPickedLocation() {
+        try {
+          const picked = await AsyncStorage.getItem('pickedLocation');
+          if (picked) {
+            const { lat, lon, address } = JSON.parse(picked);
+            setSelectedLat(lat);
+            setSelectedLon(lon);
+            setLocation(address);
+            setLocationSuggestions([]);
+            await AsyncStorage.removeItem('pickedLocation');
+          }
+        } catch (e) {}
+      }
+      checkPickedLocation();
+    }, [])
+  );
 
   const formatDate = (d: Date) => {
     const day = d.getDate().toString().padStart(2, '0');
