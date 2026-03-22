@@ -1,3 +1,4 @@
+import { useLanguage } from '@/lib/useLanguage';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -5,28 +6,28 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 const categories = [
   {
     id: 'team',
-    label: 'Team sports',
+    labelKey: 'teamSports',
     emoji: '👥',
     color: { bg: '#E1F5EE', text: '#0F6E56', border: '#9FE1CB' },
     sports: ['Football', 'Basketball', 'Basketball 3x3', 'Volleyball', 'Beach Volleyball', 'Rugby', 'Cricket', 'Handball'],
   },
   {
     id: 'individual',
-    label: 'Individual sports',
+    labelKey: 'individualSports',
     emoji: '🏃',
     color: { bg: '#E6F1FB', text: '#185FA5', border: '#B5D4F4' },
     sports: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Padel', 'Swimming'],
   },
   {
     id: 'water',
-    label: 'Water sports',
+    labelKey: 'waterSports',
     emoji: '🌊',
     color: { bg: '#EEEDFE', text: '#534AB7', border: '#CECBF6' },
     sports: ['Kayaking', 'Paddleboarding', 'Rafting', 'Fishing'],
   },
   {
     id: 'watch',
-    label: 'Watch sports',
+    labelKey: 'watchSports',
     emoji: '🏟️',
     color: { bg: '#FAECE7', text: '#993C1D', border: '#F5C4B3' },
     sports: ['Stadium', 'Sports bar / Cafe', 'Open air'],
@@ -34,16 +35,17 @@ const categories = [
 ];
 
 export default function FindEventScreen() {
+  const { t } = useLanguage();
   const [openCategory, setOpenCategory] = useState<string | null>(null);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <TouchableOpacity onPress={() => router.replace('/' as any)} style={styles.backBtn}>
-       <Text style={styles.backText}>← Back</Text>
+        <Text style={styles.backText}>{t('back')}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>Find an event</Text>
-      <Text style={styles.subtitle}>Events within 20km from you</Text>
+      <Text style={styles.title}>{t('findAnEvent')}</Text>
+      <Text style={styles.subtitle}>{t('eventsWithin20km')}</Text>
 
       {categories.map((cat) => {
         const isOpen = openCategory === cat.id;
@@ -54,7 +56,7 @@ export default function FindEventScreen() {
               onPress={() => setOpenCategory(isOpen ? null : cat.id)}
             >
               <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
-              <Text style={[styles.categoryLabel, { color: cat.color.text }]}>{cat.label}</Text>
+              <Text style={[styles.categoryLabel, { color: cat.color.text }]}>{t(cat.labelKey)}</Text>
               <Text style={[styles.categoryChevron, { color: cat.color.text }]}>
                 {isOpen ? '▲' : '▼'}
               </Text>
@@ -82,8 +84,8 @@ export default function FindEventScreen() {
         style={styles.mapBtn}
         onPress={() => router.push('/all-events-map' as any)}
       >
-        <Text style={styles.mapBtnText}>🗺️ View all on map</Text>
-        <Text style={styles.mapBtnSub}>See all nearby events on the map</Text>
+        <Text style={styles.mapBtnText}>{t('viewAllOnMap')}</Text>
+        <Text style={styles.mapBtnSub}>{t('seeAllNearbyEvents')}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -102,7 +104,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   backText: {
-    fontSize: 14,
+    fontSize: 17,
     color: '#1D9E75',
     fontWeight: '500',
   },

@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { useLanguage } from '@/lib/useLanguage';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -31,6 +32,7 @@ const categoryColors: any = {
 };
 
 export default function LoginScreen() {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -43,11 +45,11 @@ export default function LoginScreen() {
 
   async function handleStep1() {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter email and password');
+      Alert.alert(t('error'), 'Please enter email and password');
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      Alert.alert(t('error'), 'Password must be at least 6 characters');
       return;
     }
     setStep(2);
@@ -55,18 +57,18 @@ export default function LoginScreen() {
 
   async function handleRegister() {
     if (!firstName || !lastName || !nickname) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert(t('error'), 'Please fill in all fields');
       return;
     }
     if (!favoriteSport) {
-      Alert.alert('Error', 'Please select your favorite sport');
+      Alert.alert(t('error'), 'Please select your favorite sport');
       return;
     }
 
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert(t('error'), error.message);
       setLoading(false);
       return;
     }
@@ -94,12 +96,12 @@ export default function LoginScreen() {
 
   async function handleLogin() {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter email and password');
+      Alert.alert(t('error'), 'Please enter email and password');
       return;
     }
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) Alert.alert('Error', error.message);
+    if (error) Alert.alert(t('error'), error.message);
     else router.replace('/');
     setLoading(false);
   }
@@ -109,40 +111,40 @@ export default function LoginScreen() {
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Text style={styles.title}>SportBuddy 🏆</Text>
-          <Text style={styles.subtitle}>Tell us about yourself</Text>
+          <Text style={styles.subtitle}>{t('tellUsAboutYourself')}</Text>
 
-          <Text style={styles.stepText}>Step 2 of 2</Text>
+          <Text style={styles.stepText}>{t('step2of2')}</Text>
 
-          <Text style={styles.label}>First name</Text>
+          <Text style={styles.label}>{t('firstName')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Enter your first name"
+            placeholder={t('firstName')}
             placeholderTextColor="#aaa"
             value={firstName}
             onChangeText={setFirstName}
           />
 
-          <Text style={styles.label}>Last name</Text>
+          <Text style={styles.label}>{t('lastName')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Enter your last name"
+            placeholder={t('lastName')}
             placeholderTextColor="#aaa"
             value={lastName}
             onChangeText={setLastName}
           />
 
-          <Text style={styles.label}>Nickname</Text>
+          <Text style={styles.label}>{t('nickname')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Choose a nickname"
+            placeholder={t('nickname')}
             placeholderTextColor="#aaa"
             value={nickname}
             onChangeText={setNickname}
             autoCapitalize="none"
           />
 
-          <Text style={styles.label}>Favorite sport</Text>
-          <Text style={styles.sublabel}>Select one sport you love most</Text>
+          <Text style={styles.label}>{t('favoriteSport')}</Text>
+          <Text style={styles.sublabel}>{t('selectOneSport')}</Text>
           <View style={styles.sportsGrid}>
             {allSports.map((sport) => {
               const color = categoryColors[sport.category];
@@ -166,11 +168,11 @@ export default function LoginScreen() {
           </View>
 
           <TouchableOpacity style={styles.buttonGreen} onPress={handleRegister} disabled={loading}>
-            <Text style={styles.buttonTextGreen}>{loading ? 'Creating account...' : 'Create account'}</Text>
+            <Text style={styles.buttonTextGreen}>{loading ? t('creatingAccount') : t('register')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => setStep(1)} style={styles.backStepBtn}>
-            <Text style={styles.backStepText}>← Back</Text>
+            <Text style={styles.backStepText}>{t('back')}</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -182,15 +184,15 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>SportBuddy 🏆</Text>
         <Text style={styles.subtitle}>
-          {isLogin ? 'Sign in to your account' : 'Create a new account'}
+          {isLogin ? t('signInAccount') : t('createAccount')}
         </Text>
 
-        {!isLogin && <Text style={styles.stepText}>Step 1 of 2</Text>}
+        {!isLogin && <Text style={styles.stepText}>{t('step1of2')}</Text>}
 
-        <Text style={styles.label}>Email</Text>
+        <Text style={styles.label}>{t('email')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter your email"
+          placeholder={t('email')}
           placeholderTextColor="#aaa"
           value={email}
           onChangeText={setEmail}
@@ -198,10 +200,10 @@ export default function LoginScreen() {
           keyboardType="email-address"
         />
 
-        <Text style={styles.label}>Password</Text>
+        <Text style={styles.label}>{t('password')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter your password"
+          placeholder={t('password')}
           placeholderTextColor="#aaa"
           value={password}
           onChangeText={setPassword}
@@ -214,13 +216,13 @@ export default function LoginScreen() {
           disabled={loading}
         >
           <Text style={styles.buttonTextGreen}>
-            {loading ? 'Loading...' : isLogin ? 'Sign in' : 'Next →'}
+            {loading ? t('loading') : isLogin ? t('signIn') : t('next')}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => { setIsLogin(!isLogin); setStep(1); }}>
           <Text style={styles.switchText}>
-            {isLogin ? "Don't have an account? Register" : 'Already have an account? Sign in'}
+            {isLogin ? t('noAccount') : t('haveAccount')}
           </Text>
         </TouchableOpacity>
       </ScrollView>

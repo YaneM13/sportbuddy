@@ -1,9 +1,11 @@
 import { supabase } from '@/lib/supabase';
+import { useLanguage } from '@/lib/useLanguage';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
+  const { t } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
@@ -78,7 +80,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.logo}>SportBuddy 🏆</Text>
+        <Text style={styles.logo}>{t('appName')} 🏆</Text>
         {user ? (
           <TouchableOpacity style={styles.avatarContainer} onPress={() => setMenuVisible(true)}>
             <View style={styles.avatar}>
@@ -96,7 +98,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.signInBtn} onPress={() => router.push('/login' as any)}>
-            <Text style={styles.signInText}>Sign in</Text>
+            <Text style={styles.signInText}>{t('signIn')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -111,16 +113,16 @@ export default function HomeScreen() {
         </TouchableOpacity>
       )}
 
-      <Text style={styles.subtitle}>Find sports events near you</Text>
+      <Text style={styles.subtitle}>{t('tagline')}</Text>
 
       <TouchableOpacity style={[styles.button, styles.buttonGreen]} onPress={() => router.push('/find-event' as any)}>
-        <Text style={styles.buttonTextGreen}>Find an event</Text>
-        <Text style={styles.buttonSub}>Browse nearby events</Text>
+        <Text style={styles.buttonTextGreen}>{t('findEvent')}</Text>
+        <Text style={styles.buttonSub}>{t('findEventSub')}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={[styles.button, styles.buttonBlue]} onPress={() => router.push('/create-event' as any)}>
-        <Text style={styles.buttonTextBlue}>Create an event</Text>
-        <Text style={styles.buttonSub}>Organise your game</Text>
+        <Text style={styles.buttonTextBlue}>{t('createEvent')}</Text>
+        <Text style={styles.buttonSub}>{t('createEventSub')}</Text>
       </TouchableOpacity>
 
       <Modal visible={menuVisible} transparent animationType="fade">
@@ -138,20 +140,20 @@ export default function HomeScreen() {
             </View>
 
             <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuVisible(false); router.push('/my-profile' as any); }}>
-              <Text style={styles.menuItemText}>My profile</Text>
+              <Text style={styles.menuItemText}>{t('myProfile')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuVisible(false); router.push('/my-events' as any); }}>
-              <Text style={styles.menuItemText}>My created events</Text>
+              <Text style={styles.menuItemText}>{t('myCreatedEvents')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuVisible(false); router.push('/my-joined-events' as any); }}>
-              <Text style={styles.menuItemText}>Events I joined</Text>
+              <Text style={styles.menuItemText}>{t('eventsJoined')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuVisible(false); router.push('/notifications' as any); fetchUnreadCount(user?.id); }}>
               <View style={styles.menuItemRow}>
-                <Text style={styles.menuItemText}>Notifications</Text>
+                <Text style={styles.menuItemText}>{t('notifications')}</Text>
                 {unreadCount > 0 && (
                   <View style={styles.menuBadge}>
                     <Text style={styles.menuBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -161,11 +163,11 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuVisible(false); router.push('/settings' as any); }}>
-              <Text style={styles.menuItemText}>Settings</Text>
+              <Text style={styles.menuItemText}>{t('settings')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.menuItem, styles.menuItemLast]} onPress={handleLogout}>
-              <Text style={styles.menuItemLogout}>Log out</Text>
+              <Text style={styles.menuItemLogout}>{t('signOut')}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
