@@ -1,9 +1,11 @@
 import { supabase } from '@/lib/supabase';
+import { useLanguage } from '@/lib/useLanguage';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function ProfileTab() {
+  const { t } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [stats, setStats] = useState({
@@ -89,7 +91,7 @@ export default function ProfileTab() {
       <View style={styles.centered}>
         <Text style={styles.signInTitle}>Sign in to view your profile</Text>
         <TouchableOpacity style={styles.signInBtn} onPress={() => router.push('/login' as any)}>
-          <Text style={styles.signInBtnText}>Sign in</Text>
+          <Text style={styles.signInBtnText}>{t('signIn')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -97,7 +99,7 @@ export default function ProfileTab() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>My profile</Text>
+      <Text style={styles.title}>{t('myProfile')}</Text>
 
       <View style={styles.profileHeader}>
         {profile?.avatar_url ? (
@@ -123,7 +125,7 @@ export default function ProfileTab() {
         <View style={styles.starsRow}>
           {renderStars(stats.averageRating)}
           <Text style={styles.ratingText}>
-            {stats.averageRating > 0 ? `${stats.averageRating} (${stats.totalRatings} ratings)` : 'No ratings yet'}
+            {stats.averageRating > 0 ? `${stats.averageRating} (${stats.totalRatings} ratings)` : t('noRatingsYet')}
           </Text>
         </View>
       </View>
@@ -131,26 +133,26 @@ export default function ProfileTab() {
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
           <Text style={styles.statNumber}>{stats.eventsCreated}</Text>
-          <Text style={styles.statLabel}>Events created</Text>
+          <Text style={styles.statLabel}>{t('eventsCreated')}</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statNumber}>{stats.eventsJoined}</Text>
-          <Text style={styles.statLabel}>Events joined</Text>
+          <Text style={styles.statLabel}>{t('eventsJoinedStat')}</Text>
         </View>
       </View>
 
       <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/my-events' as any)}>
-        <Text style={styles.menuItemText}>My events</Text>
+        <Text style={styles.menuItemText}>{t('myEvents')}</Text>
         <Text style={styles.menuArrow}>→</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/notifications' as any)}>
-        <Text style={styles.menuItemText}>Notifications</Text>
+        <Text style={styles.menuItemText}>{t('notifications')}</Text>
         <Text style={styles.menuArrow}>→</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/settings' as any)}>
-        <Text style={styles.menuItemText}>Settings</Text>
+        <Text style={styles.menuItemText}>{t('settings')}</Text>
         <Text style={styles.menuArrow}>→</Text>
       </TouchableOpacity>
     </ScrollView>
