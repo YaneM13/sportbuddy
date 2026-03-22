@@ -1,9 +1,11 @@
 import { supabase } from '@/lib/supabase';
+import { useLanguage } from '@/lib/useLanguage';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity } from 'react-native';
 
 export default function PersonalDetailsScreen() {
+  const { t } = useLanguage();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [nickname, setNickname] = useState('');
@@ -36,7 +38,7 @@ export default function PersonalDetailsScreen() {
 
   async function handleSave() {
     if (!firstName || !lastName || !nickname) {
-      Alert.alert('Error', 'Please enter your first name, last name and nickname');
+      Alert.alert(t('error'), 'Please enter your first name, last name and nickname');
       return;
     }
 
@@ -53,9 +55,9 @@ export default function PersonalDetailsScreen() {
       city,
     });
 
-    if (error) Alert.alert('Error', error.message);
+    if (error) Alert.alert(t('error'), error.message);
     else {
-      Alert.alert('Success', 'Details saved!');
+      Alert.alert(t('success'), 'Details saved!');
       router.back();
     }
     setLoading(false);
@@ -64,28 +66,55 @@ export default function PersonalDetailsScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-        <Text style={styles.backText}>← Back</Text>
+        <Text style={styles.backText}>{t('back')}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>Personal details</Text>
+      <Text style={styles.title}>{t('personalDetails')}</Text>
 
-      <Text style={styles.label}>First name</Text>
-      <TextInput style={styles.input} placeholder="Enter first name" value={firstName} onChangeText={setFirstName} />
+      <Text style={styles.label}>{t('firstName')}</Text>
+      <TextInput
+        style={styles.input}
+        placeholder={t('firstName')}
+        value={firstName}
+        onChangeText={setFirstName}
+      />
 
-      <Text style={styles.label}>Last name</Text>
-      <TextInput style={styles.input} placeholder="Enter last name" value={lastName} onChangeText={setLastName} />
+      <Text style={styles.label}>{t('lastName')}</Text>
+      <TextInput
+        style={styles.input}
+        placeholder={t('lastName')}
+        value={lastName}
+        onChangeText={setLastName}
+      />
 
-      <Text style={styles.label}>Nickname</Text>
-      <TextInput style={styles.input} placeholder="Enter nickname" value={nickname} onChangeText={setNickname} autoCapitalize="none" />
+      <Text style={styles.label}>{t('nickname')}</Text>
+      <TextInput
+        style={styles.input}
+        placeholder={t('nickname')}
+        value={nickname}
+        onChangeText={setNickname}
+        autoCapitalize="none"
+      />
 
       <Text style={styles.label}>Age</Text>
-      <TextInput style={styles.input} placeholder="Enter age" value={age} onChangeText={setAge} keyboardType="numeric" />
+      <TextInput
+        style={styles.input}
+        placeholder="Enter age"
+        value={age}
+        onChangeText={setAge}
+        keyboardType="numeric"
+      />
 
       <Text style={styles.label}>City</Text>
-      <TextInput style={styles.input} placeholder="Enter city" value={city} onChangeText={setCity} />
+      <TextInput
+        style={styles.input}
+        placeholder="Enter city"
+        value={city}
+        onChangeText={setCity}
+      />
 
       <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
-        <Text style={styles.saveBtnText}>{loading ? 'Saving...' : 'Save details'}</Text>
+        <Text style={styles.saveBtnText}>{loading ? t('saving') : t('save')}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -104,7 +133,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   backText: {
-    fontSize: 14,
+    fontSize: 17,
     color: '#1D9E75',
     fontWeight: '500',
   },

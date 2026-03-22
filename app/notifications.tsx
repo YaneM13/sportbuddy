@@ -1,9 +1,11 @@
 import { supabase } from '@/lib/supabase';
+import { useLanguage } from '@/lib/useLanguage';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function NotificationsScreen() {
+  const { t } = useLanguage();
   const [joinRequests, setJoinRequests] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,7 +26,7 @@ export default function NotificationsScreen() {
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false });
 
-    if (error) Alert.alert('Error', error.message);
+    if (error) Alert.alert(t('error'), error.message);
     else {
       const requests = (data || []).filter((n: any) => n.participant_id);
       const msgs = (data || []).filter((n: any) => !n.participant_id);
@@ -42,7 +44,7 @@ export default function NotificationsScreen() {
       .eq('id', notification.participant_id);
 
     if (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert(t('error'), error.message);
       return;
     }
 
@@ -51,7 +53,7 @@ export default function NotificationsScreen() {
       .update({ is_read: true })
       .eq('id', notification.id);
 
-    Alert.alert('Approved', 'Player has been approved!');
+    Alert.alert(t('success'), 'Player has been approved!');
     fetchNotifications();
   }
 
@@ -62,7 +64,7 @@ export default function NotificationsScreen() {
       .eq('id', notification.participant_id);
 
     if (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert(t('error'), error.message);
       return;
     }
 
@@ -71,7 +73,7 @@ export default function NotificationsScreen() {
       .update({ is_read: true })
       .eq('id', notification.id);
 
-    Alert.alert('Rejected', 'Player has been rejected!');
+    Alert.alert(t('success'), 'Player has been rejected!');
     fetchNotifications();
   }
 
@@ -90,10 +92,10 @@ export default function NotificationsScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchNotifications(); }} />}
     >
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-        <Text style={styles.backText}>← Back</Text>
+        <Text style={styles.backText}>{t('back')}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>Notifications</Text>
+      <Text style={styles.title}>{t('notifications')}</Text>
 
       <View style={styles.tabs}>
         <TouchableOpacity
@@ -101,7 +103,7 @@ export default function NotificationsScreen() {
           onPress={() => setActiveTab('requests')}
         >
           <Text style={[styles.tabText, activeTab === 'requests' && styles.tabTextActive]}>
-            Join requests {joinRequests.filter(n => !n.is_read).length > 0 && `(${joinRequests.filter(n => !n.is_read).length})`}
+            {t('joinRequests')} {joinRequests.filter(n => !n.is_read).length > 0 && `(${joinRequests.filter(n => !n.is_read).length})`}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -109,7 +111,7 @@ export default function NotificationsScreen() {
           onPress={() => setActiveTab('messages')}
         >
           <Text style={[styles.tabText, activeTab === 'messages' && styles.tabTextActive]}>
-            Messages {messages.filter(n => !n.is_read).length > 0 && `(${messages.filter(n => !n.is_read).length})`}
+            {t('messages')} {messages.filter(n => !n.is_read).length > 0 && `(${messages.filter(n => !n.is_read).length})`}
           </Text>
         </TouchableOpacity>
       </View>
@@ -132,17 +134,17 @@ export default function NotificationsScreen() {
               {!notif.is_read && (
                 <View style={styles.actions}>
                   <TouchableOpacity style={styles.approveBtn} onPress={() => handleApprove(notif)}>
-                    <Text style={styles.approveBtnText}>Approve</Text>
+                    <Text style={styles.approveBtnText}>{t('approve')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.rejectBtn} onPress={() => handleReject(notif)}>
-                    <Text style={styles.rejectBtnText}>Reject</Text>
+                    <Text style={styles.rejectBtnText}>{t('reject')}</Text>
                   </TouchableOpacity>
                 </View>
               )}
 
               {notif.is_read && (
                 <View style={styles.statusContainer}>
-                  <Text style={styles.statusText}>Reviewed</Text>
+                  <Text style={styles.statusText}>{t('reviewed')}</Text>
                 </View>
               )}
             </View>
@@ -192,7 +194,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   backText: {
-    fontSize: 14,
+    fontSize: 17,
     color: '#1D9E75',
     fontWeight: '500',
   },
