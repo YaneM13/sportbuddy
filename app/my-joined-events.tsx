@@ -1,9 +1,11 @@
 import { supabase } from '@/lib/supabase';
+import { useLanguage } from '@/lib/useLanguage';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function MyJoinedEventsScreen() {
+  const { t } = useLanguage();
   const [activeEvents, setActiveEvents] = useState<any[]>([]);
   const [finishedEvents, setFinishedEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +30,7 @@ export default function MyJoinedEventsScreen() {
       .order('joined_at', { ascending: false });
 
     if (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert(t('error'), error.message);
       setLoading(false);
       setRefreshing(false);
       return;
@@ -40,11 +42,8 @@ export default function MyJoinedEventsScreen() {
     (data || []).forEach((item: any) => {
       const event = item.events_with_counts;
       if (!event) return;
-      if (event.status === 'finished') {
-        finished.push(item);
-      } else {
-        active.push(item);
-      }
+      if (event.status === 'finished') finished.push(item);
+      else active.push(item);
     });
 
     setActiveEvents(active);
@@ -64,9 +63,9 @@ export default function MyJoinedEventsScreen() {
   };
 
   const getStatusStyle = (status: string) => {
-    if (status === 'approved') return { bg: '#E1F5EE', text: '#0F6E56', label: '✅ Approved' };
-    if (status === 'pending') return { bg: '#FAEEDA', text: '#BA7517', label: '⏳ Pending' };
-    return { bg: '#FCEBEB', text: '#E24B4A', label: '❌ Rejected' };
+    if (status === 'approved') return { bg: '#E1F5EE', text: '#0F6E56', label: '✅ ' + t('approve') + 'd' };
+    if (status === 'pending') return { bg: '#FAEEDA', text: '#BA7517', label: '⏳ ' + t('waitingApproval') };
+    return { bg: '#FCEBEB', text: '#E24B4A', label: '❌ ' + t('reject') + 'ed' };
   };
 
   const renderEventCard = (item: any, isFinished: boolean = false) => {
@@ -101,7 +100,7 @@ export default function MyJoinedEventsScreen() {
         {event.max_players ? (
           <Text style={styles.cardDetail}>👥 {event.approved_count || 0} / {event.max_players} players</Text>
         ) : (
-          <Text style={styles.cardDetail}>👥 Unlimited participants</Text>
+          <Text style={styles.cardDetail}>👥 {t('unlimited')}</Text>
         )}
 
         {isFinished && (
@@ -109,7 +108,7 @@ export default function MyJoinedEventsScreen() {
             style={styles.rateBtn}
             onPress={(e) => { e.stopPropagation(); router.push({ pathname: '/rate-players', params: { event_id: event.id } } as any); }}
           >
-            <Text style={styles.rateBtnText}>⭐ Rate players</Text>
+            <Text style={styles.rateBtnText}>⭐ {t('ratePlayersTitle')}</Text>
           </TouchableOpacity>
         )}
       </TouchableOpacity>
@@ -131,17 +130,17 @@ export default function MyJoinedEventsScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchJoinedEvents(); }} />}
     >
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-        <Text style={styles.backText}>← Back</Text>
+        <Text style={styles.backText}>{t('back')}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>Events I joined</Text>
+      <Text style={styles.title}>{t('eventsJoined')}</Text>
 
       {activeEvents.length === 0 && finishedEvents.length === 0 && (
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>No joined events yet</Text>
-          <Text style={styles.emptySubtext}>Find an event and join it!</Text>
+          <Text style={styles.emptyText}>{t('noEventsNearby')}</Text>
+          <Text style={styles.emptySubtext}>{t('findAnEvent')}</Text>
           <TouchableOpacity style={styles.findBtn} onPress={() => router.push('/find-event' as any)}>
-            <Text style={styles.findBtnText}>Find an event</Text>
+            <Text style={styles.findBtnText}>{t('findEvent')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -181,7 +180,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   backText: {
-    fontSize: 14,
+    fontSize: 17,
     color: '#1D9E75',
     fontWeight: '500',
   },

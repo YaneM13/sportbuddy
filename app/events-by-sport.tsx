@@ -1,5 +1,6 @@
 import { sendPushNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
+import { useLanguage } from '@/lib/useLanguage';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -25,6 +26,7 @@ const categoryColors: any = {
 };
 
 export default function EventsBySportScreen() {
+  const { t } = useLanguage();
   const { sport, category } = useLocalSearchParams();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +64,7 @@ export default function EventsBySportScreen() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert(t('error'), error.message);
       setLoading(false);
       setRefreshing(false);
       return;
@@ -74,12 +76,7 @@ export default function EventsBySportScreen() {
     if (currentCoords) {
       filtered = filtered.filter((event: any) => {
         if (!event.latitude || !event.longitude) return true;
-        const dist = getDistanceKm(
-          currentCoords.latitude,
-          currentCoords.longitude,
-          event.latitude,
-          event.longitude
-        );
+        const dist = getDistanceKm(currentCoords.latitude, currentCoords.longitude, event.latitude, event.longitude);
         return dist <= 20;
       });
     }
@@ -94,9 +91,7 @@ export default function EventsBySportScreen() {
         .eq('user_id', session.user.id);
 
       const statusMap: { [key: string]: string } = {};
-      (participants || []).forEach((p: any) => {
-        statusMap[p.event_id] = p.status;
-      });
+      (participants || []).forEach((p: any) => { statusMap[p.event_id] = p.status; });
       setParticipantStatuses(statusMap);
     }
 
@@ -116,10 +111,7 @@ export default function EventsBySportScreen() {
       .select()
       .single();
 
-    if (error) {
-      Alert.alert('Error', error.message);
-      return;
-    }
+    if (error) { Alert.alert(t('error'), error.message); return; }
 
     await supabase.from('notifications').insert({
       user_id: createdBy,
@@ -129,17 +121,10 @@ export default function EventsBySportScreen() {
     });
 
     const { data: creatorProfile } = await supabase
-      .from('profiles')
-      .select('push_token')
-      .eq('id', createdBy)
-      .single();
+      .from('profiles').select('push_token').eq('id', createdBy).single();
 
     if (creatorProfile?.push_token) {
-      await sendPushNotification(
-        creatorProfile.push_token,
-        'New join request!',
-        `${user.email} wants to join your event!`
-      );
+      await sendPushNotification(creatorProfile.push_token, 'New join request!', `${user.email} wants to join your event!`);
     }
 
     setParticipantStatuses({ ...participantStatuses, [eventId]: 'pending' });
@@ -153,55 +138,24 @@ export default function EventsBySportScreen() {
 
     if (isOwner) {
       return (
-        <TouchableOpacity
-          style={styles.editBtn}
-          onPress={(e) => { e.stopPropagation(); router.push({ pathname: '/edit-event', params: { id: event.id } } as any); }}
-        >
-          <Text style={styles.editBtnText}>Edit event</Text>
+        <TouchableOpacity style={styles.editBtn} onPress={(e) => { e.stopPropagation(); router.push({ pathname: '/edit-event', params: { id: event.id } } as any); }}>
+          <Text style={styles.editBtnText}>{t('editEvent')}</Text>
         </TouchableOpacity>
       );
     }
-
-    if (status === 'approved') {
-      return (
-        <View style={styles.approvedBtn}>
-          <Text style={styles.approvedBtnText}>✅ Already joined</Text>
-        </View>
-      );
-    }
-
-    if (status === 'pending') {
-      return (
-        <View style={styles.pendingBtn}>
-          <Text style={styles.pendingBtnText}>⏳ Waiting for approval</Text>
-        </View>
-      );
-    }
-
-    if (isFull) {
-      return (
-        <View style={styles.fullBtn}>
-          <Text style={styles.fullBtnText}>🔴 Event is full</Text>
-        </View>
-      );
-    }
+    if (status === 'approved') return <View style={styles.approvedBtn}><Text style={styles.approvedBtnText}>{t('alreadyJoined')}</Text></View>;
+    if (status === 'pending') return <View style={styles.pendingBtn}><Text style={styles.pendingBtnText}>{t('waitingApproval')}</Text></View>;
+    if (isFull) return <View style={styles.fullBtn}><Text style={styles.fullBtnText}>{t('eventIsFull')}</Text></View>;
 
     return (
-      <TouchableOpacity
-        style={styles.joinBtn}
-        onPress={(e) => { e.stopPropagation(); handleJoin(event.id, event.created_by); }}
-      >
-        <Text style={styles.joinBtnText}>Join event</Text>
+      <TouchableOpacity style={styles.joinBtn} onPress={(e) => { e.stopPropagation(); handleJoin(event.id, event.created_by); }}>
+        <Text style={styles.joinBtnText}>{t('joinEvent')}</Text>
       </TouchableOpacity>
     );
   };
 
   if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#1D9E75" />
-      </View>
-    );
+    return <View style={styles.centered}><ActivityIndicator size="large" color="#1D9E75" /></View>;
   }
 
   return (
@@ -211,7 +165,7 @@ export default function EventsBySportScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchEvents(); }} />}
     >
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-        <Text style={styles.backText}>← Back</Text>
+        <Text style={styles.backText}>{t('back')}</Text>
       </TouchableOpacity>
 
       <View style={[styles.sportBadge, { backgroundColor: color.bg }]}>
@@ -219,12 +173,12 @@ export default function EventsBySportScreen() {
       </View>
 
       <Text style={styles.title}>{sport} events</Text>
-      <Text style={styles.subtitle}>Events within 20km · Pull down to refresh</Text>
+      <Text style={styles.subtitle}>{t('pullToRefresh')}</Text>
 
       {events.length === 0 && (
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>No {sport} events nearby</Text>
-          <Text style={styles.emptySubtext}>There are currently no events for this sport in your area.</Text>
+          <Text style={styles.emptyText}>{t('noEventsNearby')}</Text>
+          <Text style={styles.emptySubtext}>{t('beFirstToCreate')}</Text>
         </View>
       )}
 
@@ -240,38 +194,22 @@ export default function EventsBySportScreen() {
             onPress={() => router.push({ pathname: '/event-details', params: { id: event.id } } as any)}
           >
             <View style={styles.cardHeader}>
-              {event.skill_level && (
-                <View style={styles.skillBadge}>
-                  <Text style={styles.skillText}>{event.skill_level}</Text>
-                </View>
-              )}
-              {distance && (
-                <View style={styles.distanceBadge}>
-                  <Text style={styles.distanceText}>{distance} km</Text>
-                </View>
-              )}
-              {user && user.id === event.created_by && (
-                <View style={styles.ownerBadge}>
-                  <Text style={styles.ownerText}>My event</Text>
-                </View>
-              )}
+              {event.skill_level && <View style={styles.skillBadge}><Text style={styles.skillText}>{event.skill_level}</Text></View>}
+              {distance && <View style={styles.distanceBadge}><Text style={styles.distanceText}>{distance} km</Text></View>}
+              {user && user.id === event.created_by && <View style={styles.ownerBadge}><Text style={styles.ownerText}>My event</Text></View>}
             </View>
 
             <Text style={styles.cardTitle}>{event.title}</Text>
-            {event.description && (
-              <Text style={styles.cardDescription}>{event.description}</Text>
-            )}
+            {event.description && <Text style={styles.cardDescription}>{event.description}</Text>}
             <Text style={styles.cardDetail}>📍 {event.location}</Text>
             <Text style={styles.cardDetail}>📅 {event.date} at {event.time} — {event.end_time}</Text>
             {event.max_players ? (
               <Text style={styles.cardDetail}>👥 {event.approved_count || 0} / {event.max_players} players</Text>
             ) : (
-              <Text style={styles.cardDetail}>👥 Unlimited participants</Text>
+              <Text style={styles.cardDetail}>👥 {t('unlimited')}</Text>
             )}
 
-            <View style={styles.cardActions}>
-              {renderJoinButton(event)}
-            </View>
+            <View style={styles.cardActions}>{renderJoinButton(event)}</View>
           </TouchableOpacity>
         );
       })}
@@ -280,184 +218,38 @@ export default function EventsBySportScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    padding: 24,
-    paddingTop: 60,
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backBtn: {
-    marginBottom: 16,
-  },
-  backText: {
-    fontSize: 14,
-    color: '#1D9E75',
-    fontWeight: '500',
-  },
-  sportBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 99,
-    marginBottom: 8,
-  },
-  sportBadgeText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1D9E75',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#888',
-    marginBottom: 24,
-  },
-  empty: {
-    alignItems: 'center',
-    marginTop: 60,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#444',
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#888',
-    textAlign: 'center',
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    borderWidth: 0.5,
-    borderColor: '#e0e0e0',
-    padding: 16,
-    marginBottom: 16,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10,
-    flexWrap: 'wrap',
-  },
-  skillBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 99,
-    backgroundColor: '#F1EFE8',
-  },
-  skillText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#444441',
-  },
-  distanceBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 99,
-    backgroundColor: '#E6F1FB',
-  },
-  distanceText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#185FA5',
-  },
-  ownerBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 99,
-    backgroundColor: '#EEEDFE',
-  },
-  ownerText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#534AB7',
-  },
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 8,
-  },
-  cardDescription: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 8,
-    fontStyle: 'italic',
-  },
-  cardDetail: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 4,
-  },
-  cardActions: {
-    marginTop: 12,
-  },
-  joinBtn: {
-    backgroundColor: '#1D9E75',
-    padding: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  joinBtnText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  pendingBtn: {
-    backgroundColor: '#FAEEDA',
-    padding: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  pendingBtnText: {
-    color: '#BA7517',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  approvedBtn: {
-    backgroundColor: '#E1F5EE',
-    padding: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  approvedBtnText: {
-    color: '#0F6E56',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  fullBtn: {
-    backgroundColor: '#FCEBEB',
-    padding: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  fullBtnText: {
-    color: '#E24B4A',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  editBtn: {
-    backgroundColor: '#EEEDFE',
-    padding: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  editBtnText: {
-    color: '#534AB7',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  content: { padding: 24, paddingTop: 60 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  backBtn: { marginBottom: 16 },
+  backText: { fontSize: 17, color: '#1D9E75', fontWeight: '500' },
+  sportBadge: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 99, marginBottom: 8 },
+  sportBadgeText: { fontSize: 13, fontWeight: '500' },
+  title: { fontSize: 28, fontWeight: 'bold', color: '#1D9E75', marginBottom: 4 },
+  subtitle: { fontSize: 14, color: '#888', marginBottom: 24 },
+  empty: { alignItems: 'center', marginTop: 60 },
+  emptyText: { fontSize: 18, fontWeight: 'bold', color: '#444', marginBottom: 8 },
+  emptySubtext: { fontSize: 14, color: '#888', textAlign: 'center' },
+  card: { backgroundColor: '#fff', borderRadius: 16, borderWidth: 0.5, borderColor: '#e0e0e0', padding: 16, marginBottom: 16 },
+  cardHeader: { flexDirection: 'row', gap: 8, marginBottom: 10, flexWrap: 'wrap' },
+  skillBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, backgroundColor: '#F1EFE8' },
+  skillText: { fontSize: 12, fontWeight: '500', color: '#444441' },
+  distanceBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, backgroundColor: '#E6F1FB' },
+  distanceText: { fontSize: 12, fontWeight: '500', color: '#185FA5' },
+  ownerBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, backgroundColor: '#EEEDFE' },
+  ownerText: { fontSize: 12, fontWeight: '500', color: '#534AB7' },
+  cardTitle: { fontSize: 17, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 8 },
+  cardDescription: { fontSize: 13, color: '#666', marginBottom: 8, fontStyle: 'italic' },
+  cardDetail: { fontSize: 14, color: '#555', marginBottom: 4 },
+  cardActions: { marginTop: 12 },
+  joinBtn: { backgroundColor: '#1D9E75', padding: 12, borderRadius: 12, alignItems: 'center' },
+  joinBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+  pendingBtn: { backgroundColor: '#FAEEDA', padding: 12, borderRadius: 12, alignItems: 'center' },
+  pendingBtnText: { color: '#BA7517', fontWeight: 'bold', fontSize: 14 },
+  approvedBtn: { backgroundColor: '#E1F5EE', padding: 12, borderRadius: 12, alignItems: 'center' },
+  approvedBtnText: { color: '#0F6E56', fontWeight: 'bold', fontSize: 14 },
+  fullBtn: { backgroundColor: '#FCEBEB', padding: 12, borderRadius: 12, alignItems: 'center' },
+  fullBtnText: { color: '#E24B4A', fontWeight: 'bold', fontSize: 14 },
+  editBtn: { backgroundColor: '#EEEDFE', padding: 12, borderRadius: 12, alignItems: 'center' },
+  editBtnText: { color: '#534AB7', fontWeight: 'bold', fontSize: 14 },
 });

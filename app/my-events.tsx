@@ -1,9 +1,11 @@
 import { supabase } from '@/lib/supabase';
+import { useLanguage } from '@/lib/useLanguage';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function MyEventsScreen() {
+  const { t } = useLanguage();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -26,7 +28,7 @@ export default function MyEventsScreen() {
       .eq('created_by', session.user.id)
       .order('created_at', { ascending: false });
 
-    if (error) Alert.alert('Error', error.message);
+    if (error) Alert.alert(t('error'), error.message);
     else setEvents(data || []);
     setLoading(false);
     setRefreshing(false);
@@ -57,18 +59,18 @@ export default function MyEventsScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchMyEvents(); }} />}
     >
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-        <Text style={styles.backText}>← Back</Text>
+        <Text style={styles.backText}>{t('back')}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>My events</Text>
-      <Text style={styles.subtitle}>{events.length} event{events.length !== 1 ? 's' : ''} created</Text>
+      <Text style={styles.title}>{t('myEvents')}</Text>
+      <Text style={styles.subtitle}>{events.length} {events.length !== 1 ? 'events' : 'event'} {t('eventsCreated').toLowerCase()}</Text>
 
       {events.length === 0 && (
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>No events yet</Text>
-          <Text style={styles.emptySubtext}>Create your first event!</Text>
+          <Text style={styles.emptyText}>{t('noEventsNearby')}</Text>
+          <Text style={styles.emptySubtext}>{t('beFirstToCreate')}</Text>
           <TouchableOpacity style={styles.createBtn} onPress={() => router.push('/create-event' as any)}>
-            <Text style={styles.createBtnText}>Create an event</Text>
+            <Text style={styles.createBtnText}>{t('createEvent')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -98,7 +100,7 @@ export default function MyEventsScreen() {
             {event.max_players ? (
               <Text style={styles.cardDetail}>👥 {event.approved_count || 0} / {event.max_players} players</Text>
             ) : (
-              <Text style={styles.cardDetail}>👥 Unlimited participants</Text>
+              <Text style={styles.cardDetail}>👥 {t('unlimited')}</Text>
             )}
 
             <View style={styles.cardActions}>
@@ -106,13 +108,13 @@ export default function MyEventsScreen() {
                 style={styles.editBtn}
                 onPress={(e) => { e.stopPropagation(); router.push({ pathname: '/edit-event', params: { id: event.id } } as any); }}
               >
-                <Text style={styles.editBtnText}>Edit event</Text>
+                <Text style={styles.editBtnText}>{t('editEvent')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.rateBtn}
                 onPress={(e) => { e.stopPropagation(); router.push({ pathname: '/rate-players', params: { event_id: event.id } } as any); }}
               >
-                <Text style={styles.rateBtnText}>Rate players</Text>
+                <Text style={styles.rateBtnText}>{t('ratePlayersTitle')}</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -140,7 +142,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   backText: {
-    fontSize: 14,
+    fontSize: 17,
     color: '#1D9E75',
     fontWeight: '500',
   },

@@ -1,9 +1,11 @@
 import { supabase } from '@/lib/supabase';
+import { useLanguage } from '@/lib/useLanguage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function RatePlayersScreen() {
+  const { t } = useLanguage();
   const { event_id } = useLocalSearchParams();
   const [participants, setParticipants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,14 +29,14 @@ export default function RatePlayersScreen() {
       .eq('status', 'approved')
       .neq('user_id', session.user.id);
 
-    if (error) Alert.alert('Error', error.message);
+    if (error) Alert.alert(t('error'), error.message);
     else setParticipants(data || []);
     setLoading(false);
   }
 
   async function handleSubmit() {
     if (Object.keys(ratings).length === 0) {
-      Alert.alert('Error', 'Please rate at least one player');
+      Alert.alert(t('error'), 'Please rate at least one player');
       return;
     }
 
@@ -48,7 +50,7 @@ export default function RatePlayersScreen() {
       });
     }
     setSubmitting(false);
-    Alert.alert('Success', 'Ratings submitted!');
+    Alert.alert(t('success'), 'Ratings submitted!');
     router.back();
   }
 
@@ -71,15 +73,16 @@ export default function RatePlayersScreen() {
       </View>
     );
   }
+
   if (!loading && participants.length === 0) {
     return (
       <View style={styles.centered}>
         <View style={styles.emptyModal}>
           <Text style={styles.emptyModalEmoji}>👥</Text>
-          <Text style={styles.emptyModalTitle}>No players to rate</Text>
-          <Text style={styles.emptyModalText}>There are no approved participants for this event.</Text>
+          <Text style={styles.emptyModalTitle}>{t('noPlayersToRate')}</Text>
+          <Text style={styles.emptyModalText}>{t('noParticipantsToRate')}</Text>
           <TouchableOpacity style={styles.emptyModalBtn} onPress={() => router.back()}>
-            <Text style={styles.emptyModalBtnText}>Go back</Text>
+            <Text style={styles.emptyModalBtnText}>{t('goBack')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -89,17 +92,11 @@ export default function RatePlayersScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-        <Text style={styles.backText}>← Back</Text>
+        <Text style={styles.backText}>{t('back')}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>Rate players</Text>
+      <Text style={styles.title}>{t('ratePlayersTitle')}</Text>
       <Text style={styles.subtitle}>Rate the players from this event</Text>
-
-      {participants.length === 0 && (
-        <View style={styles.empty}>
-          <Text style={styles.emptyText}>No players to rate</Text>
-        </View>
-      )}
 
       {participants.map((participant) => (
         <View key={participant.id} style={styles.card}>
@@ -117,7 +114,9 @@ export default function RatePlayersScreen() {
 
       {participants.length > 0 && (
         <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={submitting}>
-          <Text style={styles.submitBtnText}>{submitting ? 'Submitting...' : 'Submit ratings'}</Text>
+          <Text style={styles.submitBtnText}>
+            {submitting ? t('saving') : t('submitRatings')}
+          </Text>
         </TouchableOpacity>
       )}
     </ScrollView>
@@ -142,7 +141,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   backText: {
-    fontSize: 14,
+    fontSize: 17,
     color: '#1D9E75',
     fontWeight: '500',
   },
@@ -156,14 +155,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
     marginBottom: 24,
-  },
-  empty: {
-    alignItems: 'center',
-    marginTop: 60,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#888',
   },
   card: {
     backgroundColor: '#fff',

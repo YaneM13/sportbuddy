@@ -1,11 +1,13 @@
 import BackButton from '@/components/BackButton';
 import { sendPushNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
+import { useLanguage } from '@/lib/useLanguage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function EventDetailsScreen() {
+  const { t } = useLanguage();
   const { id } = useLocalSearchParams();
   const [event, setEvent] = useState<any>(null);
   const [participants, setParticipants] = useState<any[]>([]);
@@ -30,7 +32,7 @@ export default function EventDetailsScreen() {
       .single();
 
     if (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert(t('error'), error.message);
       setLoading(false);
       return;
     }
@@ -72,7 +74,7 @@ export default function EventDetailsScreen() {
       .single();
 
     if (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert(t('error'), error.message);
       return;
     }
 
@@ -103,7 +105,7 @@ export default function EventDetailsScreen() {
 
   function handleDirections() {
     if (!event?.latitude || !event?.longitude) {
-      Alert.alert('Error', 'Location not available for this event');
+      Alert.alert(t('error'), 'Location not available for this event');
       return;
     }
     const lat = event.latitude;
@@ -127,7 +129,7 @@ export default function EventDetailsScreen() {
           style={styles.editBtn}
           onPress={() => router.push({ pathname: '/edit-event', params: { id: event.id } } as any)}
         >
-          <Text style={styles.editBtnText}>Edit event</Text>
+          <Text style={styles.editBtnText}>{t('editEvent')}</Text>
         </TouchableOpacity>
       );
     }
@@ -135,7 +137,7 @@ export default function EventDetailsScreen() {
     if (joinStatus === 'approved') {
       return (
         <View style={styles.approvedBtn}>
-          <Text style={styles.approvedBtnText}>✅ Already joined</Text>
+          <Text style={styles.approvedBtnText}>{t('alreadyJoined')}</Text>
         </View>
       );
     }
@@ -143,7 +145,7 @@ export default function EventDetailsScreen() {
     if (joinStatus === 'pending') {
       return (
         <View style={styles.pendingBtn}>
-          <Text style={styles.pendingBtnText}>⏳ Waiting for approval</Text>
+          <Text style={styles.pendingBtnText}>{t('waitingApproval')}</Text>
         </View>
       );
     }
@@ -151,14 +153,14 @@ export default function EventDetailsScreen() {
     if (isFull) {
       return (
         <View style={styles.fullBtn}>
-          <Text style={styles.fullBtnText}>🔴 Event is full</Text>
+          <Text style={styles.fullBtnText}>{t('eventIsFull')}</Text>
         </View>
       );
     }
 
     return (
       <TouchableOpacity style={styles.joinBtn} onPress={handleJoin}>
-        <Text style={styles.joinBtnText}>Join event</Text>
+        <Text style={styles.joinBtnText}>{t('joinEvent')}</Text>
       </TouchableOpacity>
     );
   };
@@ -191,7 +193,7 @@ export default function EventDetailsScreen() {
         {event?.max_players ? (
           <Text style={styles.detail}>👥 {event?.approved_count || 0} / {event?.max_players} players</Text>
         ) : (
-          <Text style={styles.detail}>👥 Unlimited participants</Text>
+          <Text style={styles.detail}>👥 {t('unlimited')}</Text>
         )}
       </View>
 
@@ -200,7 +202,7 @@ export default function EventDetailsScreen() {
 
         {isParticipant && (
           <TouchableOpacity style={styles.directionsBtn} onPress={handleDirections}>
-            <Text style={styles.directionsBtnText}>🗺️ Get directions</Text>
+            <Text style={styles.directionsBtnText}>{t('getDirections')}</Text>
           </TouchableOpacity>
         )}
 
@@ -209,16 +211,16 @@ export default function EventDetailsScreen() {
             style={styles.chatBtn}
             onPress={() => router.push({ pathname: '/event-chat', params: { event_id: event?.id, event_title: event?.title } } as any)}
           >
-            <Text style={styles.chatBtnText}>💬 Group chat</Text>
+            <Text style={styles.chatBtnText}>{t('groupChat')}</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {isParticipant && (
         <View style={styles.participantsSection}>
-          <Text style={styles.sectionTitle}>Participants ({participants.length})</Text>
+          <Text style={styles.sectionTitle}>{t('participants')} ({participants.length})</Text>
           {participants.length === 0 ? (
-            <Text style={styles.noParticipants}>No approved participants yet</Text>
+            <Text style={styles.noParticipants}>{t('noParticipants')}</Text>
           ) : (
             participants.map((p) => (
               <TouchableOpacity
@@ -254,178 +256,37 @@ export default function EventDetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    padding: 24,
-    paddingTop: 60,
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 8,
-  },
-  description: {
-    fontSize: 14,
-    color: '#666',
-    fontStyle: 'italic',
-    marginBottom: 16,
-  },
-  detailsCard: {
-    backgroundColor: '#F9F9F9',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    gap: 8,
-  },
-  detail: {
-    fontSize: 14,
-    color: '#444',
-  },
-  joinContainer: {
-    marginBottom: 24,
-    gap: 10,
-  },
-  joinBtn: {
-    backgroundColor: '#1D9E75',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  joinBtnText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  pendingBtn: {
-    backgroundColor: '#FAEEDA',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  pendingBtnText: {
-    color: '#BA7517',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  approvedBtn: {
-    backgroundColor: '#E1F5EE',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  approvedBtnText: {
-    color: '#0F6E56',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  fullBtn: {
-    backgroundColor: '#FCEBEB',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  fullBtnText: {
-    color: '#E24B4A',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  editBtn: {
-    backgroundColor: '#EEEDFE',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  editBtnText: {
-    color: '#534AB7',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  directionsBtn: {
-    backgroundColor: '#E1F5EE',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  directionsBtnText: {
-    color: '#0F6E56',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  chatBtn: {
-    backgroundColor: '#E6F1FB',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  chatBtnText: {
-    color: '#185FA5',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  participantsSection: {
-    marginTop: 8,
-  },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '500',
-    color: '#1a1a1a',
-    marginBottom: 12,
-  },
-  noParticipants: {
-    fontSize: 14,
-    color: '#888',
-  },
-  participantRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 0.5,
-    borderColor: '#e0e0e0',
-    marginBottom: 8,
-    gap: 12,
-  },
-  participantAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  participantAvatarPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#1D9E75',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  participantAvatarText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  participantInfo: {
-    flex: 1,
-  },
-  participantNickname: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1D9E75',
-  },
-  participantName: {
-    fontSize: 13,
-    color: '#888',
-  },
-  participantArrow: {
-    fontSize: 16,
-    color: '#888',
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  content: { padding: 24, paddingTop: 60 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  title: { fontSize: 26, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 8 },
+  description: { fontSize: 14, color: '#666', fontStyle: 'italic', marginBottom: 16 },
+  detailsCard: { backgroundColor: '#F9F9F9', borderRadius: 16, padding: 16, marginBottom: 16, gap: 8 },
+  detail: { fontSize: 14, color: '#444' },
+  joinContainer: { marginBottom: 24, gap: 10 },
+  joinBtn: { backgroundColor: '#1D9E75', padding: 16, borderRadius: 12, alignItems: 'center' },
+  joinBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
+  pendingBtn: { backgroundColor: '#FAEEDA', padding: 16, borderRadius: 12, alignItems: 'center' },
+  pendingBtnText: { color: '#BA7517', fontWeight: 'bold', fontSize: 15 },
+  approvedBtn: { backgroundColor: '#E1F5EE', padding: 16, borderRadius: 12, alignItems: 'center' },
+  approvedBtnText: { color: '#0F6E56', fontWeight: 'bold', fontSize: 15 },
+  fullBtn: { backgroundColor: '#FCEBEB', padding: 16, borderRadius: 12, alignItems: 'center' },
+  fullBtnText: { color: '#E24B4A', fontWeight: 'bold', fontSize: 15 },
+  editBtn: { backgroundColor: '#EEEDFE', padding: 16, borderRadius: 12, alignItems: 'center' },
+  editBtnText: { color: '#534AB7', fontWeight: 'bold', fontSize: 15 },
+  directionsBtn: { backgroundColor: '#E1F5EE', padding: 16, borderRadius: 12, alignItems: 'center' },
+  directionsBtnText: { color: '#0F6E56', fontWeight: 'bold', fontSize: 15 },
+  chatBtn: { backgroundColor: '#E6F1FB', padding: 16, borderRadius: 12, alignItems: 'center' },
+  chatBtnText: { color: '#185FA5', fontWeight: 'bold', fontSize: 15 },
+  participantsSection: { marginTop: 8 },
+  sectionTitle: { fontSize: 17, fontWeight: '500', color: '#1a1a1a', marginBottom: 12 },
+  noParticipants: { fontSize: 14, color: '#888' },
+  participantRow: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, borderWidth: 0.5, borderColor: '#e0e0e0', marginBottom: 8, gap: 12 },
+  participantAvatar: { width: 44, height: 44, borderRadius: 22 },
+  participantAvatarPlaceholder: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#1D9E75', alignItems: 'center', justifyContent: 'center' },
+  participantAvatarText: { fontSize: 14, fontWeight: 'bold', color: '#fff' },
+  participantInfo: { flex: 1 },
+  participantNickname: { fontSize: 14, fontWeight: '500', color: '#1D9E75' },
+  participantName: { fontSize: 13, color: '#888' },
+  participantArrow: { fontSize: 16, color: '#888' },
 });
