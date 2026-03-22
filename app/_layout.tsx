@@ -1,5 +1,6 @@
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { registerForPushNotifications, savePushToken } from '@/lib/notifications';
+import { loadLanguage } from '@/lib/useLanguage';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { Stack } from 'expo-router';
@@ -18,6 +19,8 @@ export default function RootLayout() {
 
   useEffect(() => {
     async function setup() {
+      await loadLanguage();
+
       const { status } = await Location.requestForegroundPermissionsAsync();
       setLocationGranted(status === 'granted');
 
@@ -70,9 +73,9 @@ export default function RootLayout() {
         <Stack.Screen name="rate-players" />
         <Stack.Screen name="user-profile" />
         <Stack.Screen name="event-details" />
-        <Stack.Screen name="event-chat" />
         <Stack.Screen name="personal-details" />
         <Stack.Screen name="change-password" />
+        <Stack.Screen name="event-chat" />
         <Stack.Screen name="pick-location" />
         <Stack.Screen name="modal" />
       </Stack>

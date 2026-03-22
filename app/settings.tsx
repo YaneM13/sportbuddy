@@ -1,143 +1,155 @@
 import { supabase } from '@/lib/supabase';
+import { languageNames } from '@/lib/translations';
+import { Language, setLanguage, useLanguage } from '@/lib/useLanguage';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
-  const [avatarUrl, setAvatarUrl] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [uploading, setUploading] = useState(false);
+  const [languageModalVisible, setLanguageModalVisible] = useState(false);
+  const { t, currentLanguage } = useLanguage();
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
+  async function handleChangePhoto() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission required', 'Please allow access to your photo library');
+      return;
+    }
 
-  async function fetchProfile() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    setUser(session.user);
-
-    const { data } = await supabase
-      .from('profiles')
-      .select('avatar_url')
-      .eq('id', session.user.id)
-      .single();
-
-    if (data?.avatar_url) setAvatarUrl(data.avatar_url);
-  }
-
-  async function handlePickImage() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.5,
+      quality: 0.8,
     });
 
-    if (!result.canceled && result.assets[0]) {
-      await uploadAvatar(result.assets[0].uri);
-    }
-  }
+    if (result.canceled) return;
 
-  async function uploadAvatar(uri: string) {
-    setLoading(true);
+    setUploading(true);
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    const arrayBuffer = await new Response(blob).arrayBuffer();
+    const uri = result.assets[0].uri;
     const fileName = `${session.user.id}.jpg`;
 
-    const { error } = await supabase.storage
-      .from('avatars')
-      .upload(fileName, arrayBuffer, { contentType: 'image/jpeg', upsert: true });
+    const formData = new FormData();
+    formData.append('file', { uri, name: fileName, type: 'image/jpeg' } as any);
 
-    if (error) {
-      Alert.alert('Error', error.message);
-      setLoading(false);
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, formData, { upsert: true, contentType: 'image/jpeg' });
+
+    if (uploadError) {
+      Alert.alert('Error', uploadError.message);
+      setUploading(false);
       return;
     }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('avatars')
-      .getPublicUrl(fileName);
+    const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
 
-    await supabase.from('profiles').upsert({
-      id: session.user.id,
-      avatar_url: publicUrl,
-    });
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ avatar_url: publicUrl })
+      .eq('id', session.user.id);
 
-    setAvatarUrl(publicUrl);
-    Alert.alert('Success', 'Profile picture updated!');
-    setLoading(false);
+    if (updateError) Alert.alert('Error', updateError.message);
+    else Alert.alert('Success', 'Profile photo updated!');
+
+    setUploading(false);
   }
 
   async function handleDeleteAccount() {
     Alert.alert(
-      'Delete account',
+      t('deleteAccount'),
       'Are you sure you want to delete your account? This action cannot be undone.',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            await supabase.auth.signOut();
-            router.replace('/');
+            const { error } = await supabase.rpc('delete_user');
+            if (error) Alert.alert('Error', error.message);
+            else {
+              await supabase.auth.signOut();
+              router.replace('/');
+            }
           },
         },
       ]
     );
   }
 
-  const getInitials = (email: string) => email?.substring(0, 2).toUpperCase();
+  async function handleSelectLanguage(lang: Language) {
+    await setLanguage(lang);
+    setLanguageModalVisible(false);
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-        <Text style={styles.backText}>← Back</Text>
+        <Text style={styles.backText}>← {t('back').replace('← ', '')}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>Settings</Text>
+      <Text style={styles.title}>{t('settings')}</Text>
 
+      <Text style={styles.sectionTitle}>{t('profilePicture')}</Text>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Profile picture</Text>
-        <View style={styles.avatarContainer}>
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarText}>{user ? getInitials(user.email) : ''}</Text>
-            </View>
-          )}
-          <TouchableOpacity style={styles.changePhotoBtn} onPress={handlePickImage} disabled={loading}>
-            <Text style={styles.changePhotoText}>{loading ? 'Uploading...' : 'Change photo'}</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.menuItem} onPress={handleChangePhoto} disabled={uploading}>
+          <Text style={styles.menuItemText}>{uploading ? t('saving') : t('changePhoto')}</Text>
+          <Text style={styles.menuArrow}>→</Text>
+        </TouchableOpacity>
       </View>
 
+      <Text style={styles.sectionTitle}>{t('account')}</Text>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Account</Text>
-
         <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/personal-details' as any)}>
-          <Text style={styles.menuItemText}>Personal details</Text>
+          <Text style={styles.menuItemText}>{t('personalDetails')}</Text>
           <Text style={styles.menuArrow}>→</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/change-password' as any)}>
-          <Text style={styles.menuItemText}>Change password</Text>
+        <TouchableOpacity style={[styles.menuItem, styles.menuItemLast]} onPress={() => router.push('/change-password' as any)}>
+          <Text style={styles.menuItemText}>{t('changePassword')}</Text>
           <Text style={styles.menuArrow}>→</Text>
         </TouchableOpacity>
       </View>
 
+      <Text style={styles.sectionTitle}>🌍 Language</Text>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Danger zone</Text>
-        <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteAccount}>
-          <Text style={styles.deleteBtnText}>Delete account</Text>
+        <TouchableOpacity style={[styles.menuItem, styles.menuItemLast]} onPress={() => setLanguageModalVisible(true)}>
+          <Text style={styles.menuItemText}>{languageNames[currentLanguage]}</Text>
+          <Text style={styles.menuArrow}>→</Text>
         </TouchableOpacity>
       </View>
+
+      <Text style={styles.sectionTitle}>{t('dangerZone')}</Text>
+      <View style={styles.section}>
+        <TouchableOpacity style={[styles.menuItem, styles.menuItemLast]} onPress={handleDeleteAccount}>
+          <Text style={styles.menuItemDanger}>{t('deleteAccount')}</Text>
+          <Text style={styles.menuArrow}>→</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Modal visible={languageModalVisible} transparent animationType="slide">
+        <TouchableOpacity style={styles.modalOverlay} onPress={() => setLanguageModalVisible(false)}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>🌍 Select Language</Text>
+            {(Object.keys(languageNames) as Language[]).map((lang) => (
+              <TouchableOpacity
+                key={lang}
+                style={[styles.languageItem, currentLanguage === lang && styles.languageItemActive]}
+                onPress={() => handleSelectLanguage(lang)}
+              >
+                <Text style={[styles.languageText, currentLanguage === lang && styles.languageTextActive]}>
+                  {languageNames[lang]}
+                </Text>
+                {currentLanguage === lang && <Text style={styles.checkmark}>✓</Text>}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </ScrollView>
   );
 }
@@ -145,7 +157,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f5f5',
   },
   content: {
     padding: 24,
@@ -165,79 +177,88 @@ const styles = StyleSheet.create({
     color: '#1D9E75',
     marginBottom: 32,
   },
-  section: {
-    marginBottom: 32,
-  },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '500',
-    color: '#1a1a1a',
-    marginBottom: 16,
-    paddingBottom: 8,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#e0e0e0',
+    color: '#888',
+    marginBottom: 8,
+    marginLeft: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  avatarContainer: {
-    alignItems: 'center',
-    gap: 12,
-  },
-  avatarImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
-  avatarPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#1D9E75',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  changePhotoBtn: {
-    backgroundColor: '#E1F5EE',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 99,
-  },
-  changePhotoText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#0F6E56',
+  section: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    marginBottom: 24,
+    overflow: 'hidden',
+    borderWidth: 0.5,
+    borderColor: '#e0e0e0',
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    borderRadius: 12,
-    borderWidth: 0.5,
-    borderColor: '#e0e0e0',
-    marginBottom: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#e0e0e0',
+  },
+  menuItemLast: {
+    borderBottomWidth: 0,
   },
   menuItemText: {
     fontSize: 15,
     color: '#1a1a1a',
   },
+  menuItemDanger: {
+    fontSize: 15,
+    color: '#E24B4A',
+  },
   menuArrow: {
     fontSize: 16,
     color: '#888',
   },
-  deleteBtn: {
-    width: '100%',
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  languageItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 16,
     borderRadius: 12,
-    backgroundColor: '#FCEBEB',
-    alignItems: 'center',
+    marginBottom: 8,
+    backgroundColor: '#F9F9F9',
   },
-  deleteBtnText: {
-    fontSize: 15,
+  languageItemActive: {
+    backgroundColor: '#E1F5EE',
+  },
+  languageText: {
+    fontSize: 16,
+    color: '#1a1a1a',
+  },
+  languageTextActive: {
+    color: '#1D9E75',
+    fontWeight: '500',
+  },
+  checkmark: {
+    fontSize: 16,
+    color: '#1D9E75',
     fontWeight: 'bold',
-    color: '#E24B4A',
   },
 });
