@@ -30,6 +30,7 @@ export default function AllEventsMapScreen() {
     const { data, error } = await supabase
       .from('events')
       .select('*')
+      .eq('status', 'active')
       .order('created_at', { ascending: false });
 
     if (error) {

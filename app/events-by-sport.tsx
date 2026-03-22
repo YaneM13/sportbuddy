@@ -61,6 +61,7 @@ export default function EventsBySportScreen() {
       .from('events_with_counts')
       .select('*')
       .eq('sport', sport)
+      .eq('status', 'active')
       .order('created_at', { ascending: false });
 
     if (error) {
