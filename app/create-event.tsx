@@ -1,18 +1,12 @@
 import { sendPushNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
+import { useLanguage } from '@/lib/useLanguage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-
-const categories = [
-  { id: 'team', label: 'Team sports' },
-  { id: 'individual', label: 'Individual sports' },
-  { id: 'water', label: 'Water sports' },
-  { id: 'watch', label: 'Watch sports' },
-];
 
 const sportsByCategory: any = {
   team: ['Football', 'Basketball', 'Basketball 3x3', 'Volleyball', 'Beach Volleyball', 'Rugby', 'Cricket', 'Handball'],
@@ -21,9 +15,8 @@ const sportsByCategory: any = {
   watch: ['Stadium', 'Sports bar / Cafe', 'Open air'],
 };
 
-const skillLevels = ['Beginner', 'Intermediate', 'Advanced'];
-
 export default function CreateEventScreen() {
+  const { t } = useLanguage();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -45,6 +38,19 @@ export default function CreateEventScreen() {
   const searchTimeout = useRef<any>(null);
 
   const isWatchSport = category === 'watch';
+
+  const categories = [
+    { id: 'team', label: t('teamSports') },
+    { id: 'individual', label: t('individualSports') },
+    { id: 'water', label: t('waterSports') },
+    { id: 'watch', label: t('watchSports') },
+  ];
+
+  const skillLevels = [
+    { id: 'Beginner', label: t('beginner') },
+    { id: 'Intermediate', label: t('intermediate') },
+    { id: 'Advanced', label: t('advanced') },
+  ];
 
   useFocusEffect(
     useCallback(() => {
@@ -115,11 +121,11 @@ export default function CreateEventScreen() {
 
   async function handleCreate() {
     if (!title || !category || !sport || !location) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert(t('error'), 'Please fill in all fields');
       return;
     }
     if (!isWatchSport && !players) {
-      Alert.alert('Error', 'Please enter number of players');
+      Alert.alert(t('error'), 'Please enter number of players');
       return;
     }
 
@@ -139,7 +145,7 @@ export default function CreateEventScreen() {
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      Alert.alert('Error', 'You must be signed in to create an event');
+      Alert.alert(t('error'), 'You must be signed in to create an event');
       setLoading(false);
       return;
     }
@@ -162,7 +168,7 @@ export default function CreateEventScreen() {
     }).select().single();
 
     if (error) {
-      Alert.alert('Error', JSON.stringify(error));
+      Alert.alert(t('error'), JSON.stringify(error));
       setLoading(false);
       return;
     }
@@ -185,7 +191,7 @@ export default function CreateEventScreen() {
       }
     }
 
-    Alert.alert('Success', 'Event created!');
+    Alert.alert(t('success'), 'Event created!');
     router.replace('/');
     setLoading(false);
   }
@@ -193,32 +199,27 @@ export default function CreateEventScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-        <Text style={styles.backText}>← Back</Text>
+        <Text style={styles.backText}>{t('back')}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>Create an event</Text>
+      <Text style={styles.title}>{t('createAnEvent')}</Text>
 
-      <Text style={styles.label}>Title</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="e.g. Football in the park"
-        value={title}
-        onChangeText={setTitle}
-      />
+      <Text style={styles.label}>{t('title')}</Text>
+      <TextInput style={styles.input} placeholder="e.g. Football in the park" value={title} onChangeText={setTitle} />
 
       <Text style={styles.label}>
-        Description <Text style={styles.optional}>(optional)</Text>
+        {t('description')} <Text style={styles.optional}>{t('optional')}</Text>
       </Text>
       <TextInput
         style={[styles.input, styles.textArea]}
-        placeholder="e.g. Bring your own ball, wear sports shoes..."
+        placeholder="e.g. Bring your own ball..."
         value={description}
         onChangeText={setDescription}
         multiline
         numberOfLines={3}
       />
 
-      <Text style={styles.label}>Category</Text>
+      <Text style={styles.label}>{t('category')}</Text>
       <View style={styles.optionsRow}>
         {categories.map((cat) => (
           <TouchableOpacity
@@ -235,7 +236,7 @@ export default function CreateEventScreen() {
 
       {category !== '' && (
         <>
-          <Text style={styles.label}>Sport</Text>
+          <Text style={styles.label}>{t('sport')}</Text>
           <View style={styles.optionsRow}>
             {sportsByCategory[category].map((s: string) => (
               <TouchableOpacity
@@ -250,7 +251,7 @@ export default function CreateEventScreen() {
         </>
       )}
 
-      <Text style={styles.label}>Location</Text>
+      <Text style={styles.label}>{t('location')}</Text>
       <View style={styles.locationRow}>
         <TextInput
           style={[styles.input, styles.locationInput]}
@@ -258,10 +259,7 @@ export default function CreateEventScreen() {
           value={location}
           onChangeText={searchLocation}
         />
-        <TouchableOpacity
-          style={styles.mapPickBtn}
-          onPress={() => router.push('/pick-location' as any)}
-        >
+        <TouchableOpacity style={styles.mapPickBtn} onPress={() => router.push('/pick-location' as any)}>
           <Text style={styles.mapPickBtnText}>📍 Map</Text>
         </TouchableOpacity>
       </View>
@@ -269,11 +267,7 @@ export default function CreateEventScreen() {
       {locationSuggestions.length > 0 && (
         <View style={styles.suggestions}>
           {locationSuggestions.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.suggestionItem}
-              onPress={() => selectLocation(item)}
-            >
+            <TouchableOpacity key={index} style={styles.suggestionItem} onPress={() => selectLocation(item)}>
               <Text style={styles.suggestionText} numberOfLines={2}>{item.display_name}</Text>
             </TouchableOpacity>
           ))}
@@ -281,11 +275,11 @@ export default function CreateEventScreen() {
       )}
       {selectedLat && (
         <View style={styles.locationConfirmed}>
-          <Text style={styles.locationConfirmedText}>✅ Location selected</Text>
+          <Text style={styles.locationConfirmedText}>{t('locationSelected')}</Text>
         </View>
       )}
 
-      <Text style={styles.label}>Date</Text>
+      <Text style={styles.label}>{t('date')}</Text>
       <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowDatePicker(true)}>
         <Text style={styles.pickerText}>{formatDate(date)}</Text>
       </TouchableOpacity>
@@ -302,7 +296,7 @@ export default function CreateEventScreen() {
         />
       )}
 
-      <Text style={styles.label}>Start time</Text>
+      <Text style={styles.label}>{t('startTime')}</Text>
       <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowStartTimePicker(true)}>
         <Text style={styles.pickerText}>{formatTime(startTime)}</Text>
       </TouchableOpacity>
@@ -319,7 +313,7 @@ export default function CreateEventScreen() {
         />
       )}
 
-      <Text style={styles.label}>End time</Text>
+      <Text style={styles.label}>{t('endTime')}</Text>
       <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowEndTimePicker(true)}>
         <Text style={styles.pickerText}>{formatTime(endTime)}</Text>
       </TouchableOpacity>
@@ -338,7 +332,7 @@ export default function CreateEventScreen() {
 
       {!isWatchSport && (
         <>
-          <Text style={styles.label}>Number of players needed</Text>
+          <Text style={styles.label}>{t('playersNeeded')}</Text>
           <TextInput
             style={styles.input}
             placeholder="e.g. 5"
@@ -351,22 +345,22 @@ export default function CreateEventScreen() {
 
       {isWatchSport && (
         <View style={styles.unlimitedBadge}>
-          <Text style={styles.unlimitedText}>Unlimited participants</Text>
+          <Text style={styles.unlimitedText}>{t('unlimited')}</Text>
         </View>
       )}
 
       {!isWatchSport && (
         <>
-          <Text style={styles.label}>Skill level</Text>
+          <Text style={styles.label}>{t('skillLevel')}</Text>
           <View style={styles.optionsRow}>
             {skillLevels.map((level) => (
               <TouchableOpacity
-                key={level}
-                style={[styles.optionBtn, skillLevel === level && styles.optionBtnActive]}
-                onPress={() => setSkillLevel(level)}
+                key={level.id}
+                style={[styles.optionBtn, skillLevel === level.id && styles.optionBtnActive]}
+                onPress={() => setSkillLevel(level.id)}
               >
-                <Text style={[styles.optionText, skillLevel === level && styles.optionTextActive]}>
-                  {level}
+                <Text style={[styles.optionText, skillLevel === level.id && styles.optionTextActive]}>
+                  {level.label}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -379,209 +373,54 @@ export default function CreateEventScreen() {
         onPress={() => setIsAlert(!isAlert)}
       >
         <Text style={[styles.alertToggleText, isAlert && styles.alertToggleTextActive]}>
-          🔔 {isAlert ? 'Alert event — ON' : 'Alert event — OFF'}
+          🔔 {isAlert ? t('alertEventOn') : t('alertEventOff')}
         </Text>
         <Text style={[styles.alertToggleDesc, isAlert && styles.alertToggleDescActive]}>
-          Notify all nearby users who love this sport
+          {t('alertEventDesc')}
         </Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.createBtn} onPress={handleCreate} disabled={loading}>
-        <Text style={styles.createBtnText}>{loading ? 'Creating...' : 'Create event'}</Text>
+        <Text style={styles.createBtnText}>{loading ? t('creating') : t('createEvent')}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    padding: 24,
-    paddingTop: 60,
-  },
-  backBtn: {
-    marginBottom: 16,
-  },
-  backText: {
-    fontSize: 14,
-    color: '#1D9E75',
-    fontWeight: '500',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1D9E75',
-    marginBottom: 32,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#444',
-    marginBottom: 8,
-  },
-  optional: {
-    fontSize: 12,
-    color: '#888',
-    fontWeight: '400',
-  },
-  input: {
-    width: '100%',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    marginBottom: 8,
-    fontSize: 15,
-  },
-  textArea: {
-    height: 90,
-    textAlignVertical: 'top',
-    marginBottom: 20,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'flex-start',
-    marginBottom: 0,
-  },
-  locationInput: {
-    flex: 1,
-    marginBottom: 8,
-  },
-  mapPickBtn: {
-    backgroundColor: '#E1F5EE',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mapPickBtnText: {
-    fontSize: 13,
-    color: '#0F6E56',
-    fontWeight: '500',
-  },
-  suggestions: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 0.5,
-    borderColor: '#e0e0e0',
-    marginBottom: 8,
-    overflow: 'hidden',
-  },
-  suggestionItem: {
-    padding: 14,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#f0f0f0',
-  },
-  suggestionText: {
-    fontSize: 13,
-    color: '#333',
-  },
-  locationConfirmed: {
-    backgroundColor: '#E1F5EE',
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 16,
-  },
-  locationConfirmedText: {
-    fontSize: 13,
-    color: '#0F6E56',
-    fontWeight: '500',
-  },
-  pickerBtn: {
-    width: '100%',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    marginBottom: 20,
-    backgroundColor: '#fff',
-  },
-  pickerText: {
-    fontSize: 15,
-    color: '#1a1a1a',
-  },
-  optionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 20,
-  },
-  optionBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 99,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    backgroundColor: '#fff',
-  },
-  optionBtnActive: {
-    backgroundColor: '#1D9E75',
-    borderColor: '#1D9E75',
-  },
-  optionText: {
-    fontSize: 13,
-    color: '#444',
-  },
-  optionTextActive: {
-    color: '#fff',
-    fontWeight: '500',
-  },
-  unlimitedBadge: {
-    backgroundColor: '#E1F5EE',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  unlimitedText: {
-    color: '#0F6E56',
-    fontWeight: '500',
-    fontSize: 14,
-  },
-  alertToggle: {
-    backgroundColor: '#F1EFE8',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  alertToggleActive: {
-    backgroundColor: '#FAEEDA',
-    borderColor: '#BA7517',
-  },
-  alertToggleText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#444',
-    marginBottom: 4,
-  },
-  alertToggleTextActive: {
-    color: '#BA7517',
-  },
-  alertToggleDesc: {
-    fontSize: 12,
-    color: '#888',
-  },
-  alertToggleDescActive: {
-    color: '#BA7517',
-  },
-  createBtn: {
-    width: '100%',
-    padding: 18,
-    borderRadius: 12,
-    backgroundColor: '#1D9E75',
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 40,
-  },
-  createBtnText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  content: { padding: 24, paddingTop: 60 },
+  backBtn: { marginBottom: 16 },
+  backText: { fontSize: 17, color: '#1D9E75', fontWeight: '500' },
+  title: { fontSize: 28, fontWeight: 'bold', color: '#1D9E75', marginBottom: 32 },
+  label: { fontSize: 14, fontWeight: '500', color: '#444', marginBottom: 8 },
+  optional: { fontSize: 12, color: '#888', fontWeight: '400' },
+  input: { width: '100%', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#e0e0e0', marginBottom: 8, fontSize: 15 },
+  textArea: { height: 90, textAlignVertical: 'top', marginBottom: 20 },
+  locationRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', marginBottom: 0 },
+  locationInput: { flex: 1, marginBottom: 8 },
+  mapPickBtn: { backgroundColor: '#E1F5EE', padding: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  mapPickBtnText: { fontSize: 13, color: '#0F6E56', fontWeight: '500' },
+  suggestions: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 0.5, borderColor: '#e0e0e0', marginBottom: 8, overflow: 'hidden' },
+  suggestionItem: { padding: 14, borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0' },
+  suggestionText: { fontSize: 13, color: '#333' },
+  locationConfirmed: { backgroundColor: '#E1F5EE', padding: 10, borderRadius: 10, marginBottom: 16 },
+  locationConfirmedText: { fontSize: 13, color: '#0F6E56', fontWeight: '500' },
+  pickerBtn: { width: '100%', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#e0e0e0', marginBottom: 20, backgroundColor: '#fff' },
+  pickerText: { fontSize: 15, color: '#1a1a1a' },
+  optionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+  optionBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: '#e0e0e0', backgroundColor: '#fff' },
+  optionBtnActive: { backgroundColor: '#1D9E75', borderColor: '#1D9E75' },
+  optionText: { fontSize: 13, color: '#444' },
+  optionTextActive: { color: '#fff', fontWeight: '500' },
+  unlimitedBadge: { backgroundColor: '#E1F5EE', padding: 12, borderRadius: 12, marginBottom: 20, alignItems: 'center' },
+  unlimitedText: { color: '#0F6E56', fontWeight: '500', fontSize: 14 },
+  alertToggle: { backgroundColor: '#F1EFE8', padding: 16, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: '#e0e0e0' },
+  alertToggleActive: { backgroundColor: '#FAEEDA', borderColor: '#BA7517' },
+  alertToggleText: { fontSize: 15, fontWeight: '500', color: '#444', marginBottom: 4 },
+  alertToggleTextActive: { color: '#BA7517' },
+  alertToggleDesc: { fontSize: 12, color: '#888' },
+  alertToggleDescActive: { color: '#BA7517' },
+  createBtn: { width: '100%', padding: 18, borderRadius: 12, backgroundColor: '#1D9E75', alignItems: 'center', marginTop: 8, marginBottom: 40 },
+  createBtnText: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
 });
