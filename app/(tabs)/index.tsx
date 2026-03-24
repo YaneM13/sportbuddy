@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/lib/useLanguage';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ImageBackground, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
   const { t } = useLanguage();
@@ -64,9 +64,7 @@ export default function HomeScreen() {
     setUnreadCount(count || 0);
   }
 
-  const getInitials = (email: string) => {
-    return email.substring(0, 2).toUpperCase();
-  };
+  const getInitials = (email: string) => email.substring(0, 2).toUpperCase();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -79,54 +77,87 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.logo}>{t('appName')} 🏆</Text>
-        {user ? (
-          <TouchableOpacity style={styles.avatarContainer} onPress={() => setMenuVisible(true)}>
-            <View style={styles.avatar}>
-              {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-              ) : (
-                <Text style={styles.avatarText}>{getInitials(user.email)}</Text>
-              )}
+      <ImageBackground
+        source={require('../../assets/images/sports-bg.png')}
+        style={styles.background}
+        blurRadius={3}
+      >
+        <View style={styles.overlay} />
+
+        <View style={styles.header}>
+          <View style={styles.logoRow}>
+            <View style={styles.logoIcon}>
+              <Text style={styles.logoEmoji}>🏆</Text>
             </View>
-            {unreadCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+            <Text style={styles.logoText}>SportBuddy</Text>
+          </View>
+
+          {user ? (
+            <TouchableOpacity style={styles.avatarContainer} onPress={() => setMenuVisible(true)}>
+              <View style={styles.avatar}>
+                {avatarUrl ? (
+                  <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+                ) : (
+                  <Text style={styles.avatarText}>{getInitials(user.email)}</Text>
+                )}
               </View>
-            )}
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.signInBtn} onPress={() => router.push('/login' as any)}>
-            <Text style={styles.signInText}>{t('signIn')}</Text>
+              {unreadCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.signInBtn} onPress={() => router.push('/login' as any)}>
+              <Text style={styles.signInText}>{t('signIn')}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {showAvatarBanner && (
+          <TouchableOpacity
+            style={styles.avatarBanner}
+            onPress={() => { setShowAvatarBanner(false); router.push('/settings' as any); }}
+          >
+            <Text style={styles.avatarBannerText}>📸 Add a profile photo so others can recognise you</Text>
+            <Text style={styles.avatarBannerClose} onPress={() => setShowAvatarBanner(false)}>✕</Text>
           </TouchableOpacity>
         )}
-      </View>
 
-      {showAvatarBanner && (
-        <TouchableOpacity
-          style={styles.avatarBanner}
-          onPress={() => { setShowAvatarBanner(false); router.push('/settings' as any); }}
-        >
-          <Text style={styles.avatarBannerText}>📸 Add a profile photo so others can recognise you</Text>
-          <Text style={styles.avatarBannerClose} onPress={() => setShowAvatarBanner(false)}>✕</Text>
-        </TouchableOpacity>
-      )}
+        <View style={styles.centerContent}>
+          <Text style={styles.greeting}>Good evening 👋</Text>
+          <Text style={styles.tagline}>{t('tagline')}</Text>
+        </View>
 
-      <Text style={styles.subtitle}>{t('tagline')}</Text>
+        <View style={styles.bottomContent}>
+          <View style={styles.buttonsRow}>
+            <TouchableOpacity
+              style={styles.findBtn}
+              onPress={() => router.push('/find-event' as any)}
+            >
+              <Text style={styles.findBtnIcon}>🔍</Text>
+              <Text style={styles.findBtnText}>{t('findEvent')}</Text>
+              <Text style={styles.findBtnSub}>{t('findEventSub')}</Text>
+            </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.button, styles.buttonGreen]} onPress={() => router.push('/find-event' as any)}>
-        <Text style={styles.buttonTextGreen}>{t('findEvent')}</Text>
-        <Text style={styles.buttonSub}>{t('findEventSub')}</Text>
-      </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.createBtn}
+              onPress={() => router.push('/create-event' as any)}
+            >
+              <Text style={styles.createBtnIcon}>➕</Text>
+              <Text style={styles.createBtnText}>{t('createEvent')}</Text>
+              <Text style={styles.createBtnSub}>{t('createEventSub')}</Text>
+            </TouchableOpacity>
+          </View>
 
-      <TouchableOpacity style={[styles.button, styles.buttonBlue]} onPress={() => router.push('/create-event' as any)}>
-        <Text style={styles.buttonTextBlue}>{t('createEvent')}</Text>
-        <Text style={styles.buttonSub}>{t('createEventSub')}</Text>
-      </TouchableOpacity>
+          <View style={styles.adBanner}>
+            <Text style={styles.adText}>Advertisement</Text>
+          </View>
+        </View>
+      </ImageBackground>
 
       <Modal visible={menuVisible} transparent animationType="fade">
-        <TouchableOpacity style={styles.overlay} onPress={() => setMenuVisible(false)}>
+        <TouchableOpacity style={styles.overlay2} onPress={() => setMenuVisible(false)}>
           <View style={styles.menu}>
             <View style={styles.menuHeader}>
               {avatarUrl ? (
@@ -179,48 +210,62 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    padding: 24,
-    paddingTop: 60,
+    backgroundColor: '#0F1923',
+  },
+  background: {
+    flex: 1,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10, 26, 18, 0.78)',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    paddingTop: 60,
+    paddingHorizontal: 24,
+    paddingBottom: 16,
   },
-  logo: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1D9E75',
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  signInBtn: {
-    backgroundColor: '#E1F5EE',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 99,
+  logoIcon: {
+    width: 34,
+    height: 34,
+    backgroundColor: '#1D9E75',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  signInText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#0F6E56',
+  logoEmoji: {
+    fontSize: 18,
+  },
+  logoText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
   },
   avatarContainer: {
     position: 'relative',
   },
   avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: '#1D9E75',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'rgba(29,158,117,0.5)',
   },
   avatarImage: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
   },
   avatarText: {
     fontSize: 14,
@@ -239,91 +284,156 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 4,
     borderWidth: 1.5,
-    borderColor: '#fff',
+    borderColor: '#0F1923',
   },
   badgeText: {
     fontSize: 10,
     fontWeight: 'bold',
     color: '#fff',
   },
+  signInBtn: {
+    backgroundColor: 'rgba(29,158,117,0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 99,
+    borderWidth: 1,
+    borderColor: '#1D9E75',
+  },
+  signInText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1D9E75',
+  },
   avatarBanner: {
-    backgroundColor: '#E6F1FB',
+    backgroundColor: 'rgba(24,95,165,0.3)',
     borderRadius: 12,
     padding: 12,
-    marginBottom: 16,
+    marginHorizontal: 24,
+    marginBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: 'rgba(24,95,165,0.5)',
   },
   avatarBannerText: {
     fontSize: 13,
-    color: '#185FA5',
+    color: '#B5D4F4',
     flex: 1,
     marginRight: 8,
   },
   avatarBannerClose: {
     fontSize: 14,
-    color: '#185FA5',
+    color: '#B5D4F4',
     fontWeight: 'bold',
     padding: 4,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#888',
-    marginBottom: 40,
-    marginTop: 16,
-  },
-  button: {
-    width: '100%',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  buttonGreen: {
-    backgroundColor: '#E1F5EE',
-  },
-  buttonBlue: {
-    backgroundColor: '#E6F1FB',
-  },
-  buttonTextGreen: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#0F6E56',
-    marginBottom: 4,
-  },
-  buttonTextBlue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#185FA5',
-    marginBottom: 4,
-  },
-  buttonSub: {
-    fontSize: 13,
-    color: '#888',
-  },
-  overlay: {
+  centerContent: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  greeting: {
+    fontSize: 16,
+    color: '#9FE1CB',
+    marginBottom: 8,
+  },
+  tagline: {
+    fontSize: 28,
+    fontWeight: '600',
+    color: '#fff',
+    textAlign: 'center',
+    lineHeight: 36,
+  },
+  bottomContent: {
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+  },
+  buttonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  findBtn: {
+    flex: 1,
+    backgroundColor: 'rgba(29,158,117,0.15)',
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(29,158,117,0.4)',
+  },
+  findBtnIcon: {
+    fontSize: 24,
+  },
+  findBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  findBtnSub: {
+    fontSize: 11,
+    color: '#6B8FA8',
+    textAlign: 'center',
+  },
+  createBtn: {
+    flex: 1,
+    backgroundColor: '#1D9E75',
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    gap: 6,
+  },
+  createBtnIcon: {
+    fontSize: 24,
+  },
+  createBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  createBtnSub: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.7)',
+    textAlign: 'center',
+  },
+  adBanner: {
+    backgroundColor: 'rgba(30,45,61,0.6)',
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(29,158,117,0.2)',
+    borderStyle: 'dashed',
+  },
+  adText: {
+    fontSize: 12,
+    color: '#6B8FA8',
+  },
+  overlay2: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-start',
     alignItems: 'flex-end',
-    paddingTop: 100,
+    paddingTop: 110,
     paddingRight: 24,
   },
   menu: {
-    backgroundColor: '#fff',
+    backgroundColor: '#0F1923',
     borderRadius: 16,
-    width: 220,
+    width: 230,
     overflow: 'hidden',
     borderWidth: 0.5,
-    borderColor: '#e0e0e0',
+    borderColor: '#1E2D3D',
   },
   menuHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#1E2D3D',
     gap: 10,
   },
   menuAvatar: {
@@ -346,14 +456,14 @@ const styles = StyleSheet.create({
   },
   menuDisplayName: {
     fontSize: 13,
-    color: '#1a1a1a',
+    color: '#fff',
     fontWeight: '500',
     flex: 1,
   },
   menuItem: {
     padding: 16,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#1E2D3D',
   },
   menuItemLast: {
     borderBottomWidth: 0,
@@ -365,7 +475,7 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     fontSize: 15,
-    color: '#1a1a1a',
+    color: '#fff',
   },
   menuItemLogout: {
     fontSize: 15,

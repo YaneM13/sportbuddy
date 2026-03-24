@@ -1,15 +1,17 @@
 import { supabase } from '@/lib/supabase';
 import { languageNames } from '@/lib/translations';
 import { Language, setLanguage, useLanguage } from '@/lib/useLanguage';
+import { setTheme, useTheme } from '@/lib/useTheme';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
   const [uploading, setUploading] = useState(false);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const { t, currentLanguage } = useLanguage();
+  const { isDark, colors } = useTheme();
 
   async function handleChangePhoto() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -87,61 +89,79 @@ export default function SettingsScreen() {
     setLanguageModalVisible(false);
   }
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+  const content = (
+    <ScrollView
+      style={[styles.container, { backgroundColor: isDark ? 'transparent' : '#f5f5f5' }]}
+      contentContainerStyle={styles.content}
+    >
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-        <Text style={styles.backText}>← {t('back').replace('← ', '')}</Text>
+        <Text style={[styles.backText, { color: colors.accent }]}>← {t('back').replace('← ', '')}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>{t('settings')}</Text>
+      <Text style={[styles.title, { color: colors.accent }]}>{t('settings')}</Text>
 
-      <Text style={styles.sectionTitle}>{t('profilePicture')}</Text>
-      <View style={styles.section}>
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t('profilePicture')}</Text>
+      <View style={[styles.section, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#fff', borderColor: colors.cardBorder }]}>
         <TouchableOpacity style={styles.menuItem} onPress={handleChangePhoto} disabled={uploading}>
-          <Text style={styles.menuItemText}>{uploading ? t('saving') : t('changePhoto')}</Text>
-          <Text style={styles.menuArrow}>→</Text>
+          <Text style={[styles.menuItemText, { color: colors.text }]}>{uploading ? t('saving') : t('changePhoto')}</Text>
+          <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>→</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionTitle}>{t('account')}</Text>
-      <View style={styles.section}>
-        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/personal-details' as any)}>
-          <Text style={styles.menuItemText}>{t('personalDetails')}</Text>
-          <Text style={styles.menuArrow}>→</Text>
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t('account')}</Text>
+      <View style={[styles.section, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#fff', borderColor: colors.cardBorder }]}>
+        <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.cardBorder }]} onPress={() => router.push('/personal-details' as any)}>
+          <Text style={[styles.menuItemText, { color: colors.text }]}>{t('personalDetails')}</Text>
+          <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>→</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.menuItem, styles.menuItemLast]} onPress={() => router.push('/change-password' as any)}>
-          <Text style={styles.menuItemText}>{t('changePassword')}</Text>
-          <Text style={styles.menuArrow}>→</Text>
+          <Text style={[styles.menuItemText, { color: colors.text }]}>{t('changePassword')}</Text>
+          <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>→</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionTitle}>🌍 Language</Text>
-      <View style={styles.section}>
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>🌙 Appearance</Text>
+      <View style={[styles.section, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#fff', borderColor: colors.cardBorder }]}>
+        <TouchableOpacity
+          style={[styles.menuItem, styles.menuItemLast]}
+          onPress={() => setTheme(isDark ? 'light' : 'dark')}
+        >
+          <Text style={[styles.menuItemText, { color: colors.text }]}>
+            {isDark ? '🌙 Dark mode' : '☀️ Light mode'}
+          </Text>
+          <View style={[styles.toggle, { backgroundColor: isDark ? colors.accent : '#e0e0e0' }]}>
+            <View style={[styles.toggleDot, { marginLeft: isDark ? 18 : 2 }]} />
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>🌍 Language</Text>
+      <View style={[styles.section, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#fff', borderColor: colors.cardBorder }]}>
         <TouchableOpacity style={[styles.menuItem, styles.menuItemLast]} onPress={() => setLanguageModalVisible(true)}>
-          <Text style={styles.menuItemText}>{languageNames[currentLanguage]}</Text>
-          <Text style={styles.menuArrow}>→</Text>
+          <Text style={[styles.menuItemText, { color: colors.text }]}>{languageNames[currentLanguage]}</Text>
+          <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>→</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionTitle}>{t('dangerZone')}</Text>
-      <View style={styles.section}>
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t('dangerZone')}</Text>
+      <View style={[styles.section, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#fff', borderColor: colors.cardBorder }]}>
         <TouchableOpacity style={[styles.menuItem, styles.menuItemLast]} onPress={handleDeleteAccount}>
           <Text style={styles.menuItemDanger}>{t('deleteAccount')}</Text>
-          <Text style={styles.menuArrow}>→</Text>
+          <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>→</Text>
         </TouchableOpacity>
       </View>
 
       <Modal visible={languageModalVisible} transparent animationType="slide">
         <TouchableOpacity style={styles.modalOverlay} onPress={() => setLanguageModalVisible(false)}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>🌍 Select Language</Text>
+          <View style={[styles.modalContent, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>🌍 Select Language</Text>
             {(Object.keys(languageNames) as Language[]).map((lang) => (
               <TouchableOpacity
                 key={lang}
-                style={[styles.languageItem, currentLanguage === lang && styles.languageItemActive]}
+                style={[styles.languageItem, { backgroundColor: isDark ? '#1E2D3D' : '#F9F9F9' }, currentLanguage === lang && styles.languageItemActive]}
                 onPress={() => handleSelectLanguage(lang)}
               >
-                <Text style={[styles.languageText, currentLanguage === lang && styles.languageTextActive]}>
+                <Text style={[styles.languageText, { color: colors.text }, currentLanguage === lang && styles.languageTextActive]}>
                   {languageNames[lang]}
                 </Text>
                 {currentLanguage === lang && <Text style={styles.checkmark}>✓</Text>}
@@ -152,12 +172,33 @@ export default function SettingsScreen() {
       </Modal>
     </ScrollView>
   );
+
+  if (isDark) {
+    return (
+      <ImageBackground
+        source={require('../assets/images/sports-bg.png')}
+        style={styles.bg}
+        blurRadius={3}
+      >
+        <View style={styles.overlay} />
+        {content}
+      </ImageBackground>
+    );
+  }
+
+  return content;
 }
 
 const styles = StyleSheet.create({
+  bg: {
+    flex: 1,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10,26,18,0.82)',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   content: {
     padding: 24,
@@ -167,32 +208,27 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   backText: {
-    fontSize: 14,
-    color: '#1D9E75',
+    fontSize: 17,
     fontWeight: '500',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1D9E75',
     marginBottom: 32,
   },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#888',
     marginBottom: 8,
     marginLeft: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   section: {
-    backgroundColor: '#fff',
     borderRadius: 16,
     marginBottom: 24,
     overflow: 'hidden',
     borderWidth: 0.5,
-    borderColor: '#e0e0e0',
   },
   menuItem: {
     flexDirection: 'row',
@@ -200,14 +236,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#2A3D50',
   },
   menuItemLast: {
     borderBottomWidth: 0,
   },
   menuItemText: {
     fontSize: 15,
-    color: '#1a1a1a',
   },
   menuItemDanger: {
     fontSize: 15,
@@ -215,15 +250,26 @@ const styles = StyleSheet.create({
   },
   menuArrow: {
     fontSize: 16,
-    color: '#888',
+  },
+  toggle: {
+    width: 42,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    padding: 2,
+  },
+  toggleDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#fff',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -232,7 +278,6 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1a1a1a',
     marginBottom: 16,
     textAlign: 'center',
   },
@@ -243,14 +288,12 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     marginBottom: 8,
-    backgroundColor: '#F9F9F9',
   },
   languageItemActive: {
     backgroundColor: '#E1F5EE',
   },
   languageText: {
     fontSize: 16,
-    color: '#1a1a1a',
   },
   languageTextActive: {
     color: '#1D9E75',

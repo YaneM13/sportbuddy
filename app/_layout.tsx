@@ -1,6 +1,7 @@
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { registerForPushNotifications, savePushToken } from '@/lib/notifications';
 import { loadLanguage } from '@/lib/useLanguage';
+import { loadTheme } from '@/lib/useTheme';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { Stack } from 'expo-router';
@@ -20,6 +21,7 @@ export default function RootLayout() {
   useEffect(() => {
     async function setup() {
       await loadLanguage();
+      await loadTheme();
 
       const { status } = await Location.requestForegroundPermissionsAsync();
       setLocationGranted(status === 'granted');
@@ -79,7 +81,7 @@ export default function RootLayout() {
         <Stack.Screen name="pick-location" />
         <Stack.Screen name="modal" />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
     </ThemeProvider>
   );
 }
@@ -90,7 +92,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
-    backgroundColor: '#fff',
+    backgroundColor: '#0F1923',
   },
   locationIcon: {
     fontSize: 48,
@@ -105,7 +107,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 15,
-    color: '#666',
+    color: '#6B8FA8',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 32,
