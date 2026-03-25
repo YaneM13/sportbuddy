@@ -1,11 +1,13 @@
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/lib/useLanguage';
+import { useTheme } from '@/lib/useTheme';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function ProfileTab() {
   const { t } = useLanguage();
+  const { isDark, colors } = useTheme();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [stats, setStats] = useState({
@@ -78,91 +80,120 @@ export default function ProfileTab() {
     ));
   };
 
-  if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#1D9E75" />
-      </View>
-    );
-  }
+  const content = (
+    <ScrollView
+      style={[styles.container, { backgroundColor: isDark ? 'transparent' : '#fff' }]}
+      contentContainerStyle={styles.content}
+    >
+      <Text style={[styles.title, { color: colors.accent }]}>{t('myProfile')}</Text>
 
-  if (!user) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.signInTitle}>Sign in to view your profile</Text>
-        <TouchableOpacity style={styles.signInBtn} onPress={() => router.push('/login' as any)}>
-          <Text style={styles.signInBtnText}>{t('signIn')}</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+      {loading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#1D9E75" />
+        </View>
+      ) : !user ? (
+        <View style={styles.centered}>
+          <Text style={[styles.signInTitle, { color: colors.textSecondary }]}>Sign in to view your profile</Text>
+          <TouchableOpacity style={styles.signInBtn} onPress={() => router.push('/login' as any)}>
+            <Text style={styles.signInBtnText}>{t('signIn')}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          <View style={styles.profileHeader}>
+            {profile?.avatar_url ? (
+              <Image source={{ uri: profile.avatar_url + '?t=' + Date.now() }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{getInitials(user.email)}</Text>
+              </View>
+            )}
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{t('myProfile')}</Text>
+            {profile?.nickname && (
+              <Text style={[styles.nickname, { color: colors.accent }]}>@{profile.nickname}</Text>
+            )}
 
-      <View style={styles.profileHeader}>
-        {profile?.avatar_url ? (
-          <Image source={{ uri: profile.avatar_url + '?t=' + Date.now() }} style={styles.avatarImage} />
-        ) : (
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{getInitials(user.email)}</Text>
+            {profile?.first_name && (
+              <Text style={[styles.name, { color: colors.text }]}>{profile.first_name} {profile.last_name}</Text>
+            )}
+
+            {profile?.city && (
+              <Text style={[styles.city, { color: colors.textSecondary }]}>📍 {profile.city}</Text>
+            )}
+
+            <View style={styles.starsRow}>
+              {renderStars(stats.averageRating)}
+              <Text style={[styles.ratingText, { color: colors.textSecondary }]}>
+                {stats.averageRating > 0 ? `${stats.averageRating} (${stats.totalRatings} ratings)` : t('noRatingsYet')}
+              </Text>
+            </View>
           </View>
-        )}
 
-        {profile?.nickname && (
-          <Text style={styles.nickname}>@{profile.nickname}</Text>
-        )}
+          <View style={styles.statsGrid}>
+            <View style={[styles.statCard, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#F9F9F9' }]}>
+              <Text style={[styles.statNumber, { color: colors.accent }]}>{stats.eventsCreated}</Text>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('eventsCreated')}</Text>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#F9F9F9' }]}>
+              <Text style={[styles.statNumber, { color: colors.accent }]}>{stats.eventsJoined}</Text>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('eventsJoinedStat')}</Text>
+            </View>
+          </View>
 
-        {profile?.first_name && (
-          <Text style={styles.name}>{profile.first_name} {profile.last_name}</Text>
-        )}
+          <TouchableOpacity
+            style={[styles.menuItem, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#fff', borderColor: colors.cardBorder }]}
+            onPress={() => router.push('/my-events' as any)}
+          >
+            <Text style={[styles.menuItemText, { color: colors.text }]}>{t('myEvents')}</Text>
+            <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>→</Text>
+          </TouchableOpacity>
 
-        {profile?.city && (
-          <Text style={styles.city}>📍 {profile.city}</Text>
-        )}
+          <TouchableOpacity
+            style={[styles.menuItem, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#fff', borderColor: colors.cardBorder }]}
+            onPress={() => router.push('/notifications' as any)}
+          >
+            <Text style={[styles.menuItemText, { color: colors.text }]}>{t('notifications')}</Text>
+            <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>→</Text>
+          </TouchableOpacity>
 
-        <View style={styles.starsRow}>
-          {renderStars(stats.averageRating)}
-          <Text style={styles.ratingText}>
-            {stats.averageRating > 0 ? `${stats.averageRating} (${stats.totalRatings} ratings)` : t('noRatingsYet')}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.statsGrid}>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{stats.eventsCreated}</Text>
-          <Text style={styles.statLabel}>{t('eventsCreated')}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{stats.eventsJoined}</Text>
-          <Text style={styles.statLabel}>{t('eventsJoinedStat')}</Text>
-        </View>
-      </View>
-
-      <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/my-events' as any)}>
-        <Text style={styles.menuItemText}>{t('myEvents')}</Text>
-        <Text style={styles.menuArrow}>→</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/notifications' as any)}>
-        <Text style={styles.menuItemText}>{t('notifications')}</Text>
-        <Text style={styles.menuArrow}>→</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/settings' as any)}>
-        <Text style={styles.menuItemText}>{t('settings')}</Text>
-        <Text style={styles.menuArrow}>→</Text>
-      </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.menuItem, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#fff', borderColor: colors.cardBorder }]}
+            onPress={() => router.push('/settings' as any)}
+          >
+            <Text style={[styles.menuItemText, { color: colors.text }]}>{t('settings')}</Text>
+            <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>→</Text>
+          </TouchableOpacity>
+        </>
+      )}
     </ScrollView>
   );
+
+  if (isDark) {
+    return (
+      <ImageBackground
+        source={require('../../assets/images/sports-bg.png')}
+        style={styles.bg}
+        blurRadius={3}
+      >
+        <View style={styles.overlay} />
+        {content}
+      </ImageBackground>
+    );
+  }
+
+  return content;
 }
 
 const styles = StyleSheet.create({
+  bg: {
+    flex: 1,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10,26,18,0.82)',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   content: {
     padding: 24,
@@ -173,11 +204,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
+    marginTop: 60,
   },
   signInTitle: {
     fontSize: 18,
     fontWeight: '500',
-    color: '#444',
     marginBottom: 24,
     textAlign: 'center',
   },
@@ -195,7 +226,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1D9E75',
     marginBottom: 24,
   },
   profileHeader: {
@@ -225,17 +255,14 @@ const styles = StyleSheet.create({
   nickname: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1D9E75',
     marginBottom: 4,
   },
   name: {
     fontSize: 16,
-    color: '#1a1a1a',
     marginBottom: 4,
   },
   city: {
     fontSize: 14,
-    color: '#888',
     marginBottom: 8,
   },
   starsRow: {
@@ -252,7 +279,6 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 13,
-    color: '#888',
     marginLeft: 4,
   },
   statsGrid: {
@@ -262,7 +288,6 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
@@ -270,12 +295,10 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1D9E75',
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 13,
-    color: '#888',
   },
   menuItem: {
     flexDirection: 'row',
@@ -284,15 +307,12 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 0.5,
-    borderColor: '#e0e0e0',
     marginBottom: 12,
   },
   menuItemText: {
     fontSize: 15,
-    color: '#1a1a1a',
   },
   menuArrow: {
     fontSize: 16,
-    color: '#888',
   },
 });
