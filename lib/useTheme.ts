@@ -4,16 +4,16 @@ import { useEffect, useState } from 'react';
 export type Theme = 'dark' | 'light';
 
 let currentTheme: Theme = 'dark';
-const listeners: Set<() => void> = new Set();
+const listeners = new Set<() => void>();
 
 function notifyListeners() {
-  listeners.forEach(listener => listener());
+  listeners.forEach(fn => fn());
 }
 
 export async function setTheme(theme: Theme) {
   currentTheme = theme;
-  await AsyncStorage.setItem('appTheme', theme);
   notifyListeners();
+  await AsyncStorage.setItem('appTheme', theme);
 }
 
 export async function loadTheme() {
@@ -34,7 +34,7 @@ export function useTheme() {
   const [, forceUpdate] = useState(0);
 
   useEffect(() => {
-    const listener = () => forceUpdate(n => n + 1);
+    const listener = () => forceUpdate(prev => prev + 1);
     listeners.add(listener);
     return () => { listeners.delete(listener); };
   }, []);
