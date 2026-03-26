@@ -1,51 +1,32 @@
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/lib/useLanguage';
+import { useTheme } from '@/lib/useTheme';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ImageBackground, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function MyJoinedEventsScreen() {
   const { t } = useLanguage();
+  const { isDark, colors } = useTheme();
   const [activeEvents, setActiveEvents] = useState<any[]>([]);
   const [finishedEvents, setFinishedEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchJoinedEvents();
-  }, []);
+  useEffect(() => { fetchJoinedEvents(); }, []);
 
   async function fetchJoinedEvents() {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      Alert.alert('Sign in required', 'You must be signed in');
-      router.back();
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from('event_participants')
-      .select('status, joined_at, events_with_counts(*)')
-      .eq('user_id', session.user.id)
-      .order('joined_at', { ascending: false });
-
-    if (error) {
-      Alert.alert(t('error'), error.message);
-      setLoading(false);
-      setRefreshing(false);
-      return;
-    }
-
-    const active: any[] = [];
-    const finished: any[] = [];
-
+    if (!session) { router.back(); return; }
+    const { data, error } = await supabase.from('event_participants').select('status, joined_at, events_with_counts(*)').eq('user_id', session.user.id).order('joined_at', { ascending: false });
+    if (error) { Alert.alert(t('error'), error.message); setLoading(false); setRefreshing(false); return; }
+    const active: any[] = [], finished: any[] = [];
     (data || []).forEach((item: any) => {
       const event = item.events_with_counts;
       if (!event) return;
       if (event.status === 'finished') finished.push(item);
       else active.push(item);
     });
-
     setActiveEvents(active);
     setFinishedEvents(finished);
     setLoading(false);
@@ -53,19 +34,15 @@ export default function MyJoinedEventsScreen() {
   }
 
   const getCategoryColor = (category: string) => {
-    const colors: any = {
-      team: { bg: '#E1F5EE', text: '#0F6E56' },
-      individual: { bg: '#E6F1FB', text: '#185FA5' },
-      water: { bg: '#EEEDFE', text: '#534AB7' },
-      watch: { bg: '#FAECE7', text: '#993C1D' },
-    };
-    return colors[category] || { bg: '#F1EFE8', text: '#444441' };
+    const light: any = { team: { bg: '#E1F5EE', text: '#0F6E56' }, individual: { bg: '#E6F1FB', text: '#185FA5' }, water: { bg: '#EEEDFE', text: '#534AB7' }, watch: { bg: '#FAECE7', text: '#993C1D' } };
+    const dark: any = { team: { bg: 'rgba(15,61,46,0.8)', text: '#9FE1CB' }, individual: { bg: 'rgba(12,30,53,0.8)', text: '#B5D4F4' }, water: { bg: 'rgba(38,33,92,0.8)', text: '#CECBF6' }, watch: { bg: 'rgba(74,27,12,0.8)', text: '#F5C4B3' } };
+    return isDark ? (dark[category] || { bg: 'rgba(30,45,61,0.8)', text: '#888' }) : (light[category] || { bg: '#F1EFE8', text: '#444441' });
   };
 
   const getStatusStyle = (status: string) => {
-    if (status === 'approved') return { bg: '#E1F5EE', text: '#0F6E56', label: '✅ ' + t('approve') + 'd' };
-    if (status === 'pending') return { bg: '#FAEEDA', text: '#BA7517', label: '⏳ ' + t('waitingApproval') };
-    return { bg: '#FCEBEB', text: '#E24B4A', label: '❌ ' + t('reject') + 'ed' };
+    if (status === 'approved') return { bg: isDark ? 'rgba(15,61,46,0.8)' : '#E1F5EE', text: isDark ? '#9FE1CB' : '#0F6E56', label: '✅ ' + t('approve') + 'd' };
+    if (status === 'pending') return { bg: isDark ? 'rgba(65,57,12,0.8)' : '#FAEEDA', text: isDark ? '#FAC775' : '#BA7517', label: '⏳ ' + t('waitingApproval') };
+    return { bg: isDark ? 'rgba(80,20,20,0.8)' : '#FCEBEB', text: isDark ? '#F09595' : '#E24B4A', label: '❌ ' + t('reject') + 'ed' };
   };
 
   const renderEventCard = (item: any, isFinished: boolean = false) => {
@@ -73,41 +50,23 @@ export default function MyJoinedEventsScreen() {
     if (!event) return null;
     const color = getCategoryColor(event.category);
     const statusStyle = getStatusStyle(item.status);
-
     return (
       <TouchableOpacity
         key={item.joined_at + event.id}
-        style={[styles.card, isFinished && styles.cardFinished]}
+        style={[styles.card, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#fff', borderColor: colors.cardBorder }, isFinished && { opacity: 0.75 }]}
         onPress={() => router.push({ pathname: '/event-details', params: { id: event.id } } as any)}
       >
         <View style={styles.cardHeader}>
-          <View style={[styles.categoryBadge, { backgroundColor: color.bg }]}>
-            <Text style={[styles.categoryText, { color: color.text }]}>{event.sport}</Text>
-          </View>
-          <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
-            <Text style={[styles.statusText, { color: statusStyle.text }]}>{statusStyle.label}</Text>
-          </View>
-          {isFinished && (
-            <View style={styles.finishedBadge}>
-              <Text style={styles.finishedBadgeText}>Finished</Text>
-            </View>
-          )}
+          <View style={[styles.badge, { backgroundColor: color.bg }]}><Text style={[styles.badgeText, { color: color.text }]}>{event.sport}</Text></View>
+          <View style={[styles.badge, { backgroundColor: statusStyle.bg }]}><Text style={[styles.badgeText, { color: statusStyle.text }]}>{statusStyle.label}</Text></View>
+          {isFinished && <View style={[styles.badge, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#F1EFE8' }]}><Text style={[styles.badgeText, { color: colors.textSecondary }]}>Finished</Text></View>}
         </View>
-
-        <Text style={[styles.cardTitle, isFinished && styles.cardTitleFinished]}>{event.title}</Text>
-        <Text style={styles.cardDetail}>📍 {event.location}</Text>
-        <Text style={styles.cardDetail}>📅 {event.date} at {event.time} — {event.end_time}</Text>
-        {event.max_players ? (
-          <Text style={styles.cardDetail}>👥 {event.approved_count || 0} / {event.max_players} players</Text>
-        ) : (
-          <Text style={styles.cardDetail}>👥 {t('unlimited')}</Text>
-        )}
-
+        <Text style={[styles.cardTitle, { color: isFinished ? colors.textSecondary : colors.text }]}>{event.title}</Text>
+        <Text style={[styles.cardDetail, { color: colors.textSecondary }]}>📍 {event.location}</Text>
+        <Text style={[styles.cardDetail, { color: colors.textSecondary }]}>📅 {event.date} at {event.time} — {event.end_time}</Text>
+        {event.max_players ? <Text style={[styles.cardDetail, { color: colors.textSecondary }]}>👥 {event.approved_count || 0} / {event.max_players} players</Text> : <Text style={[styles.cardDetail, { color: colors.textSecondary }]}>👥 {t('unlimited')}</Text>}
         {isFinished && (
-          <TouchableOpacity
-            style={styles.rateBtn}
-            onPress={(e) => { e.stopPropagation(); router.push({ pathname: '/rate-players', params: { event_id: event.id } } as any); }}
-          >
+          <TouchableOpacity style={styles.rateBtn} onPress={(e) => { e.stopPropagation(); router.push({ pathname: '/rate-players', params: { event_id: event.id } } as any); }}>
             <Text style={styles.rateBtnText}>⭐ {t('ratePlayersTitle')}</Text>
           </TouchableOpacity>
         )}
@@ -115,30 +74,23 @@ export default function MyJoinedEventsScreen() {
     );
   };
 
-  if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#1D9E75" />
-      </View>
-    );
-  }
+  if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? 'transparent' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
 
-  return (
+  const content = (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: isDark ? 'transparent' : '#fff' }]}
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchJoinedEvents(); }} />}
     >
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-        <Text style={styles.backText}>{t('back')}</Text>
+        <Text style={[styles.backText, { color: colors.accent }]}>{t('back')}</Text>
       </TouchableOpacity>
-
-      <Text style={styles.title}>{t('eventsJoined')}</Text>
+      <Text style={[styles.title, { color: colors.accent }]}>{t('eventsJoined')}</Text>
 
       {activeEvents.length === 0 && finishedEvents.length === 0 && (
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>{t('noEventsNearby')}</Text>
-          <Text style={styles.emptySubtext}>{t('findAnEvent')}</Text>
+          <Text style={[styles.emptyText, { color: colors.text }]}>{t('noEventsNearby')}</Text>
+          <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>{t('findAnEvent')}</Text>
           <TouchableOpacity style={styles.findBtn} onPress={() => router.push('/find-event' as any)}>
             <Text style={styles.findBtnText}>{t('findEvent')}</Text>
           </TouchableOpacity>
@@ -147,155 +99,52 @@ export default function MyJoinedEventsScreen() {
 
       {activeEvents.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>Upcoming events ({activeEvents.length})</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary, borderBottomColor: colors.cardBorder }]}>Upcoming events ({activeEvents.length})</Text>
           {activeEvents.map((item) => renderEventCard(item, false))}
         </>
       )}
 
       {finishedEvents.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>Finished events ({finishedEvents.length})</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary, borderBottomColor: colors.cardBorder }]}>Finished events ({finishedEvents.length})</Text>
           {finishedEvents.map((item) => renderEventCard(item, true))}
         </>
       )}
     </ScrollView>
   );
+
+  if (isDark) {
+    return (
+      <ImageBackground source={require('../assets/images/sports-bg.png')} style={styles.bg} blurRadius={3}>
+        <View style={styles.overlay} />
+        {content}
+      </ImageBackground>
+    );
+  }
+  return content;
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    padding: 24,
-    paddingTop: 60,
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backBtn: {
-    marginBottom: 16,
-  },
-  backText: {
-    fontSize: 17,
-    color: '#1D9E75',
-    fontWeight: '500',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1D9E75',
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#444',
-    marginBottom: 12,
-    paddingBottom: 8,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#e0e0e0',
-  },
-  empty: {
-    alignItems: 'center',
-    marginTop: 60,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#444',
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#888',
-    marginBottom: 24,
-  },
-  findBtn: {
-    backgroundColor: '#1D9E75',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 99,
-  },
-  findBtnText: {
-    color: '#fff',
-    fontWeight: '500',
-    fontSize: 14,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    borderWidth: 0.5,
-    borderColor: '#e0e0e0',
-    padding: 16,
-    marginBottom: 16,
-  },
-  cardFinished: {
-    backgroundColor: '#F9F9F9',
-    opacity: 0.85,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10,
-    flexWrap: 'wrap',
-  },
-  categoryBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 99,
-  },
-  categoryText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 99,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  finishedBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 99,
-    backgroundColor: '#F1EFE8',
-  },
-  finishedBadgeText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#888',
-  },
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 8,
-  },
-  cardTitleFinished: {
-    color: '#888',
-  },
-  cardDetail: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 4,
-  },
-  rateBtn: {
-    marginTop: 12,
-    backgroundColor: '#FAEEDA',
-    padding: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  rateBtnText: {
-    color: '#BA7517',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
+  bg: { flex: 1 },
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,26,18,0.82)' },
+  container: { flex: 1 },
+  content: { padding: 24, paddingTop: 60 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  backBtn: { marginBottom: 16 },
+  backText: { fontSize: 17, fontWeight: '500' },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 24 },
+  sectionTitle: { fontSize: 16, fontWeight: '500', marginBottom: 12, paddingBottom: 8, borderBottomWidth: 0.5 },
+  empty: { alignItems: 'center', marginTop: 60 },
+  emptyText: { fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
+  emptySubtext: { fontSize: 14, marginBottom: 24 },
+  findBtn: { backgroundColor: '#1D9E75', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 99 },
+  findBtnText: { color: '#fff', fontWeight: '500', fontSize: 14 },
+  card: { borderRadius: 16, borderWidth: 0.5, padding: 16, marginBottom: 16 },
+  cardHeader: { flexDirection: 'row', gap: 8, marginBottom: 10, flexWrap: 'wrap' },
+  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99 },
+  badgeText: { fontSize: 12, fontWeight: '500' },
+  cardTitle: { fontSize: 17, fontWeight: 'bold', marginBottom: 8 },
+  cardDetail: { fontSize: 14, marginBottom: 4 },
+  rateBtn: { marginTop: 12, backgroundColor: '#FAEEDA', padding: 12, borderRadius: 12, alignItems: 'center' },
+  rateBtnText: { color: '#BA7517', fontWeight: 'bold', fontSize: 14 },
 });

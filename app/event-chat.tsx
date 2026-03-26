@@ -1,10 +1,12 @@
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/lib/useTheme';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Image, ImageBackground, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function EventChatScreen() {
   const { event_id, event_title } = useLocalSearchParams();
+  const { isDark, colors } = useTheme();
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -13,111 +15,52 @@ export default function EventChatScreen() {
   const flatListRef = useRef<any>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
+    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
     fetchMessages();
-
-    const subscription = supabase
-      .channel(`event-chat-${event_id}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `event_id=eq.${event_id}`,
-      }, (payload) => {
+    const subscription = supabase.channel(`event-chat-${event_id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `event_id=eq.${event_id}` }, (payload) => {
         setMessages(prev => [...prev, payload.new]);
         fetchProfile(payload.new.user_id);
-      })
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
+      }).subscribe();
+    return () => { subscription.unsubscribe(); };
   }, []);
 
   async function fetchMessages() {
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('event_id', event_id)
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      Alert.alert('Error', error.message);
-      setLoading(false);
-      return;
-    }
-
+    const { data, error } = await supabase.from('messages').select('*').eq('event_id', event_id).order('created_at', { ascending: true });
+    if (error) { Alert.alert('Error', error.message); setLoading(false); return; }
     setMessages(data || []);
-
     const userIds = [...new Set((data || []).map((m: any) => m.user_id))];
-    for (const userId of userIds) {
-      await fetchProfile(userId);
-    }
-
+    for (const userId of userIds) await fetchProfile(userId);
     setLoading(false);
   }
 
   async function fetchProfile(userId: string) {
     if (profiles[userId]) return;
-    const { data } = await supabase
-      .from('profiles')
-      .select('first_name, last_name, nickname, avatar_url')
-      .eq('id', userId)
-      .single();
-    if (data) {
-      setProfiles(prev => ({ ...prev, [userId]: data }));
-    }
+    const { data } = await supabase.from('profiles').select('first_name, last_name, nickname, avatar_url').eq('id', userId).single();
+    if (data) setProfiles(prev => ({ ...prev, [userId]: data }));
   }
 
   async function handleSend() {
     if (!newMessage.trim()) return;
-    if (!user) {
-      Alert.alert('Sign in required', 'You must be signed in to send messages');
-      return;
-    }
-
-    const { error } = await supabase.from('messages').insert({
-      event_id,
-      user_id: user.id,
-      message: newMessage.trim(),
-    });
-
+    if (!user) { Alert.alert('Sign in required', 'You must be signed in'); return; }
+    const { error } = await supabase.from('messages').insert({ event_id, user_id: user.id, message: newMessage.trim() });
     if (error) Alert.alert('Error', error.message);
     else setNewMessage('');
   }
 
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+  const formatTime = (timestamp: string) => new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const getInitials = (profile: any) => profile?.first_name ? profile.first_name.substring(0, 2).toUpperCase() : '??';
 
-  const getInitials = (profile: any) => {
-    if (profile?.first_name) return profile.first_name.substring(0, 2).toUpperCase();
-    return '??';
-  };
+  if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? 'transparent' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
 
-  if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#1D9E75" />
-      </View>
-    );
-  }
-
-  return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={0}
-    >
-      <View style={styles.header}>
+  const content = (
+    <KeyboardAvoidingView style={[styles.container, { backgroundColor: isDark ? 'transparent' : '#fff' }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={0}>
+      <View style={[styles.header, { borderBottomColor: colors.cardBorder, backgroundColor: isDark ? 'rgba(10,26,18,0.5)' : '#fff' }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backText}>← Back</Text>
+          <Text style={[styles.backText, { color: colors.accent }]}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>{event_title}</Text>
-        <Text style={styles.subtitle}>Group chat</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{event_title}</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Group chat</Text>
       </View>
 
       <FlatList
@@ -128,8 +71,8 @@ export default function EventChatScreen() {
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>No messages yet</Text>
-            <Text style={styles.emptySubtext}>Be the first to send a message!</Text>
+            <Text style={[styles.emptyText, { color: colors.text }]}>No messages yet</Text>
+            <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>Be the first to send a message!</Text>
           </View>
         }
         renderItem={({ item }) => {
@@ -139,190 +82,77 @@ export default function EventChatScreen() {
             <View style={[styles.messageRow, isMe && styles.messageRowMe]}>
               {!isMe && (
                 <View style={styles.avatarSmall}>
-                  {profile?.avatar_url ? (
-                    <Image source={{ uri: profile.avatar_url }} style={styles.avatarSmallImage} />
-                  ) : (
-                    <Text style={styles.avatarSmallText}>{getInitials(profile)}</Text>
-                  )}
+                  {profile?.avatar_url ? <Image source={{ uri: profile.avatar_url }} style={styles.avatarSmallImage} /> : <Text style={styles.avatarSmallText}>{getInitials(profile)}</Text>}
                 </View>
               )}
-              <View style={[styles.messageBubble, isMe ? styles.messageBubbleMe : styles.messageBubbleOther]}>
-                {!isMe && profile?.nickname && (
-                  <Text style={styles.messageNickname}>@{profile.nickname}</Text>
-                )}
-                <Text style={[styles.messageText, isMe && styles.messageTextMe]}>{item.message}</Text>
-                <Text style={[styles.messageTime, isMe && styles.messageTimeMe]}>{formatTime(item.created_at)}</Text>
+              <View style={[styles.messageBubble, isMe ? styles.messageBubbleMe : [styles.messageBubbleOther, { backgroundColor: isDark ? 'rgba(30,45,61,0.9)' : '#F1EFE8' }]]}>
+                {!isMe && profile?.nickname && <Text style={[styles.messageNickname, { color: colors.accent }]}>@{profile.nickname}</Text>}
+                <Text style={[styles.messageText, { color: isDark && !isMe ? colors.text : isMe ? '#fff' : '#1a1a1a' }]}>{item.message}</Text>
+                <Text style={[styles.messageTime, isMe && styles.messageTimeMe, !isMe && { color: colors.textSecondary }]}>{formatTime(item.created_at)}</Text>
               </View>
             </View>
           );
         }}
       />
 
-      <View style={styles.inputContainer}>
+      <View style={[styles.inputContainer, { borderTopColor: colors.cardBorder, backgroundColor: isDark ? 'rgba(10,26,18,0.7)' : '#fff' }]}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]}
           placeholder="Type a message..."
+          placeholderTextColor={colors.textSecondary}
           value={newMessage}
           onChangeText={setNewMessage}
           multiline
           maxLength={500}
         />
-        <TouchableOpacity
-          style={[styles.sendBtn, !newMessage.trim() && styles.sendBtnDisabled]}
-          onPress={handleSend}
-          disabled={!newMessage.trim()}
-        >
+        <TouchableOpacity style={[styles.sendBtn, !newMessage.trim() && styles.sendBtnDisabled]} onPress={handleSend} disabled={!newMessage.trim()}>
           <Text style={styles.sendBtnText}>Send</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
+
+  if (isDark) {
+    return (
+      <ImageBackground source={require('../assets/images/sports-bg.png')} style={styles.bg} blurRadius={3}>
+        <View style={styles.overlay} />
+        {content}
+      </ImageBackground>
+    );
+  }
+  return content;
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  header: {
-    padding: 24,
-    paddingTop: 60,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#e0e0e0',
-  },
-  backBtn: {
-    marginBottom: 8,
-  },
-  backText: {
-    fontSize: 14,
-    color: '#1D9E75',
-    fontWeight: '500',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 2,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#888',
-  },
-  messagesList: {
-    padding: 16,
-    paddingBottom: 8,
-  },
-  empty: {
-    alignItems: 'center',
-    marginTop: 60,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#444',
-    marginBottom: 4,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#888',
-  },
-  messageRow: {
-    flexDirection: 'row',
-    marginBottom: 12,
-    alignItems: 'flex-end',
-  },
-  messageRowMe: {
-    justifyContent: 'flex-end',
-  },
-  avatarSmall: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#1D9E75',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-    flexShrink: 0,
-  },
-  avatarSmallImage: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-  },
-  avatarSmallText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  messageBubble: {
-    maxWidth: '75%',
-    padding: 10,
-    borderRadius: 16,
-  },
-  messageBubbleMe: {
-    backgroundColor: '#1D9E75',
-    borderBottomRightRadius: 4,
-  },
-  messageBubbleOther: {
-    backgroundColor: '#F1EFE8',
-    borderBottomLeftRadius: 4,
-  },
-  messageNickname: {
-    fontSize: 11,
-    color: '#1D9E75',
-    fontWeight: '500',
-    marginBottom: 2,
-  },
-  messageText: {
-    fontSize: 15,
-    color: '#1a1a1a',
-  },
-  messageTextMe: {
-    color: '#fff',
-  },
-  messageTime: {
-    fontSize: 10,
-    color: '#888',
-    marginTop: 4,
-    alignSelf: 'flex-end',
-  },
-  messageTimeMe: {
-    color: 'rgba(255,255,255,0.7)',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 12,
-    borderTopWidth: 0.5,
-    borderTopColor: '#e0e0e0',
-    alignItems: 'flex-end',
-    gap: 8,
-  },
-  input: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    fontSize: 15,
-    maxHeight: 100,
-  },
-  sendBtn: {
-    backgroundColor: '#1D9E75',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  sendBtnDisabled: {
-    backgroundColor: '#ccc',
-  },
-  sendBtnText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
+  bg: { flex: 1 },
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,26,18,0.82)' },
+  container: { flex: 1 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  header: { padding: 24, paddingTop: 60, borderBottomWidth: 0.5 },
+  backBtn: { marginBottom: 8 },
+  backText: { fontSize: 17, fontWeight: '500' },
+  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 2 },
+  subtitle: { fontSize: 13 },
+  messagesList: { padding: 16, paddingBottom: 8 },
+  empty: { alignItems: 'center', marginTop: 60 },
+  emptyText: { fontSize: 16, fontWeight: '500', marginBottom: 4 },
+  emptySubtext: { fontSize: 14 },
+  messageRow: { flexDirection: 'row', marginBottom: 12, alignItems: 'flex-end' },
+  messageRowMe: { justifyContent: 'flex-end' },
+  avatarSmall: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#1D9E75', alignItems: 'center', justifyContent: 'center', marginRight: 8, flexShrink: 0 },
+  avatarSmallImage: { width: 28, height: 28, borderRadius: 14 },
+  avatarSmallText: { fontSize: 10, fontWeight: 'bold', color: '#fff' },
+  messageBubble: { maxWidth: '75%', padding: 10, borderRadius: 16 },
+  messageBubbleMe: { backgroundColor: '#1D9E75', borderBottomRightRadius: 4 },
+  messageBubbleOther: { borderBottomLeftRadius: 4 },
+  messageNickname: { fontSize: 11, fontWeight: '500', marginBottom: 2 },
+  messageText: { fontSize: 15 },
+  messageTextMe: { color: '#fff' },
+  messageTime: { fontSize: 10, color: '#888', marginTop: 4, alignSelf: 'flex-end' },
+  messageTimeMe: { color: 'rgba(255,255,255,0.7)' },
+  inputContainer: { flexDirection: 'row', padding: 12, borderTopWidth: 0.5, alignItems: 'flex-end', gap: 8 },
+  input: { flex: 1, padding: 12, borderRadius: 20, borderWidth: 1, fontSize: 15, maxHeight: 100 },
+  sendBtn: { backgroundColor: '#1D9E75', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
+  sendBtnDisabled: { backgroundColor: '#ccc' },
+  sendBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
 });
