@@ -1,8 +1,6 @@
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { AppProvider } from '@/lib/AppContext';
 import { registerForPushNotifications, savePushToken } from '@/lib/notifications';
-import { loadLanguage } from '@/lib/useLanguage';
-import { loadTheme } from '@/lib/useTheme';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -15,14 +13,10 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [locationGranted, setLocationGranted] = useState<boolean | null>(null);
 
   useEffect(() => {
     async function setup() {
-      await loadLanguage();
-      await loadTheme();
-
       const { status } = await Location.requestForegroundPermissionsAsync();
       setLocationGranted(status === 'granted');
 
@@ -58,31 +52,33 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="login" />
-        <Stack.Screen name="create-event" />
-        <Stack.Screen name="find-event" />
-        <Stack.Screen name="events-by-sport" />
-        <Stack.Screen name="all-events-map" />
-        <Stack.Screen name="edit-event" />
-        <Stack.Screen name="my-events" />
-        <Stack.Screen name="my-joined-events" />
-        <Stack.Screen name="my-profile" />
-        <Stack.Screen name="notifications" />
-        <Stack.Screen name="settings" />
-        <Stack.Screen name="rate-players" />
-        <Stack.Screen name="user-profile" />
-        <Stack.Screen name="event-details" />
-        <Stack.Screen name="personal-details" />
-        <Stack.Screen name="change-password" />
-        <Stack.Screen name="event-chat" />
-        <Stack.Screen name="pick-location" />
-        <Stack.Screen name="modal" />
-      </Stack>
-      <StatusBar style="light" />
-    </ThemeProvider>
+    <AppProvider>
+      <ThemeProvider value={DarkTheme}>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="login" />
+          <Stack.Screen name="create-event" />
+          <Stack.Screen name="find-event" />
+          <Stack.Screen name="events-by-sport" />
+          <Stack.Screen name="all-events-map" />
+          <Stack.Screen name="edit-event" />
+          <Stack.Screen name="my-events" />
+          <Stack.Screen name="my-joined-events" />
+          <Stack.Screen name="my-profile" />
+          <Stack.Screen name="notifications" />
+          <Stack.Screen name="settings" />
+          <Stack.Screen name="rate-players" />
+          <Stack.Screen name="user-profile" />
+          <Stack.Screen name="event-details" />
+          <Stack.Screen name="personal-details" />
+          <Stack.Screen name="change-password" />
+          <Stack.Screen name="event-chat" />
+          <Stack.Screen name="pick-location" />
+          <Stack.Screen name="modal" />
+        </Stack>
+        <StatusBar style="light" />
+      </ThemeProvider>
+    </AppProvider>
   );
 }
 
