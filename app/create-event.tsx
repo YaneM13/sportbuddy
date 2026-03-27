@@ -1,13 +1,12 @@
+import { useLanguage, useTheme } from '@/lib/AppContext';
 import { sendPushNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
-import { useLanguage } from '@/lib/useLanguage';
-import { useTheme } from '@/lib/useTheme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { Alert, ImageBackground, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const sportsByCategory: any = {
   team: ['Football', 'Basketball', 'Basketball 3x3', 'Volleyball', 'Beach Volleyball', 'Rugby', 'Cricket', 'Handball'],
@@ -68,7 +67,7 @@ export default function CreateEventScreen() {
   }, []));
 
   const formatDate = (d: Date) => `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
-  const formatTime = (t: Date) => `${t.getHours().toString().padStart(2,'0')}:${t.getMinutes().toString().padStart(2,'0')}`;
+  const formatTime = (d: Date) => `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
 
   async function searchLocation(query: string) {
     setLocation(query); setSelectedLat(null); setSelectedLon(null);
@@ -124,8 +123,12 @@ export default function CreateEventScreen() {
     setLoading(false);
   }
 
-  const content = (
-    <ScrollView style={[styles.container, { backgroundColor: isDark ? 'transparent' : '#fff' }]} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+  return (
+    <ScrollView
+      style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+    >
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
         <Text style={[styles.backText, { color: colors.accent }]}>{t('back')}</Text>
       </TouchableOpacity>
@@ -218,7 +221,7 @@ export default function CreateEventScreen() {
         </>
       )}
 
-      <TouchableOpacity style={[styles.alertToggle, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#F1EFE8', borderColor: colors.cardBorder }, isAlert && styles.alertToggleActive]} onPress={() => setIsAlert(!isAlert)}>
+      <TouchableOpacity style={[styles.alertToggle, { backgroundColor: isDark ? '#1E2D3D' : '#F1EFE8', borderColor: colors.cardBorder }, isAlert && styles.alertToggleActive]} onPress={() => setIsAlert(!isAlert)}>
         <Text style={[styles.alertToggleText, { color: colors.text }, isAlert && styles.alertToggleTextActive]}>🔔 {isAlert ? t('alertEventOn') : t('alertEventOff')}</Text>
         <Text style={[styles.alertToggleDesc, { color: colors.textSecondary }, isAlert && styles.alertToggleDescActive]}>{t('alertEventDesc')}</Text>
       </TouchableOpacity>
@@ -228,21 +231,9 @@ export default function CreateEventScreen() {
       </TouchableOpacity>
     </ScrollView>
   );
-
-  if (isDark) {
-    return (
-      <ImageBackground source={require('../assets/images/sports-bg.png')} style={styles.bg} blurRadius={3}>
-        <View style={styles.overlay} />
-        {content}
-      </ImageBackground>
-    );
-  }
-  return content;
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1 },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,26,18,0.82)' },
   container: { flex: 1 },
   content: { padding: 24, paddingTop: 60 },
   backBtn: { marginBottom: 16 },

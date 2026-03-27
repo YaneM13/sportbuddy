@@ -1,4 +1,4 @@
-import { useTheme } from '@/lib/useTheme';
+import { useTheme } from '@/lib/AppContext';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 const sports = [

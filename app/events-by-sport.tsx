@@ -1,7 +1,6 @@
+import { useLanguage, useTheme } from '@/lib/AppContext';
 import { sendPushNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
-import { useLanguage } from '@/lib/useLanguage';
-import { useTheme } from '@/lib/useTheme';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';

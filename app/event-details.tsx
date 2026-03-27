@@ -1,8 +1,7 @@
 import BackButton from '@/components/BackButton';
+import { useLanguage, useTheme } from '@/lib/AppContext';
 import { sendPushNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
-import { useLanguage } from '@/lib/useLanguage';
-import { useTheme } from '@/lib/useTheme';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, ImageBackground, Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';

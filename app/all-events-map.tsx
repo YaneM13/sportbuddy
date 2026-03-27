@@ -1,6 +1,6 @@
 import EventMap from '@/components/EventMap';
+import { useTheme } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
-import { useTheme } from '@/lib/useTheme';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';

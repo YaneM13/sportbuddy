@@ -1,8 +1,7 @@
-import { useLanguage } from '@/lib/useLanguage';
-import { useTheme } from '@/lib/useTheme';
+import { useLanguage, useTheme } from '@/lib/AppContext';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const categories = [
   {
@@ -44,9 +43,9 @@ export default function FindEventScreen() {
   const { isDark, colors } = useTheme();
   const [openCategory, setOpenCategory] = useState<string | null>(null);
 
-  const content = (
+  return (
     <ScrollView
-      style={[styles.container, { backgroundColor: isDark ? 'transparent' : '#fff' }]}
+      style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
       contentContainerStyle={styles.content}
     >
       <TouchableOpacity onPress={() => router.replace('/' as any)} style={styles.backBtn}>
@@ -73,7 +72,7 @@ export default function FindEventScreen() {
             </TouchableOpacity>
 
             {isOpen && (
-              <View style={[styles.sportsContainer, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#fff' }]}>
+              <View style={[styles.sportsContainer, { backgroundColor: isDark ? '#1E2D3D' : '#fff' }]}>
                 {cat.sports.map((sport) => (
                   <TouchableOpacity
                     key={sport}
@@ -99,26 +98,9 @@ export default function FindEventScreen() {
       </TouchableOpacity>
     </ScrollView>
   );
-
-  if (isDark) {
-    return (
-      <ImageBackground
-        source={require('../assets/images/sports-bg.png')}
-        style={styles.bg}
-        blurRadius={3}
-      >
-        <View style={styles.overlay} />
-        {content}
-      </ImageBackground>
-    );
-  }
-
-  return content;
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1 },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,26,18,0.82)' },
   container: { flex: 1 },
   content: { padding: 24, paddingTop: 60 },
   backBtn: { marginBottom: 16 },

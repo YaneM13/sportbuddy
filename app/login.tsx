@@ -1,5 +1,5 @@
+import { useLanguage } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
-import { useLanguage } from '@/lib/useLanguage';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';

@@ -1,5 +1,5 @@
+import { useTheme } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
-import { useTheme } from '@/lib/useTheme';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
