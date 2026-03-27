@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ImageBackground, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
@@ -49,10 +49,21 @@ export default function EventsBySportScreen() {
   }
 
   async function fetchEvents(coords?: any) {
+    // Користи ја главната 'events' табела наместо 'events_with_counts' view
     const { data, error } = await supabase
-      .from('events_with_counts').select('*').eq('sport', sport).eq('status', 'active').order('created_at', { ascending: false });
+      .from('events')
+      .select('*')
+      .eq('sport', sport)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
 
-    if (error) { Alert.alert(t('error'), error.message); setLoading(false); setRefreshing(false); return; }
+    if (error) {
+      // Ако нема евенти, само покажи празна листа без Alert
+      setEvents([]);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
 
     const currentCoords = coords || userLocation;
     let filtered = data || [];
@@ -98,11 +109,11 @@ export default function EventsBySportScreen() {
     return <TouchableOpacity style={styles.joinBtn} onPress={(e) => { e.stopPropagation(); handleJoin(event.id, event.created_by); }}><Text style={styles.joinBtnText}>{t('joinEvent')}</Text></TouchableOpacity>;
   };
 
-  if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? 'transparent' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
+  if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
 
-  const content = (
+  return (
     <ScrollView
-      style={[styles.container, { backgroundColor: isDark ? 'transparent' : '#fff' }]}
+      style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchEvents(); }} />}
     >
@@ -130,7 +141,7 @@ export default function EventsBySportScreen() {
         return (
           <TouchableOpacity
             key={event.id}
-            style={[styles.card, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#fff', borderColor: colors.cardBorder }]}
+            style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}
             onPress={() => router.push({ pathname: '/event-details', params: { id: event.id } } as any)}
           >
             <View style={styles.cardHeader}>
@@ -153,21 +164,9 @@ export default function EventsBySportScreen() {
       })}
     </ScrollView>
   );
-
-  if (isDark) {
-    return (
-      <ImageBackground source={require('../assets/images/sports-bg.png')} style={styles.bg} blurRadius={3}>
-        <View style={styles.overlay} />
-        {content}
-      </ImageBackground>
-    );
-  }
-  return content;
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1 },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,26,18,0.82)' },
   container: { flex: 1 },
   content: { padding: 24, paddingTop: 60 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },

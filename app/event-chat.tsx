@@ -2,7 +2,7 @@ import { useTheme } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, ImageBackground, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Image, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function EventChatScreen() {
   const { event_id, event_title } = useLocalSearchParams();
@@ -51,11 +51,15 @@ export default function EventChatScreen() {
   const formatTime = (timestamp: string) => new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const getInitials = (profile: any) => profile?.first_name ? profile.first_name.substring(0, 2).toUpperCase() : '??';
 
-  if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? 'transparent' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
+  if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
 
-  const content = (
-    <KeyboardAvoidingView style={[styles.container, { backgroundColor: isDark ? 'transparent' : '#fff' }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={0}>
-      <View style={[styles.header, { borderBottomColor: colors.cardBorder, backgroundColor: isDark ? 'rgba(10,26,18,0.5)' : '#fff' }]}>
+  return (
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
+    >
+      <View style={[styles.header, { borderBottomColor: colors.cardBorder, backgroundColor: isDark ? '#0F1923' : '#fff' }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={[styles.backText, { color: colors.accent }]}>← Back</Text>
         </TouchableOpacity>
@@ -85,7 +89,7 @@ export default function EventChatScreen() {
                   {profile?.avatar_url ? <Image source={{ uri: profile.avatar_url }} style={styles.avatarSmallImage} /> : <Text style={styles.avatarSmallText}>{getInitials(profile)}</Text>}
                 </View>
               )}
-              <View style={[styles.messageBubble, isMe ? styles.messageBubbleMe : [styles.messageBubbleOther, { backgroundColor: isDark ? 'rgba(30,45,61,0.9)' : '#F1EFE8' }]]}>
+              <View style={[styles.messageBubble, isMe ? styles.messageBubbleMe : [styles.messageBubbleOther, { backgroundColor: isDark ? '#1E2D3D' : '#F1EFE8' }]]}>
                 {!isMe && profile?.nickname && <Text style={[styles.messageNickname, { color: colors.accent }]}>@{profile.nickname}</Text>}
                 <Text style={[styles.messageText, { color: isDark && !isMe ? colors.text : isMe ? '#fff' : '#1a1a1a' }]}>{item.message}</Text>
                 <Text style={[styles.messageTime, isMe && styles.messageTimeMe, !isMe && { color: colors.textSecondary }]}>{formatTime(item.created_at)}</Text>
@@ -95,7 +99,7 @@ export default function EventChatScreen() {
         }}
       />
 
-      <View style={[styles.inputContainer, { borderTopColor: colors.cardBorder, backgroundColor: isDark ? 'rgba(10,26,18,0.7)' : '#fff' }]}>
+      <View style={[styles.inputContainer, { borderTopColor: colors.cardBorder, backgroundColor: isDark ? '#0D1620' : '#fff' }]}>
         <TextInput
           style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]}
           placeholder="Type a message..."
@@ -111,21 +115,9 @@ export default function EventChatScreen() {
       </View>
     </KeyboardAvoidingView>
   );
-
-  if (isDark) {
-    return (
-      <ImageBackground source={require('../assets/images/sports-bg.png')} style={styles.bg} blurRadius={3}>
-        <View style={styles.overlay} />
-        {content}
-      </ImageBackground>
-    );
-  }
-  return content;
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1 },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,26,18,0.82)' },
   container: { flex: 1 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { padding: 24, paddingTop: 60, borderBottomWidth: 0.5 },
@@ -147,7 +139,6 @@ const styles = StyleSheet.create({
   messageBubbleOther: { borderBottomLeftRadius: 4 },
   messageNickname: { fontSize: 11, fontWeight: '500', marginBottom: 2 },
   messageText: { fontSize: 15 },
-  messageTextMe: { color: '#fff' },
   messageTime: { fontSize: 10, color: '#888', marginTop: 4, alignSelf: 'flex-end' },
   messageTimeMe: { color: 'rgba(255,255,255,0.7)' },
   inputContainer: { flexDirection: 'row', padding: 12, borderTopWidth: 0.5, alignItems: 'flex-end', gap: 8 },

@@ -2,7 +2,7 @@ import { useTheme } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function MyProfileScreen() {
   const { isDark, colors } = useTheme();
@@ -33,10 +33,13 @@ export default function MyProfileScreen() {
     <Text key={star} style={[styles.star, rating >= star && styles.starActive]}>★</Text>
   ));
 
-  if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? 'transparent' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
+  if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
 
-  const content = (
-    <ScrollView style={[styles.container, { backgroundColor: isDark ? 'transparent' : '#fff' }]} contentContainerStyle={styles.content}>
+  return (
+    <ScrollView
+      style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
+      contentContainerStyle={styles.content}
+    >
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
         <Text style={[styles.backText, { color: colors.accent }]}>← Back</Text>
       </TouchableOpacity>
@@ -59,42 +62,30 @@ export default function MyProfileScreen() {
       </View>
 
       <View style={styles.statsGrid}>
-        <View style={[styles.statCard, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#F9F9F9' }]}>
+        <View style={[styles.statCard, { backgroundColor: isDark ? '#1E2D3D' : '#F9F9F9' }]}>
           <Text style={[styles.statNumber, { color: colors.accent }]}>{stats.eventsCreated}</Text>
           <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Events created</Text>
         </View>
-        <View style={[styles.statCard, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#F9F9F9' }]}>
+        <View style={[styles.statCard, { backgroundColor: isDark ? '#1E2D3D' : '#F9F9F9' }]}>
           <Text style={[styles.statNumber, { color: colors.accent }]}>{stats.eventsJoined}</Text>
           <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Events joined</Text>
         </View>
       </View>
 
-      <TouchableOpacity style={[styles.menuItem, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#fff', borderColor: colors.cardBorder }]} onPress={() => router.push('/my-events' as any)}>
+      <TouchableOpacity style={[styles.menuItem, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]} onPress={() => router.push('/my-events' as any)}>
         <Text style={[styles.menuItemText, { color: colors.text }]}>My events</Text>
         <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>→</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.menuItem, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#fff', borderColor: colors.cardBorder }]} onPress={() => router.push('/notifications' as any)}>
+      <TouchableOpacity style={[styles.menuItem, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]} onPress={() => router.push('/notifications' as any)}>
         <Text style={[styles.menuItemText, { color: colors.text }]}>Notifications</Text>
         <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>→</Text>
       </TouchableOpacity>
     </ScrollView>
   );
-
-  if (isDark) {
-    return (
-      <ImageBackground source={require('../assets/images/sports-bg.png')} style={styles.bg} blurRadius={3}>
-        <View style={styles.overlay} />
-        {content}
-      </ImageBackground>
-    );
-  }
-  return content;
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1 },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,26,18,0.82)' },
   container: { flex: 1 },
   content: { padding: 24, paddingTop: 60 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },

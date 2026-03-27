@@ -2,7 +2,7 @@ import { useTheme } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function UserProfileScreen() {
   const { userId } = useLocalSearchParams();
@@ -29,10 +29,13 @@ export default function UserProfileScreen() {
     <Text key={star} style={[styles.star, rating >= star && styles.starActive]}>★</Text>
   ));
 
-  if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? 'transparent' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
+  if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
 
-  const content = (
-    <ScrollView style={[styles.container, { backgroundColor: isDark ? 'transparent' : '#fff' }]} contentContainerStyle={styles.content}>
+  return (
+    <ScrollView
+      style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
+      contentContainerStyle={styles.content}
+    >
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
         <Text style={[styles.backText, { color: colors.accent }]}>← Back</Text>
       </TouchableOpacity>
@@ -57,32 +60,20 @@ export default function UserProfileScreen() {
       </View>
 
       <View style={styles.statsGrid}>
-        <View style={[styles.statCard, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#F9F9F9' }]}>
+        <View style={[styles.statCard, { backgroundColor: isDark ? '#1E2D3D' : '#F9F9F9' }]}>
           <Text style={[styles.statNumber, { color: colors.accent }]}>{stats.eventsCreated}</Text>
           <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Events created</Text>
         </View>
-        <View style={[styles.statCard, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#F9F9F9' }]}>
+        <View style={[styles.statCard, { backgroundColor: isDark ? '#1E2D3D' : '#F9F9F9' }]}>
           <Text style={[styles.statNumber, { color: colors.accent }]}>{stats.eventsJoined}</Text>
           <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Events joined</Text>
         </View>
       </View>
     </ScrollView>
   );
-
-  if (isDark) {
-    return (
-      <ImageBackground source={require('../assets/images/sports-bg.png')} style={styles.bg} blurRadius={3}>
-        <View style={styles.overlay} />
-        {content}
-      </ImageBackground>
-    );
-  }
-  return content;
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1 },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,26,18,0.82)' },
   container: { flex: 1 },
   content: { padding: 24, paddingTop: 60 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },

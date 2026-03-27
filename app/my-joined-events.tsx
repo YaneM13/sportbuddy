@@ -2,7 +2,7 @@ import { useLanguage, useTheme } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ImageBackground, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function MyJoinedEventsScreen() {
   const { t } = useLanguage();
@@ -17,11 +17,15 @@ export default function MyJoinedEventsScreen() {
   async function fetchJoinedEvents() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { router.back(); return; }
-    const { data, error } = await supabase.from('event_participants').select('status, joined_at, events_with_counts(*)').eq('user_id', session.user.id).order('joined_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('event_participants')
+      .select('status, joined_at, events(*)')
+      .eq('user_id', session.user.id)
+      .order('joined_at', { ascending: false });
     if (error) { Alert.alert(t('error'), error.message); setLoading(false); setRefreshing(false); return; }
     const active: any[] = [], finished: any[] = [];
     (data || []).forEach((item: any) => {
-      const event = item.events_with_counts;
+      const event = item.events;
       if (!event) return;
       if (event.status === 'finished') finished.push(item);
       else active.push(item);
@@ -35,7 +39,7 @@ export default function MyJoinedEventsScreen() {
   const getCategoryColor = (category: string) => {
     const light: any = { team: { bg: '#E1F5EE', text: '#0F6E56' }, individual: { bg: '#E6F1FB', text: '#185FA5' }, water: { bg: '#EEEDFE', text: '#534AB7' }, watch: { bg: '#FAECE7', text: '#993C1D' } };
     const dark: any = { team: { bg: 'rgba(15,61,46,0.8)', text: '#9FE1CB' }, individual: { bg: 'rgba(12,30,53,0.8)', text: '#B5D4F4' }, water: { bg: 'rgba(38,33,92,0.8)', text: '#CECBF6' }, watch: { bg: 'rgba(74,27,12,0.8)', text: '#F5C4B3' } };
-    return isDark ? (dark[category] || { bg: 'rgba(30,45,61,0.8)', text: '#888' }) : (light[category] || { bg: '#F1EFE8', text: '#444441' });
+    return isDark ? (dark[category] || { bg: '#1E2D3D', text: '#888' }) : (light[category] || { bg: '#F1EFE8', text: '#444441' });
   };
 
   const getStatusStyle = (status: string) => {
@@ -45,20 +49,20 @@ export default function MyJoinedEventsScreen() {
   };
 
   const renderEventCard = (item: any, isFinished: boolean = false) => {
-    const event = item.events_with_counts;
+    const event = item.events;
     if (!event) return null;
     const color = getCategoryColor(event.category);
     const statusStyle = getStatusStyle(item.status);
     return (
       <TouchableOpacity
         key={item.joined_at + event.id}
-        style={[styles.card, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#fff', borderColor: colors.cardBorder }, isFinished && { opacity: 0.75 }]}
+        style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }, isFinished && { opacity: 0.75 }]}
         onPress={() => router.push({ pathname: '/event-details', params: { id: event.id } } as any)}
       >
         <View style={styles.cardHeader}>
           <View style={[styles.badge, { backgroundColor: color.bg }]}><Text style={[styles.badgeText, { color: color.text }]}>{event.sport}</Text></View>
           <View style={[styles.badge, { backgroundColor: statusStyle.bg }]}><Text style={[styles.badgeText, { color: statusStyle.text }]}>{statusStyle.label}</Text></View>
-          {isFinished && <View style={[styles.badge, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#F1EFE8' }]}><Text style={[styles.badgeText, { color: colors.textSecondary }]}>Finished</Text></View>}
+          {isFinished && <View style={[styles.badge, { backgroundColor: isDark ? '#1E2D3D' : '#F1EFE8' }]}><Text style={[styles.badgeText, { color: colors.textSecondary }]}>Finished</Text></View>}
         </View>
         <Text style={[styles.cardTitle, { color: isFinished ? colors.textSecondary : colors.text }]}>{event.title}</Text>
         <Text style={[styles.cardDetail, { color: colors.textSecondary }]}>📍 {event.location}</Text>
@@ -73,11 +77,11 @@ export default function MyJoinedEventsScreen() {
     );
   };
 
-  if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? 'transparent' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
+  if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
 
-  const content = (
+  return (
     <ScrollView
-      style={[styles.container, { backgroundColor: isDark ? 'transparent' : '#fff' }]}
+      style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchJoinedEvents(); }} />}
     >
@@ -111,21 +115,9 @@ export default function MyJoinedEventsScreen() {
       )}
     </ScrollView>
   );
-
-  if (isDark) {
-    return (
-      <ImageBackground source={require('../assets/images/sports-bg.png')} style={styles.bg} blurRadius={3}>
-        <View style={styles.overlay} />
-        {content}
-      </ImageBackground>
-    );
-  }
-  return content;
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1 },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,26,18,0.82)' },
   container: { flex: 1 },
   content: { padding: 24, paddingTop: 60 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },

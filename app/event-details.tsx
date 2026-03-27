@@ -4,7 +4,7 @@ import { sendPushNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, ImageBackground, Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function EventDetailsScreen() {
   const { t } = useLanguage();
@@ -23,7 +23,7 @@ export default function EventDetailsScreen() {
 
   async function fetchEventDetails() {
     const { data: { session } } = await supabase.auth.getSession();
-    const { data: eventData, error } = await supabase.from('events_with_counts').select('*').eq('id', id).single();
+    const { data: eventData, error } = await supabase.from('events').select('*').eq('id', id).single();
     if (error) { Alert.alert(t('error'), error.message); setLoading(false); return; }
     setEvent(eventData);
     const { data: participantsData } = await supabase.from('event_participants').select('*, profiles(first_name, last_name, nickname, avatar_url)').eq('event_id', id).eq('status', 'approved');
@@ -62,18 +62,21 @@ export default function EventDetailsScreen() {
     return <TouchableOpacity style={styles.joinBtn} onPress={handleJoin}><Text style={styles.joinBtnText}>{t('joinEvent')}</Text></TouchableOpacity>;
   };
 
-  if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? 'transparent' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
+  if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
 
   const isParticipant = joinStatus === 'approved' || (user && user.id === event?.created_by);
 
-  const content = (
-    <ScrollView style={[styles.container, { backgroundColor: isDark ? 'transparent' : '#fff' }]} contentContainerStyle={styles.content}>
+  return (
+    <ScrollView
+      style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
+      contentContainerStyle={styles.content}
+    >
       <BackButton />
 
       <Text style={[styles.title, { color: colors.text }]}>{event?.title}</Text>
       {event?.description && <Text style={[styles.description, { color: colors.textSecondary }]}>{event.description}</Text>}
 
-      <View style={[styles.detailsCard, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#F9F9F9' }]}>
+      <View style={[styles.detailsCard, { backgroundColor: isDark ? '#1E2D3D' : '#F9F9F9' }]}>
         <Text style={[styles.detail, { color: colors.text }]}>🏆 {event?.sport}</Text>
         <Text style={[styles.detail, { color: colors.text }]}>📍 {event?.location}</Text>
         <Text style={[styles.detail, { color: colors.text }]}>📅 {event?.date} at {event?.time} — {event?.end_time}</Text>
@@ -108,7 +111,7 @@ export default function EventDetailsScreen() {
             participants.map((p) => (
               <TouchableOpacity
                 key={p.id}
-                style={[styles.participantRow, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#fff', borderColor: colors.cardBorder }]}
+                style={[styles.participantRow, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}
                 onPress={() => router.push({ pathname: '/user-profile', params: { userId: p.user_id } } as any)}
               >
                 {p.profiles?.avatar_url ? (
@@ -130,21 +133,9 @@ export default function EventDetailsScreen() {
       )}
     </ScrollView>
   );
-
-  if (isDark) {
-    return (
-      <ImageBackground source={require('../assets/images/sports-bg.png')} style={styles.bg} blurRadius={3}>
-        <View style={styles.overlay} />
-        {content}
-      </ImageBackground>
-    );
-  }
-  return content;
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1 },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,26,18,0.82)' },
   container: { flex: 1 },
   content: { padding: 24, paddingTop: 60 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },

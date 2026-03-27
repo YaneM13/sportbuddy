@@ -2,7 +2,7 @@ import { useLanguage, useTheme } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function RatePlayersScreen() {
   const { t } = useLanguage();
@@ -47,12 +47,12 @@ export default function RatePlayersScreen() {
     </View>
   );
 
-  if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? 'transparent' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
+  if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
 
   if (!loading && participants.length === 0) {
-    const emptyContent = (
-      <View style={[styles.centered, { backgroundColor: isDark ? 'transparent' : '#fff' }]}>
-        <View style={[styles.emptyModal, { backgroundColor: isDark ? 'rgba(30,45,61,0.9)' : '#fff', borderColor: colors.cardBorder }]}>
+    return (
+      <View style={[styles.centered, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}>
+        <View style={[styles.emptyModal, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}>
           <Text style={styles.emptyModalEmoji}>👥</Text>
           <Text style={[styles.emptyModalTitle, { color: colors.text }]}>{t('noPlayersToRate')}</Text>
           <Text style={[styles.emptyModalText, { color: colors.textSecondary }]}>{t('noParticipantsToRate')}</Text>
@@ -62,12 +62,13 @@ export default function RatePlayersScreen() {
         </View>
       </View>
     );
-    if (isDark) return <ImageBackground source={require('../assets/images/sports-bg.png')} style={styles.bg} blurRadius={3}><View style={styles.overlay} />{emptyContent}</ImageBackground>;
-    return emptyContent;
   }
 
-  const content = (
-    <ScrollView style={[styles.container, { backgroundColor: isDark ? 'transparent' : '#fff' }]} contentContainerStyle={styles.content}>
+  return (
+    <ScrollView
+      style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
+      contentContainerStyle={styles.content}
+    >
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
         <Text style={[styles.backText, { color: colors.accent }]}>{t('back')}</Text>
       </TouchableOpacity>
@@ -75,7 +76,7 @@ export default function RatePlayersScreen() {
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Rate the players from this event</Text>
 
       {participants.map((participant) => (
-        <View key={participant.id} style={[styles.card, { backgroundColor: isDark ? 'rgba(30,45,61,0.8)' : '#fff', borderColor: colors.cardBorder }]}>
+        <View key={participant.id} style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}>
           <View style={styles.playerInfo}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{participant.users?.email?.substring(0, 2).toUpperCase()}</Text>
@@ -93,21 +94,9 @@ export default function RatePlayersScreen() {
       )}
     </ScrollView>
   );
-
-  if (isDark) {
-    return (
-      <ImageBackground source={require('../assets/images/sports-bg.png')} style={styles.bg} blurRadius={3}>
-        <View style={styles.overlay} />
-        {content}
-      </ImageBackground>
-    );
-  }
-  return content;
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1 },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,26,18,0.82)' },
   container: { flex: 1 },
   content: { padding: 24, paddingTop: 60 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
