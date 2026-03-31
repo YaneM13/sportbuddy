@@ -10,7 +10,8 @@ const PORT = process.env.PORT || 3000;
 // ── Middleware ──
 app.use(express.json());
 app.use((req, res, next) => {
-  res.setHeader('Content-Security-Policy', "script-src 'self' 'unsafe-inline'");
+  res.setHeader('Content-Security-Policy', "script-src 'self' 'unsafe-inline' 'unsafe-eval'");
+  res.setHeader('X-Content-Type-Options', 'nosniff');
   next();
 });
 app.use(express.static(path.join(__dirname, '../public')));
