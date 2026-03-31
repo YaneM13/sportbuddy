@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SportBuddy</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #1db954;
+    --green-dark: #17a349;
+    --green-glow: rgba(29,185,84,0.15);
+    --black: #0a0a0a;
+    --surface: #111111;
+    --card: #161616;
+    --border: rgba(255,255,255,0.07);
+    --text: #f0f0f0;
+    --muted: rgba(240,240,240,0.45);
+    --white: #ffffff;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Barlow', sans-serif; background: var(--black); color: var(--text); overflow-x: hidden; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--black); }
+  ::-webkit-scrollbar-thumb { background: var(--green); border-radius: 2px; }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 56px; height: 68px;
+    background: rgba(10,10,10,0.93); backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .nav-logo img { width: 36px; height: 36px; object-fit: contain; border-radius: 8px; }
+  .nav-logo-text { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 900; color: var(--white); text-transform: uppercase; letter-spacing: 0.5px; }
+  .nav-logo-text span { color: var(--green); }
+  .nav-links { display: flex; align-items: center; gap: 36px; list-style: none; }
+  .nav-links a {
+    text-decoration: none; color: var(--muted); font-size: 15px; font-weight: 500;
+    transition: color .2s; position: relative;
+  }
+  .nav-links a::after { content: ''; position: absolute; bottom: -4px; left: 0; right: 0; height: 2px; background: var(--green); transform: scaleX(0); transition: transform .2s; }
+  .nav-links a:hover, .nav-links a.active { color: var(--white); }
+  .nav-links a.active::after, .nav-links a:hover::after { transform: scaleX(1); }
+  .nav-admin-btn {
+    background: transparent; border: 1.5px solid rgba(255,255,255,0.15);
+    border-radius: 8px; padding: 8px 20px; color: var(--muted);
+    font-family: 'Barlow', sans-serif; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all .2s; text-decoration: none; display: flex; align-items: center; gap: 7px;
+  }
+  .nav-admin-btn:hover { border-color: var(--green); color: var(--green); }
+
+  /* PAGES */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ═══ HOME ═══ */
+  .hero {
+    min-height: 100vh; display: flex; flex-direction: column;
+    justify-content: center; align-items: center; text-align: center;
+    padding: 110px 40px 70px; position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ''; position: absolute; inset: 0;
+    background: repeating-linear-gradient(-45deg, transparent, transparent 50px, rgba(29,185,84,0.02) 50px, rgba(29,185,84,0.02) 51px);
+    pointer-events: none;
+  }
+  .hero::after {
+    content: ''; position: absolute; top: -80px; left: 50%; transform: translateX(-50%);
+    width: 800px; height: 500px;
+    background: radial-gradient(ellipse, rgba(29,185,84,0.12) 0%, transparent 68%);
+    pointer-events: none;
+  }
+  .hero-logo {
+    width: 96px; height: 96px; object-fit: contain; border-radius: 22px;
+    margin-bottom: 30px; position: relative; z-index: 1;
+    animation: heroIn .7s cubic-bezier(0.34,1.56,0.64,1) both;
+    box-shadow: 0 0 48px rgba(29,185,84,0.35), 0 8px 32px rgba(0,0,0,0.5);
+  }
+  @keyframes heroIn { from { opacity:0; transform: scale(0.5) translateY(20px); } to { opacity:1; transform: scale(1) translateY(0); } }
+
+  .hero-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(54px, 10vw, 108px); font-weight: 900;
+    line-height: 0.9; letter-spacing: -2px; text-transform: uppercase;
+    margin-bottom: 26px; position: relative; z-index: 1;
+    animation: fadeUp .5s .15s ease both;
+  }
+  .hero-title .g { color: var(--green); display: block; }
+  .hero-title .w { color: var(--white); display: block; }
+
+  .hero-sub {
+    font-size: 19px; color: var(--muted); line-height: 1.65; font-weight: 300;
+    max-width: 540px; margin: 0 auto 48px;
+    position: relative; z-index: 1;
+    animation: fadeUp .5s .25s ease both;
+  }
+  .hero-sub strong { color: var(--white); font-weight: 500; }
+
+  .hero-btns {
+    display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+    position: relative; z-index: 1;
+    animation: fadeUp .5s .35s ease both;
+  }
+  .btn-green {
+    background: var(--green); color: var(--black);
+    border: 2px solid var(--green); border-radius: 10px;
+    padding: 15px 36px; font-family: 'Barlow Condensed', sans-serif;
+    font-size: 17px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase;
+    cursor: pointer; transition: all .2s; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 8px;
+    box-shadow: 0 0 28px rgba(29,185,84,0.28);
+  }
+  .btn-green:hover { background: transparent; color: var(--green); box-shadow: 0 0 40px rgba(29,185,84,0.4); }
+  .btn-outline {
+    background: transparent; color: var(--white);
+    border: 2px solid rgba(255,255,255,0.14); border-radius: 10px;
+    padding: 15px 36px; font-family: 'Barlow Condensed', sans-serif;
+    font-size: 17px; font-weight: 700; text-transform: uppercase;
+    cursor: pointer; transition: all .2s; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn-outline:hover { border-color: var(--green); color: var(--green); }
+
+  /* HOW IT WORKS */
+  .hiw-section { padding: 100px 56px; }
+  .section-eyebrow { font-size: 11px; font-weight: 700; color: var(--green); text-transform: uppercase; letter-spacing: 2.5px; margin-bottom: 14px; }
+  .section-title { font-family: 'Barlow Condensed', sans-serif; font-size: clamp(32px, 4vw, 54px); font-weight: 900; text-transform: uppercase; line-height: 0.95; letter-spacing: -1px; margin-bottom: 16px; }
+  .section-sub { color: var(--muted); font-size: 16px; line-height: 1.65; font-weight: 300; max-width: 480px; }
+
+  .steps {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px;
+    margin-top: 60px; max-width: 1060px; margin-left: auto; margin-right: auto;
+  }
+  .step-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 36px 28px;
+    position: relative; overflow: hidden; transition: border-color .3s, transform .3s;
+  }
+  .step-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--green), transparent); opacity: 0; transition: opacity .3s; }
+  .step-card:hover { border-color: rgba(29,185,84,0.3); transform: translateY(-5px); }
+  .step-card:hover::before { opacity: 1; }
+  .step-num {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 72px; font-weight: 900;
+    color: rgba(29,185,84,0.1); line-height: 1; position: absolute; top: 16px; right: 20px;
+    pointer-events: none;
+  }
+  .step-icon { font-size: 36px; margin-bottom: 18px; }
+  .step-title { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; }
+  .step-desc { color: var(--muted); font-size: 15px; line-height: 1.65; font-weight: 300; }
+
+  /* SPORTS GRID */
+  .sports-section {
+    padding: 100px 56px; background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  }
+  .sports-grid {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    margin-top: 48px; max-width: 1060px; margin-left: auto; margin-right: auto;
+  }
+  .sport-tag {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 100px; padding: 10px 22px;
+    font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px;
+    transition: all .2s; cursor: default;
+  }
+  .sport-tag:hover { border-color: var(--green); color: var(--green); background: rgba(29,185,84,0.06); }
+
+  /* RATINGS section */
+  .ratings-section { padding: 100px 56px; }
+  .ratings-inner { max-width: 1060px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+  .rating-visual {
+    background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 36px;
+  }
+  .rating-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .rating-title-sm { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 800; text-transform: uppercase; }
+  .rating-badge { background: var(--green-glow); border: 1px solid rgba(29,185,84,0.25); border-radius: 8px; padding: 4px 12px; font-size: 12px; color: var(--green); font-weight: 600; }
+  .player-row { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .player-row:last-child { border-bottom: none; }
+  .player-avatar { width: 40px; height: 40px; background: var(--green-glow); border-radius: 50%; display: grid; place-items: center; font-size: 18px; border: 1px solid rgba(29,185,84,0.2); flex-shrink: 0; }
+  .player-name { font-weight: 600; font-size: 14px; flex: 1; }
+  .player-sport { font-size: 12px; color: var(--muted); }
+  .stars { color: #fbbf24; font-size: 14px; letter-spacing: 1px; }
+  .star-num { font-size: 13px; color: var(--muted); margin-left: 4px; }
+
+  /* CTA */
+  .cta-section {
+    padding: 100px 56px; text-align: center;
+    background: var(--surface); border-top: 1px solid var(--border);
+    position: relative; overflow: hidden;
+  }
+  .cta-section::before {
+    content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 700px; height: 350px;
+    background: radial-gradient(ellipse, rgba(29,185,84,0.1) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .cta-logo { width: 64px; height: 64px; object-fit: contain; border-radius: 14px; margin: 0 auto 24px; display: block; box-shadow: 0 0 28px rgba(29,185,84,0.3); }
+  .store-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 36px; }
+  .store-btn {
+    background: var(--card); border: 1.5px solid var(--border); border-radius: 12px;
+    padding: 14px 28px; display: flex; align-items: center; gap: 12px;
+    text-decoration: none; transition: all .25s; color: var(--text);
+  }
+  .store-btn:hover { border-color: var(--green); background: rgba(29,185,84,0.05); }
+  .store-icon { font-size: 28px; }
+  .store-txt small { display: block; font-size: 11px; color: var(--muted); }
+  .store-txt strong { font-size: 16px; font-weight: 600; }
+
+  /* FOOTER */
+  footer { background: var(--black); border-top: 1px solid var(--border); padding: 32px 56px; text-align: center; color: var(--muted); font-size: 13px; }
+  .footer-logo { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 900; color: var(--white); text-transform: uppercase; margin-bottom: 8px; }
+  .footer-logo span { color: var(--green); }
+
+  /* ═══ CONTACT ═══ */
+  .contact-page { min-height: 100vh; padding: 100px 40px 60px; display: flex; flex-direction: column; align-items: center; }
+  .contact-inner { width: 100%; max-width: 1040px; display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; margin-top: 20px; }
+  .contact-eyebrow { display: inline-flex; align-items: center; gap: 8px; background: rgba(29,185,84,0.1); border: 1px solid rgba(29,185,84,0.2); border-radius: 100px; padding: 5px 14px; font-size: 11px; font-weight: 700; color: var(--green); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 22px; }
+  .contact-title { font-family: 'Barlow Condensed', sans-serif; font-size: clamp(36px, 5vw, 58px); font-weight: 900; text-transform: uppercase; letter-spacing: -1px; line-height: 0.95; margin-bottom: 20px; }
+  .contact-title .g { color: var(--green); }
+  .contact-desc { color: var(--muted); font-size: 16px; line-height: 1.7; font-weight: 300; margin-bottom: 36px; }
+  .contact-details { display: flex; flex-direction: column; gap: 12px; }
+  .c-detail { display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; transition: border-color .2s; }
+  .c-detail:hover { border-color: rgba(29,185,84,0.25); }
+  .c-icon { width: 40px; height: 40px; background: var(--green-glow); border-radius: 10px; display: grid; place-items: center; font-size: 17px; border: 1px solid rgba(29,185,84,0.2); flex-shrink: 0; }
+  .c-lbl { font-size: 11px; color: var(--muted); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .c-val { font-size: 14px; font-weight: 500; }
+
+  /* Form */
+  .form-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 40px; box-shadow: 0 20px 70px rgba(0,0,0,0.5); }
+  .form-card-title { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 6px; }
+  .form-card-sub { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+  .form-group { margin-bottom: 16px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  label { display: block; font-size: 11px; font-weight: 700; color: rgba(240,240,240,0.45); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  input, textarea {
+    width: 100%; background: rgba(255,255,255,0.04); border: 1.5px solid var(--border);
+    border-radius: 10px; padding: 13px 16px; color: var(--text);
+    font-family: 'Barlow', sans-serif; font-size: 15px; outline: none;
+    transition: border-color .2s, background .2s; resize: none;
+  }
+  input::placeholder, textarea::placeholder { color: rgba(240,240,240,0.18); }
+  input:focus, textarea:focus { border-color: var(--green); background: rgba(29,185,84,0.04); }
+  input.err, textarea.err { border-color: #f87171; }
+  .char-count { text-align: right; font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .char-count.warn { color: #fbbf24; }
+  .submit-btn {
+    width: 100%; padding: 15px; background: var(--green); color: var(--black);
+    border: none; border-radius: 10px; font-family: 'Barlow Condensed', sans-serif;
+    font-size: 17px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;
+    cursor: pointer; transition: all .2s; margin-top: 6px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    box-shadow: 0 4px 20px rgba(29,185,84,0.28);
+  }
+  .submit-btn:hover { background: var(--green-dark); transform: translateY(-1px); box-shadow: 0 6px 28px rgba(29,185,84,0.42); }
+  .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  .status-msg { display: none; border-radius: 10px; padding: 12px 16px; font-size: 14px; font-weight: 500; margin-top: 14px; align-items: center; gap: 10px; }
+  .status-msg.show { display: flex; }
+  .status-msg.success { background: rgba(29,185,84,0.1); border: 1px solid rgba(29,185,84,0.25); color: var(--green); }
+  .status-msg.error { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.25); color: #f87171; }
+  .success-view { display: none; text-align: center; padding: 20px 0; }
+  .success-view.show { display: block; }
+  .success-circle { width: 72px; height: 72px; background: rgba(29,185,84,0.12); border: 2px solid rgba(29,185,84,0.3); border-radius: 50%; display: grid; place-items: center; font-size: 30px; margin: 0 auto 20px; animation: pop .5s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .success-title { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 900; text-transform: uppercase; margin-bottom: 10px; }
+  .success-desc { color: var(--muted); font-size: 15px; line-height: 1.6; }
+  .reset-btn { margin-top: 22px; background: transparent; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 24px; color: var(--muted); font-family: 'Barlow', sans-serif; font-size: 14px; cursor: pointer; transition: all .2s; }
+  .reset-btn:hover { border-color: var(--green); color: var(--green); }
+  .spinner { width: 18px; height: 18px; border: 2px solid rgba(0,0,0,0.25); border-top-color: var(--black); border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ═══ LOGIN ═══ */
+  .login-page { min-height: 100vh; display: grid; place-items: center; padding: 100px 24px 60px; }
+  .login-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 48px 44px; width: 100%; max-width: 420px; box-shadow: 0 24px 80px rgba(0,0,0,0.6); animation: fadeUp .4s ease; }
+  .login-logo { display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 32px; }
+  .login-logo img { width: 44px; height: 44px; object-fit: contain; border-radius: 10px; box-shadow: 0 0 20px rgba(29,185,84,0.35); }
+  .login-logo-text { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 900; text-transform: uppercase; color: var(--white); }
+  .login-logo-text span { color: var(--green); }
+  .login-title { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 800; text-transform: uppercase; text-align: center; margin-bottom: 6px; }
+  .login-sub { color: var(--muted); font-size: 14px; text-align: center; margin-bottom: 30px; }
+  .login-group { margin-bottom: 14px; }
+  .login-input { width: 100%; background: rgba(255,255,255,0.04); border: 1.5px solid var(--border); border-radius: 10px; padding: 13px 16px; color: var(--text); font-family: 'Barlow', sans-serif; font-size: 15px; outline: none; transition: border-color .2s; }
+  .login-input::placeholder { color: rgba(240,240,240,0.2); }
+  .login-input:focus { border-color: var(--green); background: rgba(29,185,84,0.04); }
+  .login-input.err { border-color: #f87171; }
+  .login-btn { width: 100%; padding: 14px; background: var(--green); color: var(--black); border: none; border-radius: 10px; font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: all .2s; margin-top: 8px; box-shadow: 0 4px 20px rgba(29,185,84,0.28); }
+  .login-btn:hover { background: var(--green-dark); transform: translateY(-1px); }
+  .login-error { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.25); color: #f87171; border-radius: 10px; padding: 12px 16px; font-size: 14px; margin-top: 14px; display: none; }
+  .login-error.show { display: block; }
+  .login-back { display: block; text-align: center; margin-top: 20px; color: var(--muted); font-size: 14px; background: none; border: none; cursor: pointer; width: 100%; transition: color .2s; font-family: 'Barlow', sans-serif; }
+  .login-back:hover { color: var(--green); }
+
+  /* ═══ ADMIN ═══ */
+  .admin-panel { min-height: 100vh; padding: 100px 40px 60px; }
+  .admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 36px; padding-bottom: 24px; border-bottom: 1px solid var(--border); max-width: 900px; margin-left: auto; margin-right: auto; }
+  .admin-title { font-family: 'Barlow Condensed', sans-serif; font-size: 28px; font-weight: 900; text-transform: uppercase; }
+  .admin-title span { color: var(--green); }
+  .logout-btn { background: transparent; border: 1.5px solid var(--border); border-radius: 8px; padding: 8px 20px; color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: 'Barlow', sans-serif; }
+  .logout-btn:hover { border-color: #f87171; color: #f87171; }
+  .admin-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; max-width: 900px; margin: 0 auto 36px; }
+  .a-stat { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+  .a-stat-num { font-family: 'Barlow Condensed', sans-serif; font-size: 32px; font-weight: 900; color: var(--green); }
+  .a-stat-lbl { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .admin-content { max-width: 900px; margin: 0 auto; }
+  .admin-sec-title { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 800; text-transform: uppercase; margin-bottom: 16px; letter-spacing: 0.5px; }
+  .msg-list { display: flex; flex-direction: column; gap: 12px; }
+  .msg-item { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; }
+  .msg-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .msg-from { font-weight: 600; font-size: 15px; }
+  .msg-email { font-size: 13px; color: var(--green); }
+  .msg-time { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .msg-subject { font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .msg-body { font-size: 14px; color: rgba(240,240,240,0.7); line-height: 1.6; }
+  .admin-empty { text-align: center; padding: 48px; color: var(--muted); font-size: 15px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  @media (max-width: 768px) {
+    nav { padding: 0 20px; }
+    .nav-links { display: none; }
+    .steps, .ratings-inner, .contact-inner, .admin-stats { grid-template-columns: 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+    .hiw-section, .sports-section, .ratings-section, .cta-section { padding: 70px 24px; }
+    .contact-page { padding: 90px 20px 60px; }
+    .login-card { padding: 32px 20px; }
+    .admin-panel { padding: 90px 20px 60px; }
+  }
+</style>
+</head>
+<body>
+
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#" onclick="showPage('home');return false;">
+    <img id="navLogo" src="" alt="SportBuddy">
+    <span class="nav-logo-text">Sport<span>Buddy</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#" onclick="showPage('home');return false;" id="nav-home" class="active">Home</a></li>
+    <li><a href="#" onclick="showPage('contact');return false;" id="nav-contact">Contact</a></li>
+  </ul>
+  <a href="#" class="nav-admin-btn" onclick="showPage('login');return false;" id="adminNavBtn">🔐 Admin</a>
+</nav>
+
+<!-- ══════════ HOME ══════════ -->
+<div class="page active" id="page-home">
+
+  <section class="hero">
+    <img id="heroLogo" src="" alt="SportBuddy" class="hero-logo">
+    <h1 class="hero-title">
+      <span class="g">Sport Buddies</span>
+      <span class="w">Await You</span>
+    </h1>
+    <p class="hero-sub">
+      Want to play but have <strong>no one to play with?</strong><br>
+      Create an event, find players near you and play your favourite sport — today.
+    </p>
+    <div class="hero-btns">
+      <a href="#" class="btn-green" onclick="showPage('contact');return false;">Get Notified at Launch</a>
+      <a href="#how" class="btn-outline">How It Works</a>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="hiw-section" id="how">
+    <div style="max-width:1060px;margin:0 auto">
+      <div class="section-eyebrow">How It Works</div>
+      <h2 class="section-title">Three Steps<br>to Your Next Game</h2>
+      <p class="section-sub">SportBuddy makes it dead simple to go from your couch to the court.</p>
+      <div class="steps">
+        <div class="step-card">
+          <div class="step-num">01</div>
+          <div class="step-icon">📅</div>
+          <div class="step-title">Create an Event</div>
+          <div class="step-desc">Choose your sport, set a date, time and location. Your event is live in seconds — visible to players near you.</div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">02</div>
+          <div class="step-icon">🤝</div>
+          <div class="step-title">Players Join You</div>
+          <div class="step-desc">Other users see your event and request to join. You approve, they show up. No group chats, no hassle.</div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">03</div>
+          <div class="step-icon">⭐</div>
+          <div class="step-title">Rate Each Other</div>
+          <div class="step-desc">After the game, players rate each other. Build your reputation as a reliable, fun teammate across all sports.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SPORTS -->
+  <section class="sports-section">
+    <div style="max-width:1060px;margin:0 auto">
+      <div class="section-eyebrow">Supported Sports</div>
+      <h2 class="section-title">Whatever You<br>Love to Play</h2>
+
+      <p style="color:var(--muted);font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;margin-top:40px;margin-bottom:12px;">🏃 Active Sports</p>
+      <div class="sports-grid">
+        <div class="sport-tag">⚽ Football</div>
+        <div class="sport-tag">🏀 Basketball</div>
+        <div class="sport-tag">🏀 Basketball 3x3</div>
+        <div class="sport-tag">🏐 Volleyball</div>
+        <div class="sport-tag">🏖️ Beach Volleyball</div>
+        <div class="sport-tag">🏉 Rugby</div>
+        <div class="sport-tag">🏏 Cricket</div>
+        <div class="sport-tag">🤾 Handball</div>
+        <div class="sport-tag">🎾 Tennis</div>
+        <div class="sport-tag">🏓 Ping Pong</div>
+        <div class="sport-tag">🛼 Roller Skating</div>
+        <div class="sport-tag">🚴 Cycling</div>
+        <div class="sport-tag">🎾 Padel</div>
+        <div class="sport-tag">🏊 Swimming</div>
+        <div class="sport-tag">🛶 Kayaking</div>
+        <div class="sport-tag">🏄 SUP Board</div>
+        <div class="sport-tag">🌊 Rafting</div>
+        <div class="sport-tag">🎣 Fishing</div>
+      </div>
+
+      <p style="color:var(--muted);font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;margin-top:32px;margin-bottom:12px;">👀 Watch Sports Together</p>
+      <div class="sports-grid">
+        <div class="sport-tag">🍺 Sports Bar</div>
+        <div class="sport-tag">🏟️ Stadium</div>
+        <div class="sport-tag">🌿 Outdoor Screening</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RATINGS SECTION -->
+  <section class="ratings-section">
+    <div style="max-width:1060px;margin:0 auto">
+      <div class="section-eyebrow">Player Ratings</div>
+      <h2 class="section-title">Build Your<br><span style="color:var(--green)">Reputation</span></h2>
+      <p class="section-sub" style="max-width:580px;margin-bottom:56px">After every game, players rate each other. The better teammate you are — the higher your rating climbs, and the more players want to join your events.</p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1060px;">
+        <div class="step-card">
+          <div class="step-icon">🎮</div>
+          <div class="step-title">Play the Game</div>
+          <div class="step-desc">Attend the event you joined or created. Show up on time, play fair and enjoy the game.</div>
+        </div>
+        <div class="step-card">
+          <div class="step-icon">⭐</div>
+          <div class="step-title">Rate Your Teammates</div>
+          <div class="step-desc">After the event ends, rate every player you played with. Was he reliable? Fun? A good sport?</div>
+        </div>
+        <div class="step-card">
+          <div class="step-icon">📈</div>
+          <div class="step-title">Grow Your Score</div>
+          <div class="step-desc">Good ratings boost your profile. A high score makes other players trust you and want to play with you.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div style="position:relative;z-index:1">
+      <img id="ctaLogo" src="" alt="SportBuddy" class="cta-logo">
+      <div class="section-eyebrow" style="text-align:center">Coming Soon</div>
+      <h2 class="section-title" style="text-align:center;max-width:640px;margin:0 auto 18px">Stop Waiting.<br><span style="color:var(--green)">Start Playing.</span></h2>
+      <p style="color:var(--muted);font-size:16px;font-weight:300;max-width:420px;margin:0 auto;line-height:1.65;text-align:center">SportBuddy is launching soon. Leave your contact details and be the first to know.</p>
+      <div class="store-btns">
+        <a href="#" class="store-btn" onclick="showPage('contact');return false;">
+          <div class="store-icon">🍎</div>
+          <div class="store-txt"><small>Coming to</small><strong>App Store</strong></div>
+        </a>
+        <a href="#" class="store-btn" onclick="showPage('contact');return false;">
+          <div class="store-icon">🤖</div>
+          <div class="store-txt"><small>Coming to</small><strong>Google Play</strong></div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-logo">Sport<span>Buddy</span></div>
+    <p>© 2026 SportBuddy. All rights reserved.</p>
+  </footer>
+</div>
+
+<!-- ══════════ CONTACT ══════════ -->
+<div class="page" id="page-contact">
+  <div class="contact-page">
+    <div class="contact-inner">
+      <div>
+        <div class="contact-eyebrow">✦ Contact</div>
+        <h2 class="contact-title">Get In<br><span class="g">Touch</span></h2>
+        <p class="contact-desc">Have a question, suggestion or want to report a bug? We read every message and reply within 24 hours.</p>
+        <div class="contact-details">
+          <div class="c-detail"><div class="c-icon">📧</div><div><div class="c-lbl">Email</div><div class="c-val"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="066d696872676d72467576697472647362627f28686372">[email&#160;protected]</a></div></div></div>
+          <div class="c-detail"><div class="c-icon">⏱️</div><div><div class="c-lbl">Response time</div><div class="c-val">Within 24 hours</div></div></div>
+          <div class="c-detail"><div class="c-icon">📍</div><div><div class="c-lbl">Based in</div><div class="c-val">Skopje, Macedonia 🇲🇰</div></div></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div id="formArea">
+          <div class="form-card-title">Send a Message</div>
+          <div class="form-card-sub">All fields are required.</div>
+          <form id="contactForm" novalidate>
+            <div class="form-row">
+              <div class="form-group"><label for="c_name">Your Name</label><input type="text" id="c_name" placeholder="Alex Johnson" autocomplete="name"></div>
+              <div class="form-group"><label for="c_email">Email</label><input type="email" id="c_email" placeholder="alex@email.com" autocomplete="email"></div>
+            </div>
+            <div class="form-group"><label for="c_subject">Subject</label><input type="text" id="c_subject" placeholder="Question about SportBuddy..."></div>
+            <div class="form-group">
+              <label for="c_msg">Message</label>
+              <textarea id="c_msg" rows="5" placeholder="Write your message here..." maxlength="2000"></textarea>
+              <div class="char-count" id="charCount">0 / 2000</div>
+            </div>
+            <button type="submit" class="submit-btn" id="submitBtn"><span>Send Message</span><span>→</span></button>
+            <div class="status-msg" id="statusMsg"></div>
+          </form>
+        </div>
+        <div class="success-view" id="successView">
+          <div class="success-circle">✓</div>
+          <div class="success-title">Message Sent!</div>
+          <p class="success-desc">Thanks for reaching out!<br>Expect a reply within 24 hours.</p>
+          <button class="reset-btn" onclick="resetForm()">← Send Another</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer><div class="footer-logo">Sport<span>Buddy</span></div><p>© 2026 SportBuddy. All rights reserved.</p></footer>
+</div>
+
+<!-- ══════════ LOGIN ══════════ -->
+<div class="page" id="page-login">
+  <div class="login-page">
+    <div class="login-card">
+      <div class="login-logo">
+        <img id="loginLogo" src="" alt="SportBuddy">
+        <div class="login-logo-text">Sport<span>Buddy</span></div>
+      </div>
+      <div class="login-title">Admin Login</div>
+      <div class="login-sub">Restricted to administrators only.</div>
+      <div class="login-group"><input class="login-input" type="text" id="l_user" placeholder="Username" autocomplete="username"></div>
+      <div class="login-group"><input class="login-input" type="password" id="l_pass" placeholder="Password" autocomplete="current-password"></div>
+      <button class="login-btn" onclick="doLogin()">Sign In</button>
+      <div class="login-error" id="loginError">❌ Incorrect username or password.</div>
+      <button class="login-back" onclick="showPage('home')">← Back to Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ ADMIN ══════════ -->
+<div class="page" id="page-admin">
+  <div class="admin-panel">
+    <div class="admin-header">
+      <div class="admin-title">Admin <span>Dashboard</span></div>
+      <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+    </div>
+    <div class="admin-stats">
+      <div class="a-stat"><div class="a-stat-num" id="totalCount">0</div><div class="a-stat-lbl">Total Messages</div></div>
+      <div class="a-stat"><div class="a-stat-num" id="todayCount">0</div><div class="a-stat-lbl">Today</div></div>
+      <div class="a-stat"><div class="a-stat-num">✓</div><div class="a-stat-lbl">System Online</div></div>
+    </div>
+    <div class="admin-content">
+      <div class="admin-sec-title">Contact Messages</div>
+      <div class="msg-list" id="msgList"></div>
+    </div>
+  </div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// Logos
+document.addEventListener('DOMContentLoaded', () => {
+  ['navLogo','heroLogo','loginLogo','ctaLogo'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.src = LOGO_SRC;
+  });
+});
+
+// Routing
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+  const nl = document.getElementById('nav-' + name);
+  if (nl) nl.classList.add('active');
+  window.scrollTo(0, 0);
+  if (name === 'admin') renderAdmin();
+}
+
+// Char counter
+const msgEl = document.getElementById('c_msg');
+const cc = document.getElementById('charCount');
+msgEl.addEventListener('input', () => {
+  const n = msgEl.value.length;
+  cc.textContent = `${n} / 2000`;
+  cc.className = 'char-count' + (n > 1800 ? ' warn' : '');
+});
+
+// Contact form
+document.getElementById('contactForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const name    = document.getElementById('c_name').value.trim();
+  const email   = document.getElementById('c_email').value.trim();
+  const subject = document.getElementById('c_subject').value.trim();
+  const message = document.getElementById('c_msg').value.trim();
+  const btn     = document.getElementById('submitBtn');
+  const status  = document.getElementById('statusMsg');
+
+  ['c_name','c_email','c_subject','c_msg'].forEach(id => document.getElementById(id).classList.remove('err'));
+  status.className = 'status-msg';
+
+  let err = false;
+  if (name.length < 2)   { document.getElementById('c_name').classList.add('err'); err = true; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { document.getElementById('c_email').classList.add('err'); err = true; }
+  if (subject.length < 3) { document.getElementById('c_subject').classList.add('err'); err = true; }
+  if (message.length < 10) { document.getElementById('c_msg').classList.add('err'); err = true; }
+  if (err) { status.textContent = '⚠️  Please fill in all fields correctly.'; status.className = 'status-msg error show'; return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span>Sending...</span><div class="spinner"></div>';
+
+  const save = () => {
+    const msgs = JSON.parse(localStorage.getItem('sb_msgs') || '[]');
+    msgs.unshift({ name, email, subject, message, time: new Date().toISOString() });
+    localStorage.setItem('sb_msgs', JSON.stringify(msgs));
+    document.getElementById('formArea').style.display = 'none';
+    document.getElementById('successView').classList.add('show');
+  };
+
+  try {
+    const res = await fetch('/api/contact', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name,email,subject,message}) });
+    const data = await res.json();
+    if (data.success) save(); else { status.textContent = '❌ ' + data.message; status.className = 'status-msg error show'; btn.disabled=false; btn.innerHTML='<span>Send Message</span><span>→</span>'; }
+  } catch { save(); }
+});
+
+function resetForm() {
+  document.getElementById('contactForm').reset();
+  cc.textContent = '0 / 2000';
+  document.getElementById('formArea').style.display = 'block';
+  document.getElementById('successView').classList.remove('show');
+  document.getElementById('submitBtn').disabled = false;
+  document.getElementById('submitBtn').innerHTML = '<span>Send Message</span><span>→</span>';
+  document.getElementById('statusMsg').className = 'status-msg';
+}
+
+// Admin
+const ADMIN_USER = 'admin';
+const ADMIN_PASS = 'sportbuddy2026';
+
+function doLogin() {
+  const u = document.getElementById('l_user').value;
+  const p = document.getElementById('l_pass').value;
+  const errEl = document.getElementById('loginError');
+  errEl.classList.remove('show');
+  if (u === ADMIN_USER && p === ADMIN_PASS) {
+    sessionStorage.setItem('sb_admin','1');
+    document.getElementById('adminNavBtn').style.display = 'none';
+    showPage('admin');
+  } else {
+    errEl.classList.add('show');
+    document.getElementById('l_pass').value = '';
+    document.getElementById('l_pass').classList.add('err');
+    setTimeout(() => document.getElementById('l_pass').classList.remove('err'), 1500);
+  }
+}
+document.getElementById('l_user').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('l_pass').focus(); });
+document.getElementById('l_pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+function doLogout() {
+  sessionStorage.removeItem('sb_admin');
+  document.getElementById('adminNavBtn').style.display = '';
+  showPage('home');
+}
+
+function renderAdmin() {
+  if (!sessionStorage.getItem('sb_admin')) { showPage('login'); return; }
+  const msgs = JSON.parse(localStorage.getItem('sb_msgs') || '[]');
+  document.getElementById('totalCount').textContent = msgs.length;
+  const today = new Date().toDateString();
+  document.getElementById('todayCount').textContent = msgs.filter(m => new Date(m.time).toDateString() === today).length;
+  const list = document.getElementById('msgList');
+  if (!msgs.length) { list.innerHTML = '<div class="admin-empty">📭 No messages
