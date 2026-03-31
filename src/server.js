@@ -9,11 +9,7 @@ const PORT = process.env.PORT || 3000;
 
 // ── Middleware ──
 app.use(express.json());
-app.use((req, res, next) => {
-  res.setHeader('Content-Security-Policy', "script-src 'self' 'unsafe-inline' 'unsafe-eval'");
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  next();
-});
+app.use(express.static(path.join(__dirname, '../public')));
 app.use(express.static(path.join(__dirname, '../public')));
 // ── Rate limit: max 5 messages per hour per IP ──
 const limiter = rateLimit({
