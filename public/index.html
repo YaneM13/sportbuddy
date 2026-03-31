@@ -330,11 +330,12 @@
 </style>
 </head>
 <body>
-<script data-cfasync="false">const LOGO_SRC = "1024_x_1024.png";</script>
+
+
 <!-- NAV -->
 <nav>
   <a class="nav-logo" href="#" onclick="showPage('home');return false;">
-    <img id="navLogo" src="1024_x_1024.png" alt="SportBuddy">
+    <img id="navLogo" src="" alt="SportBuddy">
     <span class="nav-logo-text">Sport<span>Buddy</span></span>
   </a>
   <ul class="nav-links">
@@ -348,7 +349,7 @@
 <div class="page active" id="page-home">
 
   <section class="hero">
-    <img id="heroLogo" src="1024_x_1024.png" alt="SportBuddy" class="hero-logo">
+    <img id="heroLogo" src="" alt="SportBuddy" class="hero-logo">
     <h1 class="hero-title">
       <span class="g">Sport Buddies</span>
       <span class="w">Await You</span>
@@ -458,7 +459,7 @@
   <!-- CTA -->
   <section class="cta-section">
     <div style="position:relative;z-index:1">
-      <img id="ctaLogo" src="1024_x_1024.png" alt="SportBuddy" class="cta-logo">
+      <img id="ctaLogo" src="" alt="SportBuddy" class="cta-logo">
       <div class="section-eyebrow" style="text-align:center">Coming Soon</div>
       <h2 class="section-title" style="text-align:center;max-width:640px;margin:0 auto 18px">Stop Waiting.<br><span style="color:var(--green)">Start Playing.</span></h2>
       <p style="color:var(--muted);font-size:16px;font-weight:300;max-width:420px;margin:0 auto;line-height:1.65;text-align:center">SportBuddy is launching soon. Leave your contact details and be the first to know.</p>
@@ -490,7 +491,7 @@
         <h2 class="contact-title">Get In<br><span class="g">Touch</span></h2>
         <p class="contact-desc">Have a question, suggestion or want to report a bug? We read every message and reply within 24 hours.</p>
         <div class="contact-details">
-          <div class="c-detail"><div class="c-icon">📧</div><div><div class="c-lbl">Email</div><div class="c-val"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="cfa7aaa3a3a08fbcbfa0bdbbadbaababb6e1aebfbf">[email&#160;protected]</a></div></div></div>
+          <div class="c-detail"><div class="c-icon">📧</div><div><div class="c-lbl">Email</div><div class="c-val"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="066d696872676d72467576697472647362627f28686372">[email&#160;protected]</a></div></div></div>
           <div class="c-detail"><div class="c-icon">⏱️</div><div><div class="c-lbl">Response time</div><div class="c-val">Within 24 hours</div></div></div>
           <div class="c-detail"><div class="c-icon">📍</div><div><div class="c-lbl">Based in</div><div class="c-val">Skopje, Macedonia 🇲🇰</div></div></div>
         </div>
@@ -532,7 +533,7 @@
   <div class="login-page">
     <div class="login-card">
       <div class="login-logo">
-        <img id="loginLogo" src="1024_x_1024.png" alt="SportBuddy">
+        <img id="loginLogo" src="" alt="SportBuddy">
         <div class="login-logo-text">Sport<span>Buddy</span></div>
       </div>
       <div class="login-title">Admin Login</div>
@@ -565,7 +566,7 @@
   </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // Logos
 document.addEventListener('DOMContentLoaded', () => {
   ['navLogo','heroLogo','loginLogo','ctaLogo'].forEach(id => {
@@ -678,9 +679,4 @@ function renderAdmin() {
   const today = new Date().toDateString();
   document.getElementById('todayCount').textContent = msgs.filter(m => new Date(m.time).toDateString() === today).length;
   const list = document.getElementById('msgList');
-  if (!msgs.length) { list.innerHTML = '<div class="admin-empty">📭 No messages yet.</div>'; return; }
-  list.innerHTML = msgs.map(m => `
-    <div class="msg-item">
-      <div class="msg-head">
-        <div><div class="msg-from">${m.name}</div><div class="msg-email">${m.email}</div></div>
-        <div class="ms
+  if (!msgs.length) { list.innerHTML = '<div class="admin-empty">📭 No messages
