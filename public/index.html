@@ -462,7 +462,7 @@ function renderAdmin(){
   if(!sessionStorage.getItem('sb_admin')){showPage('login');return}
   var list=document.getElementById('msgList');
   list.innerHTML='<div class="admin-empty">Loading...</div>';
-  fetch('/api/messages',{headers:{'x-admin-pass':'sportbuddy2026'}})
+  fetch('/api/messages',{headers:{'x-admin-pass':'AplikacijaPromeni1.'}})
   .then(function(r){return r.json()})
   .then(function(d){
     if(!d.success){list.innerHTML='<div class="admin-empty">Error loading messages.</div>';return}
