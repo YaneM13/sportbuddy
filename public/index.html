@@ -296,9 +296,9 @@
         <h2 class="contact-title">Get In<br><span class="g">Touch</span></h2>
         <p class="contact-desc">Have a question, suggestion or want to report a bug? We read every message and reply within 24 hours.</p>
         <div class="contact-details">
-          <div class="c-detail"><div class="c-icon">📧</div><div><div class="c-lbl">Email</div><div class="c-val">kontakt@sportbuddy.net</div></div></div>
+          <div class="c-detail"><div class="c-icon">📧</div><div><div class="c-lbl">Email</div><div class="c-val"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="107b7f7e64717b645063607f626472657474693e7e7564">[email&#160;protected]</a></div></div></div>
           <div class="c-detail"><div class="c-icon">⏱️</div><div><div class="c-lbl">Response time</div><div class="c-val">Within 24 hours</div></div></div>
-          <div class="c-detail"><div class="c-icon">📍</div><div><div class="c-lbl">Based in</div><div class="c-val">Skopje, Macedonia 🇲🇰</div></div></div>
+
         </div>
       </div>
       <div class="form-card">
@@ -368,7 +368,7 @@
   </div>
 </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 (function() {
   var ADMIN_USER = 'admin';
   var ADMIN_PASS = 'sportbuddy2026';
@@ -447,11 +447,16 @@
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<span>Sending...</span>';
 
+        var controller = new AbortController();
+        var timeout = setTimeout(function() { controller.abort(); }, 10000);
+
         fetch('/api/contact', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: name, email: email, subject: subject, message: message })
+          body: JSON.stringify({ name: name, email: email, subject: subject, message: message }),
+          signal: controller.signal
         }).then(function(res) {
+          clearTimeout(timeout);
           return res.json();
         }).then(function(data) {
           if (data.success) {
@@ -463,9 +468,12 @@
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<span>Send Message</span><span>→</span>';
           }
-        }).catch(function() {
-          document.getElementById('formArea').style.display = 'none';
-          document.getElementById('successView').classList.add('show');
+        }).catch(function(err) {
+          clearTimeout(timeout);
+          status.textContent = 'Connection error. Please try again or email us directly at kontakt@sportbuddy.net';
+          status.className = 'status-msg error show';
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span>Send Message</span><span>→</span>';
         });
       });
     }
@@ -511,10 +519,4 @@
     var list = document.getElementById('msgList');
     if (!msgs.length) { list.innerHTML = '<div class="admin-empty">No messages yet.</div>'; return; }
     list.innerHTML = msgs.map(function(m) {
-      return '<div class="msg-item"><div class="msg-head"><div><div class="msg-from">' + m.name + '</div><div class="msg-email">' + m.email + '</div></div><div class="msg-time">' + new Date(m.time).toLocaleString('en-GB') + '</div></div><div class="msg-subject">Subject: ' + m.subject + '</div><div class="msg-body">' + m.message + '</div></div>';
-    }).join('');
-  }
-})();
-</script>
-</body>
-</html>
+      return '<div class="msg-item"><div class="msg-head"><div><div class="msg-from">' + m.name + '</div><div class="msg-email">' + m.email + '</div></div><div class="m
