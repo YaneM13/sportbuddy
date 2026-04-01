@@ -334,7 +334,7 @@ input.err,textarea.err{border-color:#f87171}
 
 <script>
 (function(){
-var ADMIN_USER='admin',ADMIN_PASS='sportbuddy2026';
+var ADMIN_USER='admin',ADMIN_PASS='AplikacijaPromeni1.';
 
 function showPage(n){
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
@@ -468,7 +468,7 @@ function renderAdmin(){
   if(!sessionStorage.getItem('sb_admin')){showPage('login');return}
   var list=document.getElementById('msgList');
   list.innerHTML='<div class="admin-empty">Loading...</div>';
-  fetch('/api/messages',{headers:{'x-admin-pass':'sportbuddy2026'}})
+  fetch('/api/messages',{headers:{'x-admin-pass':'AplikacijaPromeni1.'}})
   .then(function(r){return r.json()})
   .then(function(d){
     if(!d.success){list.innerHTML='<div class="admin-empty">Error loading messages.</div>';return}
