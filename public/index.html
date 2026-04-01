@@ -334,7 +334,7 @@ input.err,textarea.err{border-color:#f87171}
 
 <script>
 (function(){
-var ADMIN_USER='admin',ADMIN_PASS='AplikacijaPromeni1.';
+var ADMIN_USER='admin',ADMIN_PASS='sportbuddy2026';
 
 function showPage(n){
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
@@ -468,7 +468,7 @@ function renderAdmin(){
   if(!sessionStorage.getItem('sb_admin')){showPage('login');return}
   var list=document.getElementById('msgList');
   list.innerHTML='<div class="admin-empty">Loading...</div>';
-  fetch('/api/messages',{headers:{'x-admin-pass':'AplikacijaPromeni1.'}})
+  fetch('/api/messages',{headers:{'x-admin-pass':ADMIN_PASS}})
   .then(function(r){return r.json()})
   .then(function(d){
     if(!d.success){list.innerHTML='<div class="admin-empty">Error loading messages.</div>';return}
@@ -478,14 +478,63 @@ function renderAdmin(){
     document.getElementById('todayCount').textContent=msgs.filter(function(m){return new Date(m.time).toDateString()===today}).length;
     if(!msgs.length){list.innerHTML='<div class="admin-empty">No messages yet.</div>';return}
     list.innerHTML=msgs.map(function(m){
-      return '<div class="msg-item"><div class="msg-head"><div><div class="msg-from">'+m.name+'</div><a class="msg-email" href="mailto:'+m.email+'?subject=Re: '+encodeURIComponent(m.subject)+'">'+m.email+'</a></div><div class="msg-time">'+new Date(m.time).toLocaleString('en-GB')+'</div></div><div class="msg-subject">'+m.subject+'</div><div class="msg-body">'+m.message+'</div><div style="display:flex;gap:8px;margin-top:10px"><a href="mailto:'+m.email+'?subject=Re: '+encodeURIComponent(m.subject)+'" style="background:var(--green);color:var(--black);border:none;border-radius:6px;padding:6px 16px;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block">Reply</a><button onclick="deleteMsg('+m.id+')" style="background:transparent;border:1px solid #f87171;border-radius:6px;padding:6px 16px;color:#f87171;font-size:12px;cursor:pointer;">Delete</button></div></div>';
+      return '<div class="msg-item" id="msg-'+m.id+'">'
+        +'<div class="msg-head"><div><div class="msg-from">'+m.name+'</div><div class="msg-email">'+m.email+'</div></div><div class="msg-time">'+new Date(m.time).toLocaleString('en-GB')+'</div></div>'
+        +'<div class="msg-subject">'+m.subject+'</div>'
+        +'<div class="msg-body">'+m.message+'</div>'
+        +'<div style="display:flex;gap:8px;margin-top:12px">'
+        +'<button onclick="toggleReply('+m.id+',\''+m.email.replace(/'/g,"\\'")+'\')" style="background:var(--green);color:var(--black);border:none;border-radius:6px;padding:6px 16px;font-size:12px;font-weight:700;cursor:pointer;">Reply</button>'
+        +'<button onclick="deleteMsg('+m.id+')" style="background:transparent;border:1px solid #f87171;border-radius:6px;padding:6px 16px;color:#f87171;font-size:12px;cursor:pointer;">Delete</button>'
+        +'</div>'
+        +'<div id="reply-'+m.id+'" style="display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:14px">'
+        +'<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Reply to: <strong>'+m.email+'</strong></div>'
+        +'<textarea id="reply-text-'+m.id+'" rows="4" placeholder="Write your reply..." style="width:100%;background:rgba(255,255,255,0.04);border:1.5px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-family:Barlow,sans-serif;font-size:14px;outline:none;resize:none;margin-bottom:8px"></textarea>'
+        +'<div style="display:flex;gap:8px">'
+        +'<button onclick="sendReply('+m.id+',\''+m.email.replace(/'/g,"\\'")+'\')" style="background:var(--green);color:var(--black);border:none;border-radius:6px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer;">Send Reply</button>'
+        +'<button onclick="toggleReply('+m.id+',\'\')" style="background:transparent;border:1px solid var(--border);border-radius:6px;padding:8px 16px;color:var(--muted);font-size:13px;cursor:pointer;">Cancel</button>'
+        +'</div>'
+        +'<div id="reply-status-'+m.id+'" style="margin-top:8px;font-size:13px"></div>'
+        +'</div>'
+        +'</div>';
     }).join('');
   }).catch(function(){list.innerHTML='<div class="admin-empty">Could not load messages.</div>'});
 }
 
+function toggleReply(id, email){
+  var el=document.getElementById('reply-'+id);
+  if(!el) return;
+  el.style.display=(el.style.display==='none')?'block':'none';
+}
+
+function sendReply(id, email){
+  var text=document.getElementById('reply-text-'+id).value.trim();
+  var statusEl=document.getElementById('reply-status-'+id);
+  if(!text){statusEl.style.color='#f87171';statusEl.textContent='Please write a reply.';return}
+  statusEl.style.color='var(--muted)';
+  statusEl.textContent='Sending...';
+  fetch('/api/reply',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-admin-pass':ADMIN_PASS},
+    body:JSON.stringify({to:email,subject:'Reply from SportBuddy',message:text})
+  }).then(function(r){return r.json()})
+  .then(function(d){
+    if(d.success){
+      statusEl.style.color='var(--green)';
+      statusEl.textContent='Reply sent!';
+      document.getElementById('reply-text-'+id).value='';
+    } else {
+      statusEl.style.color='#f87171';
+      statusEl.textContent='Error: '+d.message;
+    }
+  }).catch(function(){
+    statusEl.style.color='#f87171';
+    statusEl.textContent='Could not send reply.';
+  });
+}
+
 function deleteMsg(id){
   if(!confirm('Delete this message?')) return;
-  fetch('/api/messages/'+id,{method:'DELETE',headers:{'x-admin-pass':'sportbuddy2026'}})
+  fetch('/api/messages/'+id,{method:'DELETE',headers:{'x-admin-pass':ADMIN_PASS}})
   .then(function(){renderAdmin()});
 }
 })();
