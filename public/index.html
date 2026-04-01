@@ -460,15 +460,27 @@ function resetForm(){
 
 function renderAdmin(){
   if(!sessionStorage.getItem('sb_admin')){showPage('login');return}
-  var msgs=JSON.parse(localStorage.getItem('sb_msgs')||'[]');
-  document.getElementById('totalCount').textContent=msgs.length;
-  var today=new Date().toDateString();
-  document.getElementById('todayCount').textContent=msgs.filter(function(m){return new Date(m.time).toDateString()===today}).length;
   var list=document.getElementById('msgList');
-  if(!msgs.length){list.innerHTML='<div class="admin-empty">No messages yet.</div>';return}
-  list.innerHTML=msgs.map(function(m){
-    return '<div class="msg-item"><div class="msg-head"><div><div class="msg-from">'+m.name+'</div><div class="msg-email">'+m.email+'</div></div><div class="msg-time">'+new Date(m.time).toLocaleString('en-GB')+'</div></div><div class="msg-subject">'+m.subject+'</div><div class="msg-body">'+m.message+'</div></div>';
-  }).join('');
+  list.innerHTML='<div class="admin-empty">Loading...</div>';
+  fetch('/api/messages',{headers:{'x-admin-pass':'sportbuddy2026'}})
+  .then(function(r){return r.json()})
+  .then(function(d){
+    if(!d.success){list.innerHTML='<div class="admin-empty">Error loading messages.</div>';return}
+    var msgs=d.messages;
+    document.getElementById('totalCount').textContent=msgs.length;
+    var today=new Date().toDateString();
+    document.getElementById('todayCount').textContent=msgs.filter(function(m){return new Date(m.time).toDateString()===today}).length;
+    if(!msgs.length){list.innerHTML='<div class="admin-empty">No messages yet.</div>';return}
+    list.innerHTML=msgs.map(function(m){
+      return '<div class="msg-item"><div class="msg-head"><div><div class="msg-from">'+m.name+'</div><div class="msg-email">'+m.email+'</div></div><div class="msg-time">'+new Date(m.time).toLocaleString('en-GB')+'</div></div><div class="msg-subject">'+m.subject+'</div><div class="msg-body">'+m.message+'</div><button onclick="deleteMsg('+m.id+')" style="margin-top:10px;background:transparent;border:1px solid #f87171;border-radius:6px;padding:4px 12px;color:#f87171;font-size:12px;cursor:pointer;">Delete</button></div>';
+    }).join('');
+  }).catch(function(){list.innerHTML='<div class="admin-empty">Could not load messages.</div>'});
+}
+
+function deleteMsg(id){
+  if(!confirm('Delete this message?')) return;
+  fetch('/api/messages/'+id,{method:'DELETE',headers:{'x-admin-pass':'sportbuddy2026'}})
+  .then(function(){renderAdmin()});
 }
 })();
 </script>
