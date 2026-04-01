@@ -390,7 +390,7 @@
     if (el) el.addEventListener('click', fn);
   }
 
-  window.addEventListener('load', function() {
+  document.addEventListener('DOMContentLoaded', function() {
     bindClick('logoBtn', function(e) { e.preventDefault(); showPage('home'); });
     bindClick('nav-home', function(e) { e.preventDefault(); showPage('home'); });
     bindClick('nav-contact', function(e) { e.preventDefault(); showPage('contact'); });
