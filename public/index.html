@@ -333,8 +333,38 @@ input.err,textarea.err{border-color:#f87171}
 </div>
 
 <script>
+var ADMIN_USER='admin',ADMIN_PASS='sportbuddy2026';
+
+function toggleReply(id,email){
+  var el=document.getElementById('reply-'+id);
+  if(!el) return;
+  el.style.display=(el.style.display==='none')?'block':'none';
+}
+
+function sendReply(id,email){
+  var text=document.getElementById('reply-text-'+id).value.trim();
+  var statusEl=document.getElementById('reply-status-'+id);
+  if(!text){statusEl.style.color='#f87171';statusEl.textContent='Please write a reply.';return}
+  statusEl.style.color='var(--muted)';
+  statusEl.textContent='Sending...';
+  fetch('/api/reply',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-admin-pass':ADMIN_PASS},
+    body:JSON.stringify({to:email,subject:'Reply from SportBuddy',message:text})
+  }).then(function(r){return r.json()})
+  .then(function(d){
+    if(d.success){statusEl.style.color='var(--green)';statusEl.textContent='Reply sent!';document.getElementById('reply-text-'+id).value='';}
+    else{statusEl.style.color='#f87171';statusEl.textContent='Error: '+d.message;}
+  }).catch(function(){statusEl.style.color='#f87171';statusEl.textContent='Could not send reply.';});
+}
+
+function deleteMsg(id){
+  if(!confirm('Delete this message?')) return;
+  fetch('/api/messages/'+id,{method:'DELETE',headers:{'x-admin-pass':ADMIN_PASS}})
+  .then(function(){renderAdmin()});
+}
+
 (function(){
-var ADMIN_USER='admin',ADMIN_PASS='AplikacijaPromeni1.';
 
 function showPage(n){
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
@@ -498,44 +528,6 @@ function renderAdmin(){
         +'</div>';
     }).join('');
   }).catch(function(){list.innerHTML='<div class="admin-empty">Could not load messages.</div>'});
-}
-
-function toggleReply(id, email){
-  var el=document.getElementById('reply-'+id);
-  if(!el) return;
-  el.style.display=(el.style.display==='none')?'block':'none';
-}
-
-function sendReply(id, email){
-  var text=document.getElementById('reply-text-'+id).value.trim();
-  var statusEl=document.getElementById('reply-status-'+id);
-  if(!text){statusEl.style.color='#f87171';statusEl.textContent='Please write a reply.';return}
-  statusEl.style.color='var(--muted)';
-  statusEl.textContent='Sending...';
-  fetch('/api/reply',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-admin-pass':ADMIN_PASS},
-    body:JSON.stringify({to:email,subject:'Reply from SportBuddy',message:text})
-  }).then(function(r){return r.json()})
-  .then(function(d){
-    if(d.success){
-      statusEl.style.color='var(--green)';
-      statusEl.textContent='Reply sent!';
-      document.getElementById('reply-text-'+id).value='';
-    } else {
-      statusEl.style.color='#f87171';
-      statusEl.textContent='Error: '+d.message;
-    }
-  }).catch(function(){
-    statusEl.style.color='#f87171';
-    statusEl.textContent='Could not send reply.';
-  });
-}
-
-function deleteMsg(id){
-  if(!confirm('Delete this message?')) return;
-  fetch('/api/messages/'+id,{method:'DELETE',headers:{'x-admin-pass':ADMIN_PASS}})
-  .then(function(){renderAdmin()});
 }
 })();
 </script>
