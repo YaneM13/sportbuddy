@@ -251,6 +251,9 @@ input.err,textarea.err{border-color:#f87171}
 
 <!-- CONTACT -->
 <div class="page" id="page-contact">
+  <div id="backToAdminBar" style="display:none;position:fixed;top:68px;left:0;right:0;z-index:100;background:rgba(29,185,84,0.1);border-bottom:1px solid rgba(29,185,84,0.2);padding:10px 56px">
+    <button id="backToAdminBtn" style="background:var(--green);color:var(--black);border:none;border-radius:8px;padding:8px 20px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:900;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px">← Back to Admin</button>
+  </div>
   <div class="contact-page">
     <div class="contact-inner">
       <div>
@@ -331,7 +334,7 @@ input.err,textarea.err{border-color:#f87171}
 
 <script>
 (function(){
-var ADMIN_USER='admin',ADMIN_PASS='AplikacijaPromeni1.';
+var ADMIN_USER='admin',ADMIN_PASS='sportbuddy2026';
 
 function showPage(n){
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
@@ -342,11 +345,14 @@ function showPage(n){
   if(nl) nl.classList.add('active');
   window.scrollTo(0,0);
   if(n==='admin') renderAdmin();
+  var bar=document.getElementById('backToAdminBar');
+  if(bar) bar.style.display=(n==='contact'&&sessionStorage.getItem('sb_admin'))?'block':'none';
 }
 
 function bind(id,fn){var el=document.getElementById(id);if(el) el.addEventListener('click',fn)}
 
 document.addEventListener('DOMContentLoaded',function(){
+  bind('backToAdminBtn',function(){showPage('admin')});
   bind('logoBtn',function(e){e.preventDefault();showPage('home')});
   bind('nav-home',function(e){e.preventDefault();showPage('home')});
   bind('nav-contact',function(e){e.preventDefault();showPage('contact')});
@@ -462,7 +468,7 @@ function renderAdmin(){
   if(!sessionStorage.getItem('sb_admin')){showPage('login');return}
   var list=document.getElementById('msgList');
   list.innerHTML='<div class="admin-empty">Loading...</div>';
-  fetch('/api/messages',{headers:{'x-admin-pass':'AplikacijaPromeni1.'}})
+  fetch('/api/messages',{headers:{'x-admin-pass':'sportbuddy2026'}})
   .then(function(r){return r.json()})
   .then(function(d){
     if(!d.success){list.innerHTML='<div class="admin-empty">Error loading messages.</div>';return}
@@ -472,7 +478,7 @@ function renderAdmin(){
     document.getElementById('todayCount').textContent=msgs.filter(function(m){return new Date(m.time).toDateString()===today}).length;
     if(!msgs.length){list.innerHTML='<div class="admin-empty">No messages yet.</div>';return}
     list.innerHTML=msgs.map(function(m){
-      return '<div class="msg-item"><div class="msg-head"><div><div class="msg-from">'+m.name+'</div><div class="msg-email">'+m.email+'</div></div><div class="msg-time">'+new Date(m.time).toLocaleString('en-GB')+'</div></div><div class="msg-subject">'+m.subject+'</div><div class="msg-body">'+m.message+'</div><button onclick="deleteMsg('+m.id+')" style="margin-top:10px;background:transparent;border:1px solid #f87171;border-radius:6px;padding:4px 12px;color:#f87171;font-size:12px;cursor:pointer;">Delete</button></div>';
+      return '<div class="msg-item"><div class="msg-head"><div><div class="msg-from">'+m.name+'</div><a class="msg-email" href="mailto:'+m.email+'?subject=Re: '+encodeURIComponent(m.subject)+'">'+m.email+'</a></div><div class="msg-time">'+new Date(m.time).toLocaleString('en-GB')+'</div></div><div class="msg-subject">'+m.subject+'</div><div class="msg-body">'+m.message+'</div><div style="display:flex;gap:8px;margin-top:10px"><a href="mailto:'+m.email+'?subject=Re: '+encodeURIComponent(m.subject)+'" style="background:var(--green);color:var(--black);border:none;border-radius:6px;padding:6px 16px;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block">Reply</a><button onclick="deleteMsg('+m.id+')" style="background:transparent;border:1px solid #f87171;border-radius:6px;padding:6px 16px;color:#f87171;font-size:12px;cursor:pointer;">Delete</button></div></div>';
     }).join('');
   }).catch(function(){list.innerHTML='<div class="admin-empty">Could not load messages.</div>'});
 }
