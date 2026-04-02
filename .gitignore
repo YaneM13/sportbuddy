@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
 # dependencies
@@ -41,3 +42,9 @@ app-example
 # generated native folders
 /ios
 /android
+=======
+node_modules/
+.env
+*.log
+.DS_Store
+>>>>>>> 1dc8cea7a8bde35312a4741c622c5a6a84be6d48
