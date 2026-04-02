@@ -49,11 +49,10 @@ export default function HomeScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
 
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.logoRow}>
-          <View style={styles.logoIcon}>
-            <Text style={styles.logoEmoji}>🏆</Text>
-          </View>
+          <Image source={require('../../assets/images/icon.png')} style={styles.logoImage} />
           <Text style={[styles.logoText, { color: colors.text }]}>SportBuddy</Text>
         </View>
 
@@ -82,11 +81,15 @@ export default function HomeScreen() {
         </TouchableOpacity>
       )}
 
+      {/* Center Content */}
       <View style={styles.centerContent}>
-        <Text style={[styles.greeting, { color: colors.accentText }]}>Good evening 👋</Text>
-        <Text style={[styles.tagline, { color: colors.text }]}>{t('tagline')}</Text>
+        <Image source={require('../../assets/images/icon.png')} style={styles.centerLogo} />
+        <Text style={[styles.slogan, { color: colors.accent }]}>Stop Waiting.</Text>
+        <Text style={[styles.slogan, { color: colors.text }]}>Start Playing.</Text>
+        <Text style={[styles.tagline, { color: colors.textSecondary }]}>{t('tagline')}</Text>
       </View>
 
+      {/* Bottom Buttons */}
       <View style={styles.bottomContent}>
         <View style={styles.buttonsRow}>
           <TouchableOpacity style={[styles.findBtn, { borderColor: colors.accent, backgroundColor: isDark ? 'rgba(29,158,117,0.15)' : '#E1F5EE' }]} onPress={() => router.push('/find-event' as any)}>
@@ -107,6 +110,7 @@ export default function HomeScreen() {
         </View>
       </View>
 
+      {/* Menu Modal */}
       <Modal visible={menuVisible} transparent animationType="fade">
         <TouchableOpacity style={styles.overlay2} onPress={() => setMenuVisible(false)}>
           <View style={[styles.menu, { backgroundColor: colors.menuBg, borderColor: colors.cardBorder }]}>
@@ -151,8 +155,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 60, paddingHorizontal: 24, paddingBottom: 16 },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  logoIcon: { width: 34, height: 34, backgroundColor: '#1D9E75', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  logoEmoji: { fontSize: 18 },
+  logoImage: { width: 34, height: 34, borderRadius: 10 },
   logoText: { fontSize: 18, fontWeight: '600' },
   avatarContainer: { position: 'relative' },
   avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#1D9E75', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 2, borderColor: 'rgba(29,158,117,0.5)' },
@@ -166,8 +169,9 @@ const styles = StyleSheet.create({
   avatarBannerText: { fontSize: 13, color: '#B5D4F4', flex: 1, marginRight: 8 },
   avatarBannerClose: { fontSize: 14, color: '#B5D4F4', fontWeight: 'bold', padding: 4 },
   centerContent: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
-  greeting: { fontSize: 16, marginBottom: 8 },
-  tagline: { fontSize: 28, fontWeight: '600', textAlign: 'center', lineHeight: 36 },
+  centerLogo: { width: 100, height: 100, borderRadius: 24, marginBottom: 24 },
+  slogan: { fontSize: 32, fontWeight: 'bold', textAlign: 'center', lineHeight: 40 },
+  tagline: { fontSize: 15, textAlign: 'center', marginTop: 12, lineHeight: 22 },
   bottomContent: { paddingHorizontal: 24, paddingBottom: 32 },
   buttonsRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   findBtn: { flex: 1, borderRadius: 20, padding: 20, alignItems: 'center', gap: 6, borderWidth: 1 },
