@@ -87,10 +87,10 @@ export default function HomeScreen() {
 
       <View style={styles.centerContent}>
         <Image source={require('../../assets/images/icon.png')} style={styles.centerLogo} />
-        <View style={styles.sloganBox}>
-          <Text style={styles.sloganWhite}>Stop waiting,</Text>
-          <Text style={styles.sloganWhite}>Start playing!</Text>
-        </View>
+        
+          <Text style={[styles.slogan, { color: colors.accent }]}>Stop Waiting,</Text>
+          <Text style={[styles.slogan, { color: colors.text }]}>Start Playing!</Text>
+        
         <Text style={[styles.tagline, { color: colors.textSecondary }]}>{t('tagline')}</Text>
       </View>
 
@@ -127,11 +127,8 @@ export default function HomeScreen() {
             </View>
 
             {[
-              { label: t('myProfile'), path: '/my-profile' },
-              { label: t('myCreatedEvents'), path: '/my-events' },
-              { label: t('eventsJoined'), path: '/my-joined-events' },
-              { label: t('settings'), path: '/settings' },
-            ].map((item) => (
+             { label: t('settings'), path: '/settings' },
+              ].map((item) => (
               <TouchableOpacity key={item.path} style={[styles.menuItem, { borderBottomColor: colors.cardBorder }]} onPress={() => { setMenuVisible(false); router.push(item.path as any); }}>
                 <Text style={[styles.menuItemText, { color: colors.text }]}>{item.label}</Text>
               </TouchableOpacity>
@@ -173,8 +170,7 @@ const styles = StyleSheet.create({
   avatarBannerClose: { fontSize: 14, color: '#B5D4F4', fontWeight: 'bold', padding: 4 },
   centerContent: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   centerLogo: { width: 100, height: 100, borderRadius: 24, marginBottom: 24 },
-  sloganBox: { backgroundColor: '#1D9E75', borderRadius: 16, paddingHorizontal: 32, paddingVertical: 20, marginBottom: 16, alignItems: 'center' },
-  sloganWhite: { fontSize: 32, fontWeight: 'bold', color: '#fff', textAlign: 'center', lineHeight: 42 },
+  slogan: { fontSize: 32, fontWeight: 'bold', textAlign: 'center', lineHeight: 40 },
   tagline: { fontSize: 15, textAlign: 'center', lineHeight: 22 },
   bottomContent: { paddingHorizontal: 24, paddingBottom: 32 },
   buttonsRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },

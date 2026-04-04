@@ -46,6 +46,7 @@ export default function LoginScreen() {
   const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [nickname, setNickname] = useState('');
@@ -59,44 +60,20 @@ export default function LoginScreen() {
 
   async function handleStep1() {
     setErrorMsg('');
-    if (!email || !password) {
-      setErrorMsg('Please enter email and password');
-      return;
-    }
-    if (!checks.length || !checks.uppercase || !checks.lowercase || !checks.number) {
-      setErrorMsg('Password does not meet all requirements');
-      return;
-    }
+    if (!email || !password) { setErrorMsg('Please enter email and password'); return; }
+    if (!checks.length || !checks.uppercase || !checks.lowercase || !checks.number) { setErrorMsg('Password does not meet all requirements'); return; }
     setStep(2);
   }
 
   async function handleRegister() {
     setErrorMsg('');
-    if (!firstName || !lastName || !nickname) {
-      setErrorMsg('Please fill in all fields');
-      return;
-    }
-    if (!favoriteSport) {
-      setErrorMsg('Please select your favorite sport');
-      return;
-    }
-
+    if (!firstName || !lastName || !nickname) { setErrorMsg('Please fill in all fields'); return; }
+    if (!favoriteSport) { setErrorMsg('Please select your favorite sport'); return; }
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) {
-      setErrorMsg(error.message);
-      setLoading(false);
-      return;
-    }
-
+    if (error) { setErrorMsg(error.message); setLoading(false); return; }
     if (data.user) {
-      await supabase.from('profiles').upsert({
-        id: data.user.id,
-        first_name: firstName,
-        last_name: lastName,
-        nickname,
-        favorite_sport: favoriteSport,
-      });
+      await supabase.from('profiles').upsert({ id: data.user.id, first_name: firstName, last_name: lastName, nickname, favorite_sport: favoriteSport });
       setStep(3);
     }
     setLoading(false);
@@ -104,21 +81,13 @@ export default function LoginScreen() {
 
   async function handleLogin() {
     setErrorMsg('');
-    if (!email || !password) {
-      setErrorMsg('Please enter email and password');
-      return;
-    }
+    if (!email || !password) { setErrorMsg('Please enter email and password'); return; }
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setErrorMsg(error.message);
-    } else {
-      router.replace('/');
-    }
+    if (error) { setErrorMsg(error.message); } else { router.replace('/'); }
     setLoading(false);
   }
 
-  // Чекор 3 — потврда на маил
   if (!isLogin && step === 3) {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -141,7 +110,6 @@ export default function LoginScreen() {
     );
   }
 
-  // Чекор 2 — лични информации
   if (!isLogin && step === 2) {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -149,18 +117,13 @@ export default function LoginScreen() {
           <Text style={styles.title}>SportBuddy 🏆</Text>
           <Text style={styles.subtitle}>{t('tellUsAboutYourself')}</Text>
           <Text style={styles.stepText}>{t('step2of2')}</Text>
-
           {errorMsg ? <View style={styles.errorBox}><Text style={styles.errorText}>⚠️ {errorMsg}</Text></View> : null}
-
           <Text style={styles.label}>{t('firstName')}</Text>
           <TextInput style={styles.input} placeholder={t('firstName')} placeholderTextColor="#aaa" value={firstName} onChangeText={setFirstName} />
-
           <Text style={styles.label}>{t('lastName')}</Text>
           <TextInput style={styles.input} placeholder={t('lastName')} placeholderTextColor="#aaa" value={lastName} onChangeText={setLastName} />
-
           <Text style={styles.label}>{t('nickname')}</Text>
           <TextInput style={styles.input} placeholder={t('nickname')} placeholderTextColor="#aaa" value={nickname} onChangeText={setNickname} autoCapitalize="none" />
-
           <Text style={styles.label}>{t('favoriteSport')}</Text>
           <Text style={styles.sublabel}>{t('selectOneSport')}</Text>
           <View style={styles.sportsGrid}>
@@ -168,21 +131,15 @@ export default function LoginScreen() {
               const color = categoryColors[sport.category];
               const isSelected = favoriteSport === sport.id;
               return (
-                <TouchableOpacity
-                  key={sport.id}
-                  style={[styles.sportBtn, { backgroundColor: isSelected ? '#1D9E75' : color.bg }, isSelected && styles.sportBtnSelected]}
-                  onPress={() => setFavoriteSport(sport.id)}
-                >
+                <TouchableOpacity key={sport.id} style={[styles.sportBtn, { backgroundColor: isSelected ? '#1D9E75' : color.bg }, isSelected && styles.sportBtnSelected]} onPress={() => setFavoriteSport(sport.id)}>
                   <Text style={[styles.sportBtnText, { color: isSelected ? '#fff' : color.text }]}>{sport.id}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
-
           <TouchableOpacity style={styles.buttonGreen} onPress={handleRegister} disabled={loading}>
             <Text style={styles.buttonTextGreen}>{loading ? t('creatingAccount') : t('register')}</Text>
           </TouchableOpacity>
-
           <TouchableOpacity onPress={() => setStep(1)} style={styles.backStepBtn}>
             <Text style={styles.backStepText}>{t('back')}</Text>
           </TouchableOpacity>
@@ -191,15 +148,12 @@ export default function LoginScreen() {
     );
   }
 
-  // Чекор 1 — логин/регистрација
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>SportBuddy 🏆</Text>
         <Text style={styles.subtitle}>{isLogin ? t('signInAccount') : t('createAccount')}</Text>
-
         {!isLogin && <Text style={styles.stepText}>{t('step1of2')}</Text>}
-
         {errorMsg ? <View style={styles.errorBox}><Text style={styles.errorText}>⚠️ {errorMsg}</Text></View> : null}
 
         <Text style={styles.label}>{t('email')}</Text>
@@ -214,42 +168,32 @@ export default function LoginScreen() {
         />
 
         <Text style={styles.label}>{t('password')}</Text>
-        <TextInput
-          style={styles.input}
-          placeholder={t('password')}
-          placeholderTextColor="#aaa"
-          value={password}
-          onChangeText={(v) => { setPassword(v); setErrorMsg(''); }}
-          secureTextEntry
-        />
+        <View style={styles.passwordRow}>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder={t('password')}
+            placeholderTextColor="#aaa"
+            value={password}
+            onChangeText={(v) => { setPassword(v); setErrorMsg(''); }}
+            secureTextEntry={!showPassword}
+          />
+          <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPassword(!showPassword)}>
+            <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+          </TouchableOpacity>
+        </View>
 
-        {/* Password hints — само за регистрација */}
         {!isLogin && password.length > 0 && (
           <View style={styles.passwordHints}>
             <Text style={styles.passwordHintsTitle}>Password must contain:</Text>
-            <Text style={[styles.passwordHint, checks.length && styles.passwordHintPassed]}>
-              {checks.length ? '✅' : '❌'} At least 8 characters
-            </Text>
-            <Text style={[styles.passwordHint, checks.uppercase && styles.passwordHintPassed]}>
-              {checks.uppercase ? '✅' : '❌'} At least one uppercase letter (A-Z)
-            </Text>
-            <Text style={[styles.passwordHint, checks.lowercase && styles.passwordHintPassed]}>
-              {checks.lowercase ? '✅' : '❌'} At least one lowercase letter (a-z)
-            </Text>
-            <Text style={[styles.passwordHint, checks.number && styles.passwordHintPassed]}>
-              {checks.number ? '✅' : '❌'} At least one number (0-9)
-            </Text>
+            <Text style={[styles.passwordHint, checks.length && styles.passwordHintPassed]}>{checks.length ? '✅' : '❌'} At least 8 characters</Text>
+            <Text style={[styles.passwordHint, checks.uppercase && styles.passwordHintPassed]}>{checks.uppercase ? '✅' : '❌'} At least one uppercase letter (A-Z)</Text>
+            <Text style={[styles.passwordHint, checks.lowercase && styles.passwordHintPassed]}>{checks.lowercase ? '✅' : '❌'} At least one lowercase letter (a-z)</Text>
+            <Text style={[styles.passwordHint, checks.number && styles.passwordHintPassed]}>{checks.number ? '✅' : '❌'} At least one number (0-9)</Text>
           </View>
         )}
 
-        <TouchableOpacity
-          style={[styles.buttonGreen, !isLogin && passed < 4 && password.length > 0 && styles.buttonDisabled]}
-          onPress={isLogin ? handleLogin : handleStep1}
-          disabled={loading}
-        >
-          <Text style={styles.buttonTextGreen}>
-            {loading ? t('loading') : isLogin ? t('signIn') : t('next')}
-          </Text>
+        <TouchableOpacity style={[styles.buttonGreen, !isLogin && passed < 4 && password.length > 0 && styles.buttonDisabled]} onPress={isLogin ? handleLogin : handleStep1} disabled={loading}>
+          <Text style={styles.buttonTextGreen}>{loading ? t('loading') : isLogin ? t('signIn') : t('next')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => { setIsLogin(!isLogin); setStep(1); setErrorMsg(''); }}>
@@ -269,6 +213,10 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, fontWeight: '500', color: '#444', marginBottom: 6 },
   sublabel: { fontSize: 12, color: '#888', marginBottom: 10 },
   input: { width: '100%', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#e0e0e0', marginBottom: 8, fontSize: 16, color: '#1a1a1a', backgroundColor: '#fff' },
+  passwordRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 12, marginBottom: 8, backgroundColor: '#fff' },
+  passwordInput: { flex: 1, padding: 16, fontSize: 16, color: '#1a1a1a' },
+  eyeBtn: { padding: 16 },
+  eyeIcon: { fontSize: 18 },
   errorBox: { backgroundColor: '#FCEBEB', borderRadius: 10, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: '#E24B4A' },
   errorText: { color: '#E24B4A', fontSize: 13, fontWeight: '500' },
   passwordHints: { backgroundColor: '#F9F9F9', borderRadius: 12, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: '#e0e0e0' },
