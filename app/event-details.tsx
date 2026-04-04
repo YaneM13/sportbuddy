@@ -37,18 +37,28 @@ export default function EventDetailsScreen() {
 
   async function handleJoin() {
     if (!user) { Alert.alert('Sign in required', 'You must be signed in to join an event'); return; }
+
+    const { data: userProfile } = await supabase.from('profiles').select('first_name, last_name, nickname').eq('id', user.id).single();
+    const displayName = userProfile?.nickname
+      ? `@${userProfile.nickname}`
+      : userProfile?.first_name
+      ? `${userProfile.first_name} ${userProfile.last_name}`
+      : user.email;
+
     const { data: participant, error } = await supabase.from('event_participants').insert({ event_id: id, user_id: user.id, status: 'pending' }).select().single();
     if (error) { Alert.alert(t('error'), error.message); return; }
-    await supabase.from('notifications').insert({ user_id: event.created_by, event_id: id, participant_id: participant.id, message: `${user.email} wants to join your event!` });
+    await supabase.from('notifications').insert({ user_id: event.created_by, event_id: id, participant_id: participant.id, message: `${displayName} wants to join your event!` });
     const { data: creatorProfile } = await supabase.from('profiles').select('push_token').eq('id', event.created_by).single();
-    if (creatorProfile?.push_token) await sendPushNotification(creatorProfile.push_token, 'New join request!', `${user.email} wants to join your event!`);
+    if (creatorProfile?.push_token) await sendPushNotification(creatorProfile.push_token, 'New join request!', `${displayName} wants to join your event!`);
     setJoinStatus('pending');
     Alert.alert('Request sent', 'The organiser will review your request!');
   }
 
   function handleDirections() {
     if (!event?.latitude || !event?.longitude) { Alert.alert(t('error'), 'Location not available'); return; }
-    const url = Platform.OS === 'ios' ? `maps://?q=${encodeURIComponent(event.location)}&ll=${event.latitude},${event.longitude}` : `google.navigation:q=${event.latitude},${event.longitude}`;
+    const url = Platform.OS === 'ios'
+      ? `maps://?q=${encodeURIComponent(event.location)}&ll=${event.latitude},${event.longitude}`
+      : `google.navigation:q=${event.latitude},${event.longitude}`;
     Linking.openURL(url).catch(() => Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${event.latitude},${event.longitude}`));
   }
 
@@ -67,10 +77,7 @@ export default function EventDetailsScreen() {
   const isParticipant = joinStatus === 'approved' || (user && user.id === event?.created_by);
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
-      contentContainerStyle={styles.content}
-    >
+    <ScrollView style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]} contentContainerStyle={styles.content}>
       <BackButton />
 
       <Text style={[styles.title, { color: colors.text }]}>{event?.title}</Text>
