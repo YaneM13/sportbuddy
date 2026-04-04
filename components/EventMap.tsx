@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useRef } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Callout, Circle, Marker } from 'react-native-maps';
 
@@ -18,9 +19,12 @@ interface EventMapProps {
 }
 
 export default function EventMap({ events, userLatitude, userLongitude }: EventMapProps) {
+  const mapRef = useRef<any>(null);
+
   return (
     <View style={styles.container}>
       <MapView
+        ref={mapRef}
         style={styles.map}
         initialRegion={{
           latitude: userLatitude,
@@ -30,6 +34,7 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
         }}
         showsUserLocation={true}
         showsMyLocationButton={true}
+        onMapReady={() => {}}
       >
         <Circle
           center={{ latitude: userLatitude, longitude: userLongitude }}
@@ -65,45 +70,12 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 0.5,
-    borderColor: '#e0e0e0',
-  },
-  map: {
-    flex: 1,
-  },
-  callout: {
-    width: 180,
-    padding: 8,
-  },
-  calloutTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 4,
-  },
-  calloutSport: {
-    fontSize: 12,
-    color: '#1D9E75',
-    marginBottom: 2,
-  },
-  calloutLocation: {
-    fontSize: 12,
-    color: '#888',
-    marginBottom: 8,
-  },
-  calloutBtn: {
-    backgroundColor: '#1D9E75',
-    padding: 6,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  calloutBtnText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  container: { flex: 1, borderRadius: 16, overflow: 'hidden', borderWidth: 0.5, borderColor: '#e0e0e0' },
+  map: { flex: 1 },
+  callout: { width: 180, padding: 8 },
+  calloutTitle: { fontSize: 14, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 4 },
+  calloutSport: { fontSize: 12, color: '#1D9E75', marginBottom: 2 },
+  calloutLocation: { fontSize: 12, color: '#888', marginBottom: 8 },
+  calloutBtn: { backgroundColor: '#1D9E75', padding: 6, borderRadius: 8, alignItems: 'center' },
+  calloutBtnText: { color: '#fff', fontSize: 12, fontWeight: '500' },
 });

@@ -3,7 +3,8 @@ import { useLanguage, useTheme } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+;
 
 const categories = [
   { id: 'team', label: 'Team sports' },
@@ -140,6 +141,7 @@ export default function EditEventScreen() {
   }
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <ScrollView
       style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
       contentContainerStyle={styles.content}
@@ -265,6 +267,7 @@ export default function EditEventScreen() {
         <Text style={styles.deleteBtnText}>Delete event</Text>
       </TouchableOpacity>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

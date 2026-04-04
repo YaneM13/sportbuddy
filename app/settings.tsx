@@ -41,10 +41,11 @@ export default function SettingsScreen() {
       return;
     }
     const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
+    const avatarUrlWithCache = publicUrl + '?t=' + Date.now();
     const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ avatar_url: publicUrl })
-      .eq('id', session.user.id);
+  .from('profiles')
+  .update({ avatar_url: avatarUrlWithCache })
+  .eq('id', session.user.id);
     if (updateError) Alert.alert('Error', updateError.message);
     else Alert.alert('Success', 'Profile photo updated!');
     setUploading(false);

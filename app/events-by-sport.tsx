@@ -3,8 +3,9 @@ import { sendPushNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import * as Location from 'expo-location';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
 
 function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
@@ -35,10 +36,25 @@ export default function EventsBySportScreen() {
   const catColors = categoryColors[category as string] || { light: { bg: '#F1EFE8', text: '#444441' }, dark: { bg: 'rgba(30,45,61,0.8)', text: '#888' } };
   const color = isDark ? catColors.dark : catColors.light;
 
-  useFocusEffect(useCallback(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
-    fetchLocationAndEvents();
-  }, []));
+  useEffect(() => {
+  supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
+  fetchLocationAndEvents();
+}, []);
+
+useFocusEffect(useCallback(() => {
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (session?.user) {
+      supabase.from('event_participants')
+        .select('event_id, status')
+        .eq('user_id', session.user.id)
+        .then(({ data: participants }) => {
+          const statusMap: { [key: string]: string } = {};
+          (participants || []).forEach((p: any) => { statusMap[p.event_id] = p.status; });
+          setParticipantStatuses(statusMap);
+        });
+    }
+  });
+}, []));
 
   async function fetchLocationAndEvents() {
     const { status } = await Location.requestForegroundPermissionsAsync();

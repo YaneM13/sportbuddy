@@ -26,7 +26,6 @@ export default function HomeScreen() {
     });
   }, []);
 
-  // Ажурирај аватарот секогаш кога се враќаш на почетната страна
   useFocusEffect(useCallback(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) { fetchAvatar(session.user.id); fetchUnreadCount(session.user.id); }
@@ -88,8 +87,10 @@ export default function HomeScreen() {
 
       <View style={styles.centerContent}>
         <Image source={require('../../assets/images/icon.png')} style={styles.centerLogo} />
-        <Text style={[styles.slogan, { color: colors.accent }]}>Stop Waiting.</Text>
-        <Text style={[styles.slogan, { color: colors.text }]}>Start Playing.</Text>
+        <View style={styles.sloganBox}>
+          <Text style={styles.sloganWhite}>Stop waiting,</Text>
+          <Text style={styles.sloganWhite}>Start playing!</Text>
+        </View>
         <Text style={[styles.tagline, { color: colors.textSecondary }]}>{t('tagline')}</Text>
       </View>
 
@@ -172,8 +173,9 @@ const styles = StyleSheet.create({
   avatarBannerClose: { fontSize: 14, color: '#B5D4F4', fontWeight: 'bold', padding: 4 },
   centerContent: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   centerLogo: { width: 100, height: 100, borderRadius: 24, marginBottom: 24 },
-  slogan: { fontSize: 32, fontWeight: 'bold', textAlign: 'center', lineHeight: 40 },
-  tagline: { fontSize: 15, textAlign: 'center', marginTop: 12, lineHeight: 22 },
+  sloganBox: { backgroundColor: '#1D9E75', borderRadius: 16, paddingHorizontal: 32, paddingVertical: 20, marginBottom: 16, alignItems: 'center' },
+  sloganWhite: { fontSize: 32, fontWeight: 'bold', color: '#fff', textAlign: 'center', lineHeight: 42 },
+  tagline: { fontSize: 15, textAlign: 'center', lineHeight: 22 },
   bottomContent: { paddingHorizontal: 24, paddingBottom: 32 },
   buttonsRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   findBtn: { flex: 1, borderRadius: 20, padding: 20, alignItems: 'center', gap: 6, borderWidth: 1 },

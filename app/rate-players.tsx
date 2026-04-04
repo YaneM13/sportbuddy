@@ -20,9 +20,28 @@ export default function RatePlayersScreen() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     setUser(session.user);
-    const { data, error } = await supabase.from('event_participants').select('*, users:user_id(email)').eq('event_id', event_id).eq('status', 'approved').neq('user_id', session.user.id);
-    if (error) Alert.alert(t('error'), error.message);
-    else setParticipants(data || []);
+
+    const { data, error } = await supabase
+      .from('event_participants')
+      .select('*')
+      .eq('event_id', event_id)
+      .eq('status', 'approved')
+      .neq('user_id', session.user.id);
+
+    if (error) { Alert.alert(t('error'), error.message); setLoading(false); return; }
+
+    const participantsWithProfiles = await Promise.all(
+      (data || []).map(async (participant: any) => {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, nickname, avatar_url')
+          .eq('id', participant.user_id)
+          .single();
+        return { ...participant, profile };
+      })
+    );
+
+    setParticipants(participantsWithProfiles);
     setLoading(false);
   }
 
@@ -47,7 +66,11 @@ export default function RatePlayersScreen() {
     </View>
   );
 
-  if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
+  if (loading) return (
+    <View style={[styles.centered, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}>
+      <ActivityIndicator size="large" color="#1D9E75" />
+    </View>
+  );
 
   if (!loading && participants.length === 0) {
     return (
@@ -79,9 +102,16 @@ export default function RatePlayersScreen() {
         <View key={participant.id} style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}>
           <View style={styles.playerInfo}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{participant.users?.email?.substring(0, 2).toUpperCase()}</Text>
+              <Text style={styles.avatarText}>
+                {participant.profile?.nickname?.substring(0, 2).toUpperCase() ||
+                 participant.profile?.first_name?.substring(0, 2).toUpperCase() || '??'}
+              </Text>
             </View>
-            <Text style={[styles.playerEmail, { color: colors.text }]}>{participant.users?.email}</Text>
+            <Text style={[styles.playerName, { color: colors.text }]}>
+              {participant.profile?.nickname
+                ? `@${participant.profile.nickname}`
+                : `${participant.profile?.first_name || ''} ${participant.profile?.last_name || ''}`.trim() || 'Unknown'}
+            </Text>
           </View>
           <StarRating userId={participant.user_id} />
         </View>
@@ -108,7 +138,7 @@ const styles = StyleSheet.create({
   playerInfo: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1D9E75', alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontSize: 14, fontWeight: 'bold', color: '#fff' },
-  playerEmail: { fontSize: 14, flex: 1 },
+  playerName: { fontSize: 14, flex: 1, fontWeight: '500' },
   stars: { flexDirection: 'row', gap: 8 },
   star: { fontSize: 32, color: '#e0e0e0' },
   starActive: { color: '#FFB800' },

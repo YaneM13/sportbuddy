@@ -57,7 +57,7 @@ export default function EventChatScreen() {
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 80}
     >
       <View style={[styles.header, { borderBottomColor: colors.cardBorder, backgroundColor: isDark ? '#0F1923' : '#fff' }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   messageText: { fontSize: 15 },
   messageTime: { fontSize: 10, color: '#888', marginTop: 4, alignSelf: 'flex-end' },
   messageTimeMe: { color: 'rgba(255,255,255,0.7)' },
-  inputContainer: { flexDirection: 'row', padding: 12, borderTopWidth: 0.5, alignItems: 'flex-end', gap: 8 },
+  inputContainer: { flexDirection: 'row', padding: 12, paddingBottom: 28, borderTopWidth: 0.5, alignItems: 'flex-end', gap: 8 },
   input: { flex: 1, padding: 12, borderRadius: 20, borderWidth: 1, fontSize: 15, maxHeight: 100 },
   sendBtn: { backgroundColor: '#1D9E75', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
   sendBtnDisabled: { backgroundColor: '#ccc' },

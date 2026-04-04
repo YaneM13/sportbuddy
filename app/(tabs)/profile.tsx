@@ -1,7 +1,7 @@
 import { useLanguage, useTheme } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function ProfileTab() {
@@ -12,18 +12,13 @@ export default function ProfileTab() {
   const [stats, setStats] = useState({ eventsCreated: 0, eventsJoined: 0, averageRating: 0, totalRatings: 0 });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) fetchProfile(session.user.id);
       else setLoading(false);
     });
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      else { setLoading(false); setProfile(null); }
-    });
-  }, []);
+  }, []));
 
   async function fetchProfile(userId: string) {
     const { data: profileData } = await supabase.from('profiles').select('*').eq('id', userId).single();
@@ -61,10 +56,13 @@ export default function ProfileTab() {
             {profile?.avatar_url ? (
               <Image source={{ uri: profile.avatar_url + '?t=' + Date.now() }} style={styles.avatarImage} />
             ) : (
-              <View style={styles.avatar}><Text style={styles.avatarText}>{getInitials(user.email)}</Text></View>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{getInitials(user.email)}</Text>
+              </View>
             )}
             {profile?.nickname && <Text style={[styles.nickname, { color: colors.accent }]}>@{profile.nickname}</Text>}
             {profile?.first_name && <Text style={[styles.name, { color: colors.text }]}>{profile.first_name} {profile.last_name}</Text>}
+            {!profile?.first_name && !profile?.nickname && <Text style={[styles.name, { color: colors.textSecondary }]}>{user.email}</Text>}
             {profile?.city && <Text style={[styles.city, { color: colors.textSecondary }]}>📍 {profile.city}</Text>}
             <View style={styles.starsRow}>
               {renderStars(stats.averageRating)}
@@ -74,15 +72,22 @@ export default function ProfileTab() {
             </View>
           </View>
 
+          {/* Кликабилни статистики */}
           <View style={styles.statsGrid}>
-            <View style={[styles.statCard, { backgroundColor: isDark ? '#1E2D3D' : '#F9F9F9' }]}>
+            <TouchableOpacity
+              style={[styles.statCard, { backgroundColor: isDark ? '#1E2D3D' : '#F9F9F9' }]}
+              onPress={() => router.push('/my-events' as any)}
+            >
               <Text style={[styles.statNumber, { color: colors.accent }]}>{stats.eventsCreated}</Text>
               <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('eventsCreated')}</Text>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: isDark ? '#1E2D3D' : '#F9F9F9' }]}>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.statCard, { backgroundColor: isDark ? '#1E2D3D' : '#F9F9F9' }]}
+              onPress={() => router.push('/my-joined-events' as any)}
+            >
               <Text style={[styles.statNumber, { color: colors.accent }]}>{stats.eventsJoined}</Text>
               <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('eventsJoinedStat')}</Text>
-            </View>
+            </TouchableOpacity>
           </View>
 
           {[
