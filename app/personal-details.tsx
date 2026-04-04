@@ -2,7 +2,7 @@ import { useLanguage, useTheme } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity } from 'react-native';
 
 export default function PersonalDetailsScreen() {
   const { t } = useLanguage();
@@ -35,34 +35,40 @@ export default function PersonalDetailsScreen() {
   }
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
-      contentContainerStyle={styles.content}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-        <Text style={[styles.backText, { color: colors.accent }]}>{t('back')}</Text>
-      </TouchableOpacity>
-      <Text style={[styles.title, { color: colors.accent }]}>{t('personalDetails')}</Text>
+      <ScrollView
+        style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Text style={[styles.backText, { color: colors.accent }]}>{t('back')}</Text>
+        </TouchableOpacity>
+        <Text style={[styles.title, { color: colors.accent }]}>{t('personalDetails')}</Text>
 
-      <Text style={[styles.label, { color: colors.textSecondary }]}>{t('firstName')}</Text>
-      <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]} placeholder={t('firstName')} placeholderTextColor={colors.textSecondary} value={firstName} onChangeText={setFirstName} />
+        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('firstName')}</Text>
+        <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]} placeholder={t('firstName')} placeholderTextColor={colors.textSecondary} value={firstName} onChangeText={setFirstName} />
 
-      <Text style={[styles.label, { color: colors.textSecondary }]}>{t('lastName')}</Text>
-      <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]} placeholder={t('lastName')} placeholderTextColor={colors.textSecondary} value={lastName} onChangeText={setLastName} />
+        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('lastName')}</Text>
+        <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]} placeholder={t('lastName')} placeholderTextColor={colors.textSecondary} value={lastName} onChangeText={setLastName} />
 
-      <Text style={[styles.label, { color: colors.textSecondary }]}>{t('nickname')}</Text>
-      <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]} placeholder={t('nickname')} placeholderTextColor={colors.textSecondary} value={nickname} onChangeText={setNickname} autoCapitalize="none" />
+        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('nickname')}</Text>
+        <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]} placeholder={t('nickname')} placeholderTextColor={colors.textSecondary} value={nickname} onChangeText={setNickname} autoCapitalize="none" />
 
-      <Text style={[styles.label, { color: colors.textSecondary }]}>Age</Text>
-      <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]} placeholder="Enter age" placeholderTextColor={colors.textSecondary} value={age} onChangeText={setAge} keyboardType="numeric" />
+        <Text style={[styles.label, { color: colors.textSecondary }]}>Age</Text>
+        <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]} placeholder="Enter age" placeholderTextColor={colors.textSecondary} value={age} onChangeText={setAge} keyboardType="numeric" />
 
-      <Text style={[styles.label, { color: colors.textSecondary }]}>City</Text>
-      <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]} placeholder="Enter city" placeholderTextColor={colors.textSecondary} value={city} onChangeText={setCity} />
+        <Text style={[styles.label, { color: colors.textSecondary }]}>City</Text>
+        <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]} placeholder="Enter city" placeholderTextColor={colors.textSecondary} value={city} onChangeText={setCity} />
 
-      <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
-        <Text style={styles.saveBtnText}>{loading ? t('saving') : t('save')}</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
+          <Text style={styles.saveBtnText}>{loading ? t('saving') : t('save')}</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

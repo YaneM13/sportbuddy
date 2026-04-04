@@ -2,8 +2,8 @@ import { useLanguage, useTheme } from '@/lib/AppContext';
 import { sendPushNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import * as Location from 'expo-location';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -35,10 +35,10 @@ export default function EventsBySportScreen() {
   const catColors = categoryColors[category as string] || { light: { bg: '#F1EFE8', text: '#444441' }, dark: { bg: 'rgba(30,45,61,0.8)', text: '#888' } };
   const color = isDark ? catColors.dark : catColors.light;
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
     fetchLocationAndEvents();
-  }, []);
+  }, []));
 
   async function fetchLocationAndEvents() {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -49,7 +49,6 @@ export default function EventsBySportScreen() {
   }
 
   async function fetchEvents(coords?: any) {
-    // Користи ја главната 'events' табела наместо 'events_with_counts' view
     const { data, error } = await supabase
       .from('events')
       .select('*')
@@ -58,7 +57,6 @@ export default function EventsBySportScreen() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      // Ако нема евенти, само покажи празна листа без Alert
       setEvents([]);
       setLoading(false);
       setRefreshing(false);
@@ -89,11 +87,19 @@ export default function EventsBySportScreen() {
 
   async function handleJoin(eventId: string, createdBy: string) {
     if (!user) { Alert.alert('Sign in required', 'You must be signed in to join an event'); return; }
+
+    const { data: userProfile } = await supabase.from('profiles').select('first_name, last_name, nickname').eq('id', user.id).single();
+    const displayName = userProfile?.nickname
+      ? `@${userProfile.nickname}`
+      : userProfile?.first_name
+      ? `${userProfile.first_name} ${userProfile.last_name}`
+      : user.email;
+
     const { data: participant, error } = await supabase.from('event_participants').insert({ event_id: eventId, user_id: user.id, status: 'pending' }).select().single();
     if (error) { Alert.alert(t('error'), error.message); return; }
-    await supabase.from('notifications').insert({ user_id: createdBy, event_id: eventId, participant_id: participant.id, message: `${user.email} wants to join your event!` });
+    await supabase.from('notifications').insert({ user_id: createdBy, event_id: eventId, participant_id: participant.id, message: `${displayName} wants to join your event!` });
     const { data: creatorProfile } = await supabase.from('profiles').select('push_token').eq('id', createdBy).single();
-    if (creatorProfile?.push_token) await sendPushNotification(creatorProfile.push_token, 'New join request!', `${user.email} wants to join your event!`);
+    if (creatorProfile?.push_token) await sendPushNotification(creatorProfile.push_token, 'New join request!', `${displayName} wants to join your event!`);
     setParticipantStatuses({ ...participantStatuses, [eventId]: 'pending' });
     Alert.alert('Request sent', 'The organiser will review your request!');
   }

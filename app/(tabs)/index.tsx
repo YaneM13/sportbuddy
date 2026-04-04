@@ -1,7 +1,7 @@
 import { useLanguage, useTheme } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
@@ -26,6 +26,13 @@ export default function HomeScreen() {
     });
   }, []);
 
+  // Ажурирај аватарот секогаш кога се враќаш на почетната страна
+  useFocusEffect(useCallback(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) { fetchAvatar(session.user.id); fetchUnreadCount(session.user.id); }
+    });
+  }, []));
+
   async function fetchAvatar(userId: string) {
     const { data } = await supabase.from('profiles').select('avatar_url, first_name, last_name, nickname').eq('id', userId).single();
     if (data?.avatar_url) { setAvatarUrl(data.avatar_url + '?t=' + Date.now()); setShowAvatarBanner(false); }
@@ -48,8 +55,6 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.logoRow}>
           <Image source={require('../../assets/images/icon.png')} style={styles.logoImage} />
@@ -81,7 +86,6 @@ export default function HomeScreen() {
         </TouchableOpacity>
       )}
 
-      {/* Center Content */}
       <View style={styles.centerContent}>
         <Image source={require('../../assets/images/icon.png')} style={styles.centerLogo} />
         <Text style={[styles.slogan, { color: colors.accent }]}>Stop Waiting.</Text>
@@ -89,7 +93,6 @@ export default function HomeScreen() {
         <Text style={[styles.tagline, { color: colors.textSecondary }]}>{t('tagline')}</Text>
       </View>
 
-      {/* Bottom Buttons */}
       <View style={styles.bottomContent}>
         <View style={styles.buttonsRow}>
           <TouchableOpacity style={[styles.findBtn, { borderColor: colors.accent, backgroundColor: isDark ? 'rgba(29,158,117,0.15)' : '#E1F5EE' }]} onPress={() => router.push('/find-event' as any)}>
@@ -110,7 +113,6 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Menu Modal */}
       <Modal visible={menuVisible} transparent animationType="fade">
         <TouchableOpacity style={styles.overlay2} onPress={() => setMenuVisible(false)}>
           <View style={[styles.menu, { backgroundColor: colors.menuBg, borderColor: colors.cardBorder }]}>
