@@ -54,11 +54,7 @@ export default function EventChatScreen() {
   if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 80}
-    >
+    <View style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}>
       <View style={[styles.header, { borderBottomColor: colors.cardBorder, backgroundColor: isDark ? '#0F1923' : '#fff' }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={[styles.backText, { color: colors.accent }]}>← Back</Text>
@@ -67,58 +63,65 @@ export default function EventChatScreen() {
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Group chat</Text>
       </View>
 
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.messagesList}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={[styles.emptyText, { color: colors.text }]}>No messages yet</Text>
-            <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>Be the first to send a message!</Text>
-          </View>
-        }
-        renderItem={({ item }) => {
-          const isMe = user && item.user_id === user.id;
-          const profile = profiles[item.user_id];
-          return (
-            <View style={[styles.messageRow, isMe && styles.messageRowMe]}>
-              {!isMe && (
-                <View style={styles.avatarSmall}>
-                  {profile?.avatar_url ? <Image source={{ uri: profile.avatar_url }} style={styles.avatarSmallImage} /> : <Text style={styles.avatarSmallText}>{getInitials(profile)}</Text>}
-                </View>
-              )}
-              <View style={[styles.messageBubble, isMe ? styles.messageBubbleMe : [styles.messageBubbleOther, { backgroundColor: isDark ? '#1E2D3D' : '#F1EFE8' }]]}>
-                {!isMe && profile?.nickname && <Text style={[styles.messageNickname, { color: colors.accent }]}>@{profile.nickname}</Text>}
-                <Text style={[styles.messageText, { color: isDark && !isMe ? colors.text : isMe ? '#fff' : '#1a1a1a' }]}>{item.message}</Text>
-                <Text style={[styles.messageTime, isMe && styles.messageTimeMe, !isMe && { color: colors.textSecondary }]}>{formatTime(item.created_at)}</Text>
-              </View>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.messagesList}
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={[styles.emptyText, { color: colors.text }]}>No messages yet</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>Be the first to send a message!</Text>
             </View>
-          );
-        }}
-      />
-
-      <View style={[styles.inputContainer, { borderTopColor: colors.cardBorder, backgroundColor: isDark ? '#0D1620' : '#fff' }]}>
-        <TextInput
-          style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]}
-          placeholder="Type a message..."
-          placeholderTextColor={colors.textSecondary}
-          value={newMessage}
-          onChangeText={setNewMessage}
-          multiline
-          maxLength={500}
+          }
+          renderItem={({ item }) => {
+            const isMe = user && item.user_id === user.id;
+            const profile = profiles[item.user_id];
+            return (
+              <View style={[styles.messageRow, isMe && styles.messageRowMe]}>
+                {!isMe && (
+                  <View style={styles.avatarSmall}>
+                    {profile?.avatar_url ? <Image source={{ uri: profile.avatar_url }} style={styles.avatarSmallImage} /> : <Text style={styles.avatarSmallText}>{getInitials(profile)}</Text>}
+                  </View>
+                )}
+                <View style={[styles.messageBubble, isMe ? styles.messageBubbleMe : [styles.messageBubbleOther, { backgroundColor: isDark ? '#1E2D3D' : '#F1EFE8' }]]}>
+                  {!isMe && profile?.nickname && <Text style={[styles.messageNickname, { color: colors.accent }]}>@{profile.nickname}</Text>}
+                  <Text style={[styles.messageText, { color: isDark && !isMe ? colors.text : isMe ? '#fff' : '#1a1a1a' }]}>{item.message}</Text>
+                  <Text style={[styles.messageTime, isMe && styles.messageTimeMe, !isMe && { color: colors.textSecondary }]}>{formatTime(item.created_at)}</Text>
+                </View>
+              </View>
+            );
+          }}
         />
-        <TouchableOpacity style={[styles.sendBtn, !newMessage.trim() && styles.sendBtnDisabled]} onPress={handleSend} disabled={!newMessage.trim()}>
-          <Text style={styles.sendBtnText}>Send</Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+
+        <View style={[styles.inputContainer, { borderTopColor: colors.cardBorder, backgroundColor: isDark ? '#0D1620' : '#fff' }]}>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]}
+            placeholder="Type a message..."
+            placeholderTextColor={colors.textSecondary}
+            value={newMessage}
+            onChangeText={setNewMessage}
+            multiline
+            maxLength={500}
+          />
+          <TouchableOpacity style={[styles.sendBtn, !newMessage.trim() && styles.sendBtnDisabled]} onPress={handleSend} disabled={!newMessage.trim()}>
+            <Text style={styles.sendBtnText}>Send</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  flex: { flex: 1 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { padding: 24, paddingTop: 60, borderBottomWidth: 0.5 },
   backBtn: { marginBottom: 8 },
@@ -141,7 +144,7 @@ const styles = StyleSheet.create({
   messageText: { fontSize: 15 },
   messageTime: { fontSize: 10, color: '#888', marginTop: 4, alignSelf: 'flex-end' },
   messageTimeMe: { color: 'rgba(255,255,255,0.7)' },
-  inputContainer: { flexDirection: 'row', padding: 12, paddingBottom: 28, borderTopWidth: 0.5, alignItems: 'flex-end', gap: 8 },
+  inputContainer: { flexDirection: 'row', padding: 12, paddingBottom: Platform.OS === 'android' ? 24 : 12, borderTopWidth: 0.5, alignItems: 'flex-end', gap: 8 },
   input: { flex: 1, padding: 12, borderRadius: 20, borderWidth: 1, fontSize: 15, maxHeight: 100 },
   sendBtn: { backgroundColor: '#1D9E75', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
   sendBtnDisabled: { backgroundColor: '#ccc' },

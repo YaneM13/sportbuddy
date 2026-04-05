@@ -12,7 +12,12 @@
       "bundleIdentifier": "com.yane31.SportBuddy"
     },
     "android": {
-      "adaptiveIcon": {
+  "config": {
+    "googleMaps": {
+      "apiKey": "AIzaSyCtgU5nv9hJFrZXMundys1mxM5zDqowVoA"
+    }
+  },
+  "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#1D9E75"
       },

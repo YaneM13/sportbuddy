@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useRef } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Callout, Circle, Marker } from 'react-native-maps';
 
 interface Event {
@@ -26,6 +26,7 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
       <MapView
         ref={mapRef}
         style={styles.map}
+        provider={Platform.OS === 'android' ? 'google' : undefined}
         initialRegion={{
           latitude: userLatitude,
           longitude: userLongitude,
@@ -34,7 +35,6 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
         }}
         showsUserLocation={true}
         showsMyLocationButton={true}
-        onMapReady={() => {}}
       >
         <Circle
           center={{ latitude: userLatitude, longitude: userLongitude }}
@@ -42,35 +42,32 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
           strokeColor="#1D9E75"
           fillColor="rgba(29, 158, 117, 0.1)"
         />
-
-        {events
-          .filter(e => e.latitude && e.longitude)
-          .map(e => (
-            <Marker
-              key={e.id}
-              coordinate={{ latitude: e.latitude, longitude: e.longitude }}
-              title={e.title}
-              description={`${e.sport} · ${e.location}`}
-            >
-              <Callout onPress={() => router.push({ pathname: '/event-details', params: { id: e.id } } as any)}>
-                <View style={styles.callout}>
-                  <Text style={styles.calloutTitle}>{e.title}</Text>
-                  <Text style={styles.calloutSport}>{e.sport}</Text>
-                  <Text style={styles.calloutLocation}>{e.location}</Text>
-                  <TouchableOpacity style={styles.calloutBtn}>
-                    <Text style={styles.calloutBtnText}>View details</Text>
-                  </TouchableOpacity>
-                </View>
-              </Callout>
-            </Marker>
-          ))}
+        {events.filter(e => e.latitude && e.longitude).map(e => (
+          <Marker
+            key={e.id}
+            coordinate={{ latitude: e.latitude, longitude: e.longitude }}
+            title={e.title}
+            description={`${e.sport} · ${e.location}`}
+          >
+            <Callout onPress={() => router.push({ pathname: '/event-details', params: { id: e.id } } as any)}>
+              <View style={styles.callout}>
+                <Text style={styles.calloutTitle}>{e.title}</Text>
+                <Text style={styles.calloutSport}>{e.sport}</Text>
+                <Text style={styles.calloutLocation}>{e.location}</Text>
+                <TouchableOpacity style={styles.calloutBtn}>
+                  <Text style={styles.calloutBtnText}>View details</Text>
+                </TouchableOpacity>
+              </View>
+            </Callout>
+          </Marker>
+        ))}
       </MapView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, borderRadius: 16, overflow: 'hidden', borderWidth: 0.5, borderColor: '#e0e0e0' },
+  container: { flex: 1, overflow: 'hidden' },
   map: { flex: 1 },
   callout: { width: 180, padding: 8 },
   calloutTitle: { fontSize: 14, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 4 },
