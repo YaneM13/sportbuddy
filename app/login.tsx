@@ -52,11 +52,26 @@ export default function LoginScreen() {
   const [nickname, setNickname] = useState('');
   const [favoriteSport, setFavoriteSport] = useState('');
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   const { checks, passed } = getPasswordStrength(password);
+
+  async function handleForgotPassword() {
+    setErrorMsg('');
+    setSuccessMsg('');
+    if (!email) { setErrorMsg('Please enter your email address'); return; }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'sportbuddy://reset-password',
+    });
+    if (error) { setErrorMsg(error.message); }
+    else { setSuccessMsg('Password reset link sent! Check your email inbox.'); }
+    setLoading(false);
+  }
 
   async function handleStep1() {
     setErrorMsg('');
@@ -86,6 +101,40 @@ export default function LoginScreen() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) { setErrorMsg(error.message); } else { router.replace('/'); }
     setLoading(false);
+  }
+
+  // Forgot Password екран
+  if (isForgotPassword) {
+    return (
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <Text style={styles.title}>SportBuddy 🏆</Text>
+          <Text style={styles.subtitle}>Reset your password</Text>
+
+          {errorMsg ? <View style={styles.errorBox}><Text style={styles.errorText}>⚠️ {errorMsg}</Text></View> : null}
+          {successMsg ? <View style={styles.successBox}><Text style={styles.successText}>✅ {successMsg}</Text></View> : null}
+
+          <Text style={styles.label}>{t('email')}</Text>
+          <TextInput
+            style={styles.input}
+            placeholder={t('email')}
+            placeholderTextColor="#aaa"
+            value={email}
+            onChangeText={(v) => { setEmail(v); setErrorMsg(''); setSuccessMsg(''); }}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+
+          <TouchableOpacity style={styles.buttonGreen} onPress={handleForgotPassword} disabled={loading}>
+            <Text style={styles.buttonTextGreen}>{loading ? 'Sending...' : 'Send reset link'}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => { setIsForgotPassword(false); setErrorMsg(''); setSuccessMsg(''); }} style={styles.backStepBtn}>
+            <Text style={styles.backStepText}>← Back to login</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
   }
 
   if (!isLogin && step === 3) {
@@ -182,6 +231,13 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Forgot Password — само за login */}
+        {isLogin && (
+          <TouchableOpacity onPress={() => { setIsForgotPassword(true); setErrorMsg(''); }} style={styles.forgotBtn}>
+            <Text style={styles.forgotText}>Forgot password?</Text>
+          </TouchableOpacity>
+        )}
+
         {!isLogin && password.length > 0 && (
           <View style={styles.passwordHints}>
             <Text style={styles.passwordHintsTitle}>Password must contain:</Text>
@@ -213,12 +269,16 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, fontWeight: '500', color: '#444', marginBottom: 6 },
   sublabel: { fontSize: 12, color: '#888', marginBottom: 10 },
   input: { width: '100%', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#e0e0e0', marginBottom: 8, fontSize: 16, color: '#1a1a1a', backgroundColor: '#fff' },
-  passwordRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 12, marginBottom: 8, backgroundColor: '#fff' },
+  passwordRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 12, marginBottom: 4, backgroundColor: '#fff' },
   passwordInput: { flex: 1, padding: 16, fontSize: 16, color: '#1a1a1a' },
   eyeBtn: { padding: 16 },
   eyeIcon: { fontSize: 18 },
+  forgotBtn: { alignSelf: 'flex-end', marginBottom: 12, marginTop: 4 },
+  forgotText: { fontSize: 13, color: '#1D9E75', fontWeight: '500' },
   errorBox: { backgroundColor: '#FCEBEB', borderRadius: 10, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: '#E24B4A' },
   errorText: { color: '#E24B4A', fontSize: 13, fontWeight: '500' },
+  successBox: { backgroundColor: '#F0FBF7', borderRadius: 10, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: '#9FE1CB' },
+  successText: { color: '#0F6E56', fontSize: 13, fontWeight: '500' },
   passwordHints: { backgroundColor: '#F9F9F9', borderRadius: 12, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: '#e0e0e0' },
   passwordHintsTitle: { fontSize: 13, fontWeight: '600', color: '#444', marginBottom: 8 },
   passwordHint: { fontSize: 13, color: '#E24B4A', marginBottom: 4 },

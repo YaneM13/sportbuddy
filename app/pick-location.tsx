@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 
 export default function PickLocationScreen() {
@@ -13,9 +13,7 @@ export default function PickLocationScreen() {
   const [geocoding, setGeocoding] = useState(false);
   const mapRef = useRef<any>(null);
 
-  useEffect(() => {
-    fetchLocation();
-  }, []);
+  useEffect(() => { fetchLocation(); }, []);
 
   async function fetchLocation() {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -34,8 +32,7 @@ export default function PickLocationScreen() {
         { headers: { 'Accept-Language': 'en', 'User-Agent': 'SportBuddy/1.0' } }
       );
       const data = await response.json();
-      const address = data.display_name || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-      setSelectedAddress(address);
+      setSelectedAddress(data.display_name || `${lat.toFixed(4)}, ${lon.toFixed(4)}`);
     } catch (e) {
       setSelectedAddress(`${lat.toFixed(4)}, ${lon.toFixed(4)}`);
     }
@@ -59,12 +56,15 @@ export default function PickLocationScreen() {
   }
 
   if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#1D9E75" />
-      </View>
-    );
+    return <View style={styles.centered}><ActivityIndicator size="large" color="#1D9E75" /></View>;
   }
+
+  const defaultRegion = {
+    latitude: userLocation?.latitude ?? 41.9981,
+    longitude: userLocation?.longitude ?? 21.4254,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
+  };
 
   return (
     <View style={styles.container}>
@@ -79,17 +79,8 @@ export default function PickLocationScreen() {
       <MapView
         ref={mapRef}
         style={styles.map}
-        initialRegion={userLocation ? {
-          latitude: userLocation.latitude,
-          longitude: userLocation.longitude,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        } : {
-          latitude: 41.9981,
-          longitude: 21.4254,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        }}
+        provider={Platform.OS === 'android' ? 'google' : undefined}
+        initialRegion={defaultRegion}
         showsUserLocation={true}
         onPress={handleMapPress}
       >
@@ -118,70 +109,18 @@ export default function PickLocationScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  header: {
-    padding: 24,
-    paddingTop: 60,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#e0e0e0',
-  },
-  backBtn: {
-    marginBottom: 8,
-  },
-  backText: {
-    fontSize: 17,
-    color: '#1D9E75',
-    fontWeight: '500',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#888',
-  },
-  map: {
-    flex: 1,
-  },
-  footer: {
-    padding: 16,
-    borderTopWidth: 0.5,
-    borderTopColor: '#e0e0e0',
-    backgroundColor: '#fff',
-  },
-  addressLabel: {
-    fontSize: 12,
-    color: '#888',
-    marginBottom: 4,
-  },
-  addressText: {
-    fontSize: 14,
-    color: '#1a1a1a',
-    marginBottom: 12,
-  },
-  confirmBtn: {
-    backgroundColor: '#1D9E75',
-    padding: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  confirmBtnDisabled: {
-    backgroundColor: '#ccc',
-  },
-  confirmBtnText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  header: { padding: 24, paddingTop: 60, borderBottomWidth: 0.5, borderBottomColor: '#e0e0e0' },
+  backBtn: { marginBottom: 8 },
+  backText: { fontSize: 17, color: '#1D9E75', fontWeight: '500' },
+  title: { fontSize: 22, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 4 },
+  subtitle: { fontSize: 13, color: '#888' },
+  map: { flex: 1 },
+  footer: { padding: 16, borderTopWidth: 0.5, borderTopColor: '#e0e0e0', backgroundColor: '#fff' },
+  addressLabel: { fontSize: 12, color: '#888', marginBottom: 4 },
+  addressText: { fontSize: 14, color: '#1a1a1a', marginBottom: 12 },
+  confirmBtn: { backgroundColor: '#1D9E75', padding: 14, borderRadius: 12, alignItems: 'center' },
+  confirmBtnDisabled: { backgroundColor: '#ccc' },
+  confirmBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
 });
