@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function PickLocationScreen() {
   const [userLocation, setUserLocation] = useState<any>(null);
@@ -12,6 +13,7 @@ export default function PickLocationScreen() {
   const [loading, setLoading] = useState(true);
   const [geocoding, setGeocoding] = useState(false);
   const mapRef = useRef<any>(null);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => { fetchLocation(); }, []);
 
@@ -68,7 +70,7 @@ export default function PickLocationScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
@@ -90,7 +92,7 @@ export default function PickLocationScreen() {
       </MapView>
 
       {selectedLocation && (
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
           <Text style={styles.addressLabel}>Selected location:</Text>
           <Text style={styles.addressText} numberOfLines={2}>
             {geocoding ? 'Getting address...' : selectedAddress}
@@ -111,7 +113,7 @@ export default function PickLocationScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { padding: 24, paddingTop: 60, borderBottomWidth: 0.5, borderBottomColor: '#e0e0e0' },
+  header: { padding: 24, borderBottomWidth: 0.5, borderBottomColor: '#e0e0e0' },
   backBtn: { marginBottom: 8 },
   backText: { fontSize: 17, color: '#1D9E75', fontWeight: '500' },
   title: { fontSize: 22, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 4 },

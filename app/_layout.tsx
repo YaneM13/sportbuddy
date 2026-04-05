@@ -1,11 +1,12 @@
 import { AppProvider } from '@/lib/AppContext';
 import { registerForPushNotifications, savePushToken } from '@/lib/notifications';
+import { supabase } from '@/lib/supabase';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import * as Location from 'expo-location';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import 'react-native-reanimated';
 
 export const unstable_settings = {
@@ -19,11 +20,31 @@ export default function RootLayout() {
     async function setup() {
       const { status } = await Location.requestForegroundPermissionsAsync();
       setLocationGranted(status === 'granted');
-
       const token = await registerForPushNotifications();
       if (token) await savePushToken(token);
     }
     setup();
+
+    // Handle deep links
+    async function handleDeepLink(url: string) {
+      if (url.includes('reset-password') || url.includes('type=recovery')) {
+        const params = new URLSearchParams(url.split('#')[1] || url.split('?')[1] || '');
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+        if (accessToken && refreshToken) {
+          await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+          router.replace('/reset-password' as any);
+        }
+      }
+    }
+
+    // Check initial URL
+    Linking.getInitialURL().then((url) => { if (url) handleDeepLink(url); });
+
+    // Listen for URL changes
+    const subscription = Linking.addEventListener('url', ({ url }) => { handleDeepLink(url); });
+
+    return () => { subscription.remove(); };
   }, []);
 
   if (locationGranted === false) {
@@ -84,40 +105,10 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  locationRequired: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-    backgroundColor: '#0F1923',
-  },
-  locationIcon: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  locationTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1D9E75',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  locationText: {
-    fontSize: 15,
-    color: '#6B8FA8',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 32,
-  },
-  locationBtn: {
-    backgroundColor: '#1D9E75',
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  locationBtnText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
+  locationRequired: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: '#0F1923' },
+  locationIcon: { fontSize: 48, marginBottom: 16 },
+  locationTitle: { fontSize: 24, fontWeight: 'bold', color: '#1D9E75', marginBottom: 12, textAlign: 'center' },
+  locationText: { fontSize: 15, color: '#6B8FA8', textAlign: 'center', lineHeight: 22, marginBottom: 32 },
+  locationBtn: { backgroundColor: '#1D9E75', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12 },
+  locationBtnText: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
 });

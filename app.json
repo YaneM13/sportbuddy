@@ -12,12 +12,24 @@
       "bundleIdentifier": "com.yane31.SportBuddy"
     },
     "android": {
-  "config": {
-    "googleMaps": {
-      "apiKey": "AIzaSyCtgU5nv9hJFrZXMundys1mxM5zDqowVoA"
-    }
-  },
-  "adaptiveIcon": {
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCtgU5nv9hJFrZXMundys1mxM5zDqowVoA"
+        }
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "sportbuddy"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
+      "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#1D9E75"
       },
