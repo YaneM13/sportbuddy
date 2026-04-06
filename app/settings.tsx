@@ -4,7 +4,7 @@ import { Language, languageNames } from '@/lib/translations';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
   const [uploading, setUploading] = useState(false);
@@ -20,14 +20,14 @@ export default function SettingsScreen() {
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
+      allowsEditing: Platform.OS === 'ios',
       aspect: [1, 1],
       quality: 0.8,
     });
     if (result.canceled) return;
     setUploading(true);
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session) { setUploading(false); return; }
     const uri = result.assets[0].uri;
     const fileName = `${session.user.id}.jpg`;
     const formData = new FormData();
@@ -43,9 +43,9 @@ export default function SettingsScreen() {
     const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
     const avatarUrlWithCache = publicUrl + '?t=' + Date.now();
     const { error: updateError } = await supabase
-  .from('profiles')
-  .update({ avatar_url: avatarUrlWithCache })
-  .eq('id', session.user.id);
+      .from('profiles')
+      .update({ avatar_url: avatarUrlWithCache })
+      .eq('id', session.user.id);
     if (updateError) Alert.alert('Error', updateError.message);
     else Alert.alert('Success', 'Profile photo updated!');
     setUploading(false);
