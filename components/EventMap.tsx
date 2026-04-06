@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useRef } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import MapView, { Callout, Circle, Marker } from 'react-native-maps';
+import MapView, { Callout, Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 interface Event {
   id: string;
@@ -26,7 +26,7 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
       <MapView
         ref={mapRef}
         style={styles.map}
-        provider={Platform.OS === 'android' ? 'google' : undefined}
+        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
         initialRegion={{
           latitude: userLatitude,
           longitude: userLongitude,
@@ -35,6 +35,8 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
         }}
         showsUserLocation={true}
         showsMyLocationButton={true}
+        moveOnMarkerPress={false}
+        toolbarEnabled={false}
       >
         <Circle
           center={{ latitude: userLatitude, longitude: userLongitude }}
@@ -48,6 +50,7 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
             coordinate={{ latitude: e.latitude, longitude: e.longitude }}
             title={e.title}
             description={`${e.sport} · ${e.location}`}
+            tracksViewChanges={false}
           >
             <Callout onPress={() => router.push({ pathname: '/event-details', params: { id: e.id } } as any)}>
               <View style={styles.callout}>
