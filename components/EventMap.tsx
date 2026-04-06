@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useRef } from 'react';
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import MapView, { Callout, Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 interface Event {
@@ -48,18 +48,19 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
           <Marker
             key={e.id}
             coordinate={{ latitude: e.latitude, longitude: e.longitude }}
-            title={e.title}
-            description={`${e.sport} · ${e.location}`}
             tracksViewChanges={false}
           >
-            <Callout onPress={() => router.push({ pathname: '/event-details', params: { id: e.id } } as any)}>
+            <Callout
+              tooltip={true}
+              onPress={() => router.push({ pathname: '/event-details', params: { id: e.id } } as any)}
+            >
               <View style={styles.callout}>
                 <Text style={styles.calloutTitle}>{e.title}</Text>
                 <Text style={styles.calloutSport}>{e.sport}</Text>
-                <Text style={styles.calloutLocation}>{e.location}</Text>
-                <TouchableOpacity style={styles.calloutBtn}>
+                <Text style={styles.calloutLocation} numberOfLines={2}>{e.location}</Text>
+                <View style={styles.calloutBtn}>
                   <Text style={styles.calloutBtnText}>View details</Text>
-                </TouchableOpacity>
+                </View>
               </View>
             </Callout>
           </Marker>
@@ -72,10 +73,22 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
 const styles = StyleSheet.create({
   container: { flex: 1, overflow: 'hidden' },
   map: { flex: 1 },
-  callout: { width: 180, padding: 8 },
-  calloutTitle: { fontSize: 14, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 4 },
-  calloutSport: { fontSize: 12, color: '#1D9E75', marginBottom: 2 },
-  calloutLocation: { fontSize: 12, color: '#888', marginBottom: 8 },
-  calloutBtn: { backgroundColor: '#1D9E75', padding: 6, borderRadius: 8, alignItems: 'center' },
-  calloutBtnText: { color: '#fff', fontSize: 12, fontWeight: '500' },
+  callout: {
+    width: 200,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  calloutTitle: { fontSize: 15, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 4 },
+  calloutSport: { fontSize: 12, color: '#1D9E75', fontWeight: '500', marginBottom: 4 },
+  calloutLocation: { fontSize: 12, color: '#888', marginBottom: 10 },
+  calloutBtn: { backgroundColor: '#1D9E75', padding: 8, borderRadius: 8, alignItems: 'center' },
+  calloutBtnText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
 });
