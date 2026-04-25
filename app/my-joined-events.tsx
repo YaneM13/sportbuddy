@@ -11,18 +11,29 @@ export default function MyJoinedEventsScreen() {
   const [finishedEvents, setFinishedEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [ratedEvents, setRatedEvents] = useState<string[]>([]);
 
   useEffect(() => { fetchJoinedEvents(); }, []);
 
   async function fetchJoinedEvents() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { router.back(); return; }
+
     const { data, error } = await supabase
       .from('event_participants')
       .select('status, joined_at, events(*)')
       .eq('user_id', session.user.id)
       .order('joined_at', { ascending: false });
     if (error) { Alert.alert(t('error'), error.message); setLoading(false); setRefreshing(false); return; }
+
+    // Земи евенти каде корисникот веќе ги оценил сите играчи
+    const { data: ratingsData } = await supabase
+      .from('ratings')
+      .select('event_id')
+      .eq('rated_by', session.user.id);
+    const ratedEventIds = [...new Set((ratingsData || []).map((r: any) => r.event_id))];
+    setRatedEvents(ratedEventIds);
+
     const active: any[] = [], finished: any[] = [];
     (data || []).forEach((item: any) => {
       const event = item.events;
@@ -43,9 +54,9 @@ export default function MyJoinedEventsScreen() {
   };
 
   const getStatusStyle = (status: string) => {
-    if (status === 'approved') return { bg: isDark ? 'rgba(15,61,46,0.8)' : '#E1F5EE', text: isDark ? '#9FE1CB' : '#0F6E56', label: '✅ ' + t('approve') + 'd' };
+    if (status === 'approved') return { bg: isDark ? 'rgba(15,61,46,0.8)' : '#E1F5EE', text: isDark ? '#9FE1CB' : '#0F6E56', label: '✅ Approved' };
     if (status === 'pending') return { bg: isDark ? 'rgba(65,57,12,0.8)' : '#FAEEDA', text: isDark ? '#FAC775' : '#BA7517', label: '⏳ ' + t('waitingApproval') };
-    return { bg: isDark ? 'rgba(80,20,20,0.8)' : '#FCEBEB', text: isDark ? '#F09595' : '#E24B4A', label: '❌ ' + t('reject') + 'ed' };
+    return { bg: isDark ? 'rgba(80,20,20,0.8)' : '#FCEBEB', text: isDark ? '#F09595' : '#E24B4A', label: '❌ Rejected' };
   };
 
   const renderEventCard = (item: any, isFinished: boolean = false) => {
@@ -53,6 +64,9 @@ export default function MyJoinedEventsScreen() {
     if (!event) return null;
     const color = getCategoryColor(event.category);
     const statusStyle = getStatusStyle(item.status);
+    const hasRated = ratedEvents.includes(event.id);
+    const isApproved = item.status === 'approved';
+
     return (
       <TouchableOpacity
         key={item.joined_at + event.id}
@@ -68,10 +82,16 @@ export default function MyJoinedEventsScreen() {
         <Text style={[styles.cardDetail, { color: colors.textSecondary }]}>📍 {event.location}</Text>
         <Text style={[styles.cardDetail, { color: colors.textSecondary }]}>📅 {event.date} at {event.time} — {event.end_time}</Text>
         {event.max_players ? <Text style={[styles.cardDetail, { color: colors.textSecondary }]}>👥 {event.approved_count || 0} / {event.max_players} players</Text> : <Text style={[styles.cardDetail, { color: colors.textSecondary }]}>👥 {t('unlimited')}</Text>}
-        {isFinished && (
+
+        {isFinished && isApproved && !hasRated && (
           <TouchableOpacity style={styles.rateBtn} onPress={(e) => { e.stopPropagation(); router.push({ pathname: '/rate-players', params: { event_id: event.id } } as any); }}>
             <Text style={styles.rateBtnText}>⭐ {t('ratePlayersTitle')}</Text>
           </TouchableOpacity>
+        )}
+        {isFinished && isApproved && hasRated && (
+          <View style={[styles.ratedBadge, { backgroundColor: isDark ? 'rgba(15,61,46,0.8)' : '#E1F5EE' }]}>
+            <Text style={[styles.ratedBadgeText, { color: isDark ? '#9FE1CB' : '#0F6E56' }]}>✅ Players rated</Text>
+          </View>
         )}
       </TouchableOpacity>
     );
@@ -138,4 +158,6 @@ const styles = StyleSheet.create({
   cardDetail: { fontSize: 14, marginBottom: 4 },
   rateBtn: { marginTop: 12, backgroundColor: '#FAEEDA', padding: 12, borderRadius: 12, alignItems: 'center' },
   rateBtnText: { color: '#BA7517', fontWeight: 'bold', fontSize: 14 },
+  ratedBadge: { marginTop: 12, padding: 10, borderRadius: 12, alignItems: 'center' },
+  ratedBadgeText: { fontSize: 13, fontWeight: '500' },
 });

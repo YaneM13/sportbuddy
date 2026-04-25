@@ -56,10 +56,11 @@ export default function MyEventsScreen() {
 
       {events.map((event) => {
         const color = getCategoryColor(event.category);
+        const isFinished = event.status === 'finished';
         return (
           <TouchableOpacity
             key={event.id}
-            style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}
+            style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }, isFinished && { opacity: 0.8 }]}
             onPress={() => router.push({ pathname: '/event-details', params: { id: event.id } } as any)}
           >
             <View style={styles.cardHeader}>
@@ -67,18 +68,23 @@ export default function MyEventsScreen() {
                 <Text style={[styles.categoryText, { color: color.text }]}>{event.sport}</Text>
               </View>
               {event.skill_level && <View style={[styles.skillBadge, { backgroundColor: isDark ? 'rgba(65,57,12,0.8)' : '#F1EFE8' }]}><Text style={[styles.skillText, { color: isDark ? '#FAC775' : '#444441' }]}>{event.skill_level}</Text></View>}
+              {isFinished && <View style={[styles.skillBadge, { backgroundColor: isDark ? '#1E2D3D' : '#F1EFE8' }]}><Text style={[styles.skillText, { color: colors.textSecondary }]}>Finished</Text></View>}
             </View>
             <Text style={[styles.cardTitle, { color: colors.text }]}>{event.title}</Text>
             <Text style={[styles.cardDetail, { color: colors.textSecondary }]}>📍 {event.location}</Text>
             <Text style={[styles.cardDetail, { color: colors.textSecondary }]}>📅 {event.date} at {event.time} — {event.end_time}</Text>
             {event.max_players ? <Text style={[styles.cardDetail, { color: colors.textSecondary }]}>👥 {event.approved_count || 0} / {event.max_players} players</Text> : <Text style={[styles.cardDetail, { color: colors.textSecondary }]}>👥 {t('unlimited')}</Text>}
             <View style={styles.cardActions}>
-              <TouchableOpacity style={styles.editBtn} onPress={(e) => { e.stopPropagation(); router.push({ pathname: '/edit-event', params: { id: event.id } } as any); }}>
-                <Text style={styles.editBtnText}>{t('editEvent')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.rateBtn} onPress={(e) => { e.stopPropagation(); router.push({ pathname: '/rate-players', params: { event_id: event.id } } as any); }}>
-                <Text style={styles.rateBtnText}>{t('ratePlayersTitle')}</Text>
-              </TouchableOpacity>
+              {!isFinished && (
+                <TouchableOpacity style={styles.editBtn} onPress={(e) => { e.stopPropagation(); router.push({ pathname: '/edit-event', params: { id: event.id } } as any); }}>
+                  <Text style={styles.editBtnText}>{t('editEvent')}</Text>
+                </TouchableOpacity>
+              )}
+              {isFinished && (
+                <TouchableOpacity style={styles.rateBtn} onPress={(e) => { e.stopPropagation(); router.push({ pathname: '/rate-players', params: { event_id: event.id } } as any); }}>
+                  <Text style={styles.rateBtnText}>⭐ {t('ratePlayersTitle')}</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </TouchableOpacity>
         );
@@ -111,6 +117,6 @@ const styles = StyleSheet.create({
   cardActions: { flexDirection: 'row', gap: 10, marginTop: 12 },
   editBtn: { flex: 1, backgroundColor: '#EEEDFE', padding: 12, borderRadius: 12, alignItems: 'center' },
   editBtnText: { color: '#534AB7', fontWeight: 'bold', fontSize: 14 },
-  rateBtn: { flex: 1, backgroundColor: '#FAECE7', padding: 12, borderRadius: 12, alignItems: 'center' },
-  rateBtnText: { color: '#993C1D', fontWeight: 'bold', fontSize: 14 },
+  rateBtn: { flex: 1, backgroundColor: '#FAEEDA', padding: 12, borderRadius: 12, alignItems: 'center' },
+  rateBtnText: { color: '#BA7517', fontWeight: 'bold', fontSize: 14 },
 });

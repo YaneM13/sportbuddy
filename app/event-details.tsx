@@ -19,6 +19,23 @@ export default function EventDetailsScreen() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
     fetchEventDetails();
+
+    const subscription = supabase.channel(`event-${id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'event_participants',
+        filter: `event_id=eq.${id}`
+      }, () => { fetchEventDetails(); })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'events',
+        filter: `id=eq.${id}`
+      }, () => { fetchEventDetails(); })
+      .subscribe();
+
+    return () => { subscription.unsubscribe(); };
   }, []);
 
   async function fetchEventDetails() {
@@ -26,10 +43,19 @@ export default function EventDetailsScreen() {
     const { data: eventData, error } = await supabase.from('events').select('*').eq('id', id).single();
     if (error) { Alert.alert(t('error'), error.message); setLoading(false); return; }
     setEvent(eventData);
-    const { data: participantsData } = await supabase.from('event_participants').select('*, profiles(first_name, last_name, nickname, avatar_url)').eq('event_id', id).eq('status', 'approved');
+    const { data: participantsData } = await supabase
+      .from('event_participants')
+      .select('*, profiles(first_name, last_name, nickname, avatar_url)')
+      .eq('event_id', id)
+      .eq('status', 'approved');
     setParticipants(participantsData || []);
     if (session) {
-      const { data: myParticipation } = await supabase.from('event_participants').select('status').eq('event_id', id).eq('user_id', session.user.id).single();
+      const { data: myParticipation } = await supabase
+        .from('event_participants')
+        .select('status')
+        .eq('event_id', id)
+        .eq('user_id', session.user.id)
+        .single();
       setJoinStatus(myParticipation?.status || null);
     }
     setLoading(false);
@@ -38,6 +64,13 @@ export default function EventDetailsScreen() {
   async function handleJoin() {
     if (!user) { Alert.alert('Sign in required', 'You must be signed in to join an event'); return; }
 
+    // Провери дали евентот е полн
+    const { data: eventData } = await supabase.from('events').select('max_players, approved_count').eq('id', id).single();
+    if (eventData?.max_players && eventData?.approved_count >= eventData?.max_players) {
+      Alert.alert('Event Full', 'This event is already full!');
+      return;
+    }
+
     const { data: userProfile } = await supabase.from('profiles').select('first_name, last_name, nickname').eq('id', user.id).single();
     const displayName = userProfile?.nickname
       ? `@${userProfile.nickname}`
@@ -45,11 +78,25 @@ export default function EventDetailsScreen() {
       ? `${userProfile.first_name} ${userProfile.last_name}`
       : user.email;
 
-    const { data: participant, error } = await supabase.from('event_participants').insert({ event_id: id, user_id: user.id, status: 'pending' }).select().single();
+    const { data: participant, error } = await supabase
+      .from('event_participants')
+      .insert({ event_id: id, user_id: user.id, status: 'pending' })
+      .select()
+      .single();
     if (error) { Alert.alert(t('error'), error.message); return; }
-    await supabase.from('notifications').insert({ user_id: event.created_by, event_id: id, participant_id: participant.id, message: `${displayName} wants to join your event!` });
+
+    await supabase.from('notifications').insert({
+      user_id: event.created_by,
+      event_id: id,
+      participant_id: participant.id,
+      message: `${displayName} wants to join your event!`
+    });
+
     const { data: creatorProfile } = await supabase.from('profiles').select('push_token').eq('id', event.created_by).single();
-    if (creatorProfile?.push_token) await sendPushNotification(creatorProfile.push_token, 'New join request!', `${displayName} wants to join your event!`);
+    if (creatorProfile?.push_token) {
+      await sendPushNotification(creatorProfile.push_token, 'New join request!', `${displayName} wants to join your event!`);
+    }
+
     setJoinStatus('pending');
     Alert.alert('Request sent', 'The organiser will review your request!');
   }
@@ -65,14 +112,27 @@ export default function EventDetailsScreen() {
   const renderJoinButton = () => {
     const isOwner = user && user.id === event?.created_by;
     const isFull = event?.max_players && event?.approved_count >= event?.max_players;
-    if (isOwner) return <TouchableOpacity style={styles.editBtn} onPress={() => router.push({ pathname: '/edit-event', params: { id: event.id } } as any)}><Text style={styles.editBtnText}>{t('editEvent')}</Text></TouchableOpacity>;
+    if (isOwner) return (
+      <TouchableOpacity style={styles.editBtn} onPress={() => router.push({ pathname: '/edit-event', params: { id: event.id } } as any)}>
+        <Text style={styles.editBtnText}>{t('editEvent')}</Text>
+      </TouchableOpacity>
+    );
     if (joinStatus === 'approved') return <View style={styles.approvedBtn}><Text style={styles.approvedBtnText}>{t('alreadyJoined')}</Text></View>;
     if (joinStatus === 'pending') return <View style={styles.pendingBtn}><Text style={styles.pendingBtnText}>{t('waitingApproval')}</Text></View>;
+    if (joinStatus === 'rejected') return <View style={styles.fullBtn}><Text style={styles.fullBtnText}>Your request was rejected</Text></View>;
     if (isFull) return <View style={styles.fullBtn}><Text style={styles.fullBtnText}>{t('eventIsFull')}</Text></View>;
-    return <TouchableOpacity style={styles.joinBtn} onPress={handleJoin}><Text style={styles.joinBtnText}>{t('joinEvent')}</Text></TouchableOpacity>;
+    return (
+      <TouchableOpacity style={styles.joinBtn} onPress={handleJoin}>
+        <Text style={styles.joinBtnText}>{t('joinEvent')}</Text>
+      </TouchableOpacity>
+    );
   };
 
-  if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
+  if (loading) return (
+    <View style={[styles.centered, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}>
+      <ActivityIndicator size="large" color="#1D9E75" />
+    </View>
+  );
 
   const isParticipant = joinStatus === 'approved' || (user && user.id === event?.created_by);
 
@@ -125,7 +185,9 @@ export default function EventDetailsScreen() {
                   <Image source={{ uri: p.profiles.avatar_url }} style={styles.participantAvatar} />
                 ) : (
                   <View style={styles.participantAvatarPlaceholder}>
-                    <Text style={styles.participantAvatarText}>{p.profiles?.first_name ? p.profiles.first_name.substring(0, 2).toUpperCase() : '??'}</Text>
+                    <Text style={styles.participantAvatarText}>
+                      {p.profiles?.first_name ? p.profiles.first_name.substring(0, 2).toUpperCase() : '??'}
+                    </Text>
                   </View>
                 )}
                 <View style={styles.participantInfo}>

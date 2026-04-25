@@ -25,24 +25,48 @@ export default function RootLayout() {
     }
     setup();
 
-    // Handle deep links
     async function handleDeepLink(url: string) {
-      if (url.includes('reset-password') || url.includes('type=recovery')) {
-        const params = new URLSearchParams(url.split('#')[1] || url.split('?')[1] || '');
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
-        if (accessToken && refreshToken) {
-          await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-          router.replace('/reset-password' as any);
+      if (!url) return;
+      
+      if (url.includes('type=recovery') || url.includes('reset-password')) {
+        // Земи ги параметрите од URL
+        const hashPart = url.split('#')[1] || '';
+        const queryPart = url.split('?')[1] || '';
+        const paramString = hashPart || queryPart;
+        
+        if (paramString) {
+          const params = new URLSearchParams(paramString);
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
+          
+          if (accessToken && refreshToken) {
+            try {
+              await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken,
+              });
+              // Пренасочи на reset-password со параметрите
+              router.replace({
+                pathname: '/reset-password',
+                params: { access_token: accessToken, refresh_token: refreshToken }
+              } as any);
+            } catch (e) {
+              console.error('Session error:', e);
+            }
+          }
         }
       }
     }
 
-    // Check initial URL
-    Linking.getInitialURL().then((url) => { if (url) handleDeepLink(url); });
+    // Провери initial URL
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink(url);
+    });
 
-    // Listen for URL changes
-    const subscription = Linking.addEventListener('url', ({ url }) => { handleDeepLink(url); });
+    // Слушај за URL промени
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      handleDeepLink(url);
+    });
 
     return () => { subscription.remove(); };
   }, []);

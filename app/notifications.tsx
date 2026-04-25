@@ -1,7 +1,7 @@
 import { useLanguage, useTheme } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function NotificationsScreen() {
@@ -12,16 +12,50 @@ export default function NotificationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'requests' | 'messages'>('requests');
+  const [userId, setUserId] = useState<string | null>(null);
 
-  useEffect(() => { fetchNotifications(); }, []);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUserId(session.user.id);
+        fetchNotifications(session.user.id);
+        setupRealtime(session.user.id);
+      }
+    });
+  }, []);
 
-  async function fetchNotifications() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+  useFocusEffect(useCallback(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) fetchNotifications(session.user.id);
+    });
+  }, []));
+
+  function setupRealtime(uid: string) {
+    const subscription = supabase.channel(`notifications-${uid}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${uid}`
+      }, () => { fetchNotifications(uid); })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${uid}`
+      }, () => { fetchNotifications(uid); })
+      .subscribe();
+    return () => { subscription.unsubscribe(); };
+  }
+
+  async function fetchNotifications(uid?: string) {
+    const id = uid || userId;
+    if (!id) return;
     const { data, error } = await supabase
       .from('notifications')
-      .select('*, events(title, id), event_participants(user_id)')
-      .eq('user_id', session.user.id)
+      .select('*, events(title, id), event_participants!participant_id(user_id)')
+      .eq('user_id', id)
+      .eq('is_read', false)
       .order('created_at', { ascending: false });
     if (error) Alert.alert(t('error'), error.message);
     else {
@@ -33,6 +67,11 @@ export default function NotificationsScreen() {
   }
 
   async function handleApprove(notification: any) {
+    const { data: eventData } = await supabase.from('events').select('max_players, approved_count').eq('id', notification.event_id).single();
+    if (eventData?.max_players && eventData?.approved_count >= eventData?.max_players) {
+      Alert.alert('Event Full', 'This event is already full!');
+      return;
+    }
     const { error } = await supabase.from('event_participants').update({ status: 'approved' }).eq('id', notification.participant_id);
     if (error) { Alert.alert(t('error'), error.message); return; }
     await supabase.from('notifications').update({ is_read: true }).eq('id', notification.id);
@@ -46,6 +85,11 @@ export default function NotificationsScreen() {
     await supabase.from('notifications').update({ is_read: true }).eq('id', notification.id);
     Alert.alert(t('success'), 'Player has been rejected!');
     fetchNotifications();
+  }
+
+  async function handleMessagePress(notif: any) {
+    await supabase.from('notifications').update({ is_read: true }).eq('id', notif.id);
+    router.push({ pathname: '/event-chat', params: { event_id: notif.event_id, event_title: notif.events?.title } } as any);
   }
 
   return (
@@ -67,41 +111,37 @@ export default function NotificationsScreen() {
           <View style={[styles.tabs, { borderColor: colors.cardBorder }]}>
             <TouchableOpacity style={[styles.tab, { backgroundColor: isDark ? '#1E2D3D' : '#fff' }, activeTab === 'requests' && styles.tabActive]} onPress={() => setActiveTab('requests')}>
               <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === 'requests' && styles.tabTextActive]}>
-                {t('joinRequests')} {joinRequests.filter(n => !n.is_read).length > 0 && `(${joinRequests.filter(n => !n.is_read).length})`}
+                {t('joinRequests')} {joinRequests.length > 0 && `(${joinRequests.length})`}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.tab, { backgroundColor: isDark ? '#1E2D3D' : '#fff' }, activeTab === 'messages' && styles.tabActive]} onPress={() => setActiveTab('messages')}>
               <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === 'messages' && styles.tabTextActive]}>
-                {t('messages')} {messages.filter(n => !n.is_read).length > 0 && `(${messages.filter(n => !n.is_read).length})`}
+                {t('messages')} {messages.length > 0 && `(${messages.length})`}
               </Text>
             </TouchableOpacity>
           </View>
 
           {activeTab === 'requests' && (
             <>
-              {joinRequests.length === 0 && <View style={styles.empty}><Text style={[styles.emptyText, { color: colors.textSecondary }]}>No join requests yet</Text></View>}
+              {joinRequests.length === 0 && <View style={styles.empty}><Text style={[styles.emptyText, { color: colors.textSecondary }]}>No join requests</Text></View>}
               {joinRequests.map((notif) => (
-                <View key={notif.id} style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }, notif.is_read && { opacity: 0.6 }]}>
-                  <TouchableOpacity onPress={() => router.push({ pathname: '/user-profile', params: { userId: notif.event_participants?.user_id } } as any)}>
+                <View key={notif.id} style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}>
+                  <TouchableOpacity onPress={() => router.push({
+                    pathname: '/user-profile',
+                    params: { userId: notif.event_participants?.user_id }
+                  } as any)}>
                     <Text style={[styles.cardMessage, { color: colors.text }]}>{notif.message}</Text>
                   </TouchableOpacity>
                   <Text style={[styles.cardEvent, { color: colors.textSecondary }]}>Event: {notif.events?.title}</Text>
                   <Text style={[styles.cardTime, { color: colors.textSecondary }]}>{new Date(notif.created_at).toLocaleDateString()}</Text>
-                  {!notif.is_read && (
-                    <View style={styles.actions}>
-                      <TouchableOpacity style={styles.approveBtn} onPress={() => handleApprove(notif)}>
-                        <Text style={styles.approveBtnText}>{t('approve')}</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.rejectBtn} onPress={() => handleReject(notif)}>
-                        <Text style={styles.rejectBtnText}>{t('reject')}</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                  {notif.is_read && (
-                    <View style={[styles.statusContainer, { backgroundColor: isDark ? '#0F1923' : '#F1EFE8' }]}>
-                      <Text style={[styles.statusText, { color: colors.textSecondary }]}>{t('reviewed')}</Text>
-                    </View>
-                  )}
+                  <View style={styles.actions}>
+                    <TouchableOpacity style={styles.approveBtn} onPress={() => handleApprove(notif)}>
+                      <Text style={styles.approveBtnText}>{t('approve')}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.rejectBtn} onPress={() => handleReject(notif)}>
+                      <Text style={styles.rejectBtnText}>{t('reject')}</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ))}
             </>
@@ -109,12 +149,19 @@ export default function NotificationsScreen() {
 
           {activeTab === 'messages' && (
             <>
-              {messages.length === 0 && <View style={styles.empty}><Text style={[styles.emptyText, { color: colors.textSecondary }]}>No messages yet</Text></View>}
+              {messages.length === 0 && <View style={styles.empty}><Text style={[styles.emptyText, { color: colors.textSecondary }]}>No new messages</Text></View>}
               {messages.map((notif) => (
-                <TouchableOpacity key={notif.id} style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }, notif.is_read && { opacity: 0.6 }]} onPress={() => router.push({ pathname: '/event-chat', params: { event_id: notif.event_id, event_title: notif.events?.title } } as any)}>
+                <TouchableOpacity
+                  key={notif.id}
+                  style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}
+                  onPress={() => handleMessagePress(notif)}
+                >
                   <Text style={[styles.cardMessage, { color: colors.text }]}>{notif.message}</Text>
                   <Text style={[styles.cardEvent, { color: colors.textSecondary }]}>Event: {notif.events?.title}</Text>
                   <Text style={[styles.cardTime, { color: colors.textSecondary }]}>{new Date(notif.created_at).toLocaleDateString()}</Text>
+                  <View style={styles.goToChat}>
+                    <Text style={styles.goToChatText}>💬 Go to chat →</Text>
+                  </View>
                 </TouchableOpacity>
               ))}
             </>
@@ -148,6 +195,6 @@ const styles = StyleSheet.create({
   approveBtnText: { color: '#0F6E56', fontWeight: 'bold', fontSize: 14 },
   rejectBtn: { flex: 1, backgroundColor: '#FCEBEB', padding: 12, borderRadius: 12, alignItems: 'center' },
   rejectBtnText: { color: '#E24B4A', fontWeight: 'bold', fontSize: 14 },
-  statusContainer: { padding: 8, borderRadius: 8, alignItems: 'center' },
-  statusText: { fontSize: 13, fontWeight: '500' },
+  goToChat: { backgroundColor: '#E6F1FB', padding: 10, borderRadius: 10, alignItems: 'center' },
+  goToChatText: { color: '#185FA5', fontWeight: '500', fontSize: 13 },
 });
