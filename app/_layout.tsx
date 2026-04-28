@@ -27,47 +27,40 @@ export default function RootLayout() {
 
     async function handleDeepLink(url: string) {
       if (!url) return;
-      
+
+      const hashPart = url.split('#')[1] || '';
+      const queryPart = url.split('?')[1] || '';
+      const paramString = hashPart || queryPart;
+      const params = new URLSearchParams(paramString);
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      const type = params.get('type');
+
+      // Password reset
       if (url.includes('type=recovery') || url.includes('reset-password')) {
-        // Земи ги параметрите од URL
-        const hashPart = url.split('#')[1] || '';
-        const queryPart = url.split('?')[1] || '';
-        const paramString = hashPart || queryPart;
-        
-        if (paramString) {
-          const params = new URLSearchParams(paramString);
-          const accessToken = params.get('access_token');
-          const refreshToken = params.get('refresh_token');
-          
-          if (accessToken && refreshToken) {
-            try {
-              await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken,
-              });
-              // Пренасочи на reset-password со параметрите
-              router.replace({
-                pathname: '/reset-password',
-                params: { access_token: accessToken, refresh_token: refreshToken }
-              } as any);
-            } catch (e) {
-              console.error('Session error:', e);
-            }
-          }
+        if (accessToken && refreshToken) {
+          try {
+            await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+            router.replace({ pathname: '/reset-password', params: { access_token: accessToken, refresh_token: refreshToken } } as any);
+          } catch (e) { console.error('Session error:', e); }
         }
+        return;
+      }
+
+      // Email confirmation
+      if (type === 'signup' || type === 'email_change' || url.includes('type=signup')) {
+        if (accessToken && refreshToken) {
+          try {
+            await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+          } catch (e) { console.error('Session error:', e); }
+        }
+        router.replace('/email-confirmed' as any);
+        return;
       }
     }
 
-    // Провери initial URL
-    Linking.getInitialURL().then((url) => {
-      if (url) handleDeepLink(url);
-    });
-
-    // Слушај за URL промени
-    const subscription = Linking.addEventListener('url', ({ url }) => {
-      handleDeepLink(url);
-    });
-
+    Linking.getInitialURL().then((url) => { if (url) handleDeepLink(url); });
+    const subscription = Linking.addEventListener('url', ({ url }) => { handleDeepLink(url); });
     return () => { subscription.remove(); };
   }, []);
 
@@ -118,6 +111,7 @@ export default function RootLayout() {
           <Stack.Screen name="personal-details" />
           <Stack.Screen name="change-password" />
           <Stack.Screen name="reset-password" />
+          <Stack.Screen name="email-confirmed" />
           <Stack.Screen name="event-chat" />
           <Stack.Screen name="pick-location" />
           <Stack.Screen name="modal" />

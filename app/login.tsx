@@ -85,7 +85,13 @@ export default function LoginScreen() {
     if (!firstName || !lastName || !nickname) { setErrorMsg('Please fill in all fields'); return; }
     if (!favoriteSport) { setErrorMsg('Please select your favorite sport'); return; }
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({ 
+  email, 
+  password,
+  options: {
+    emailRedirectTo: 'sportbuddy://email-confirmed',
+  }
+});
     if (error) { setErrorMsg(error.message); setLoading(false); return; }
     if (data.user) {
       await supabase.from('profiles').upsert({ id: data.user.id, first_name: firstName, last_name: lastName, nickname, favorite_sport: favoriteSport });
