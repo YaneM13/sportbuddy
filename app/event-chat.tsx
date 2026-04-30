@@ -71,7 +71,6 @@ export default function EventChatScreen() {
     const currentUser = userRef.current;
     if (!currentUser) return;
 
-    // Прво земи го профилот на испраќачот
     await fetchProfileIfNeeded(currentUser.id);
     const senderProfile = profilesRef.current[currentUser.id];
     const senderName = senderProfile?.nickname
@@ -80,7 +79,6 @@ export default function EventChatScreen() {
       ? `${senderProfile.first_name}`
       : 'Someone';
 
-    // Земи ги сите учесници ОСВЕН тековниот корисник
     const { data: participants } = await supabase
       .from('event_participants')
       .select('user_id')
@@ -91,17 +89,15 @@ export default function EventChatScreen() {
     if (!participants) return;
 
     for (const participant of participants) {
-      // Додај нотификација во базата
       await supabase.from('notifications').insert({
         user_id: participant.user_id,
         event_id: event_id,
         message: `${senderName} sent a message in ${event_title}: "${msg.substring(0, 50)}${msg.length > 50 ? '...' : ''}"`,
       });
 
-      // Прати push нотификација само ако push_token е различен од испраќачот
       await fetchProfileIfNeeded(participant.user_id);
       const profile = profilesRef.current[participant.user_id];
-      if (profile?.push_token && profile.push_token !== senderProfile?.push_token) {
+      if (profile?.push_token) {
         await sendPushNotification(
           profile.push_token,
           `💬 ${event_title}`,
@@ -167,17 +163,23 @@ export default function EventChatScreen() {
           return (
             <View style={[styles.messageRow, isMe && styles.messageRowMe]}>
               {!isMe && (
-                <View style={styles.avatarSmall}>
-                  {profile?.avatar_url
-                    ? <Image source={{ uri: profile.avatar_url }} style={styles.avatarSmallImage} />
-                    : <Text style={styles.avatarSmallText}>{getInitials(profile)}</Text>}
-                </View>
+                <TouchableOpacity
+                  onPress={() => router.push({ pathname: '/user-profile', params: { userId: item.user_id } } as any)}
+                >
+                  <View style={styles.avatarSmall}>
+                    {profile?.avatar_url
+                      ? <Image source={{ uri: profile.avatar_url }} style={styles.avatarSmallImage} />
+                      : <Text style={styles.avatarSmallText}>{getInitials(profile)}</Text>}
+                  </View>
+                </TouchableOpacity>
               )}
               <View style={[styles.messageBubble, isMe
                 ? styles.messageBubbleMe
                 : [styles.messageBubbleOther, { backgroundColor: isDark ? '#1E2D3D' : '#F1EFE8' }]]}>
                 {!isMe && profile?.nickname && (
-                  <Text style={[styles.messageNickname, { color: colors.accent }]}>@{profile.nickname}</Text>
+                  <TouchableOpacity onPress={() => router.push({ pathname: '/user-profile', params: { userId: item.user_id } } as any)}>
+                    <Text style={[styles.messageNickname, { color: colors.accent }]}>@{profile.nickname}</Text>
+                  </TouchableOpacity>
                 )}
                 <Text style={[styles.messageText, {
                   color: isDark && !isMe ? colors.text : isMe ? '#fff' : '#1a1a1a'

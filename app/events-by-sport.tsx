@@ -6,7 +6,6 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-
 function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -37,24 +36,24 @@ export default function EventsBySportScreen() {
   const color = isDark ? catColors.dark : catColors.light;
 
   useEffect(() => {
-  supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
-  fetchLocationAndEvents();
-}, []);
+    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
+    fetchLocationAndEvents();
+  }, []);
 
-useFocusEffect(useCallback(() => {
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    if (session?.user) {
-      supabase.from('event_participants')
-        .select('event_id, status')
-        .eq('user_id', session.user.id)
-        .then(({ data: participants }) => {
-          const statusMap: { [key: string]: string } = {};
-          (participants || []).forEach((p: any) => { statusMap[p.event_id] = p.status; });
-          setParticipantStatuses(statusMap);
-        });
-    }
-  });
-}, []));
+  useFocusEffect(useCallback(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        supabase.from('event_participants')
+          .select('event_id, status')
+          .eq('user_id', session.user.id)
+          .then(({ data: participants }) => {
+            const statusMap: { [key: string]: string } = {};
+            (participants || []).forEach((p: any) => { statusMap[p.event_id] = p.status; });
+            setParticipantStatuses(statusMap);
+          });
+      }
+    });
+  }, []));
 
   async function fetchLocationAndEvents() {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -113,9 +112,15 @@ useFocusEffect(useCallback(() => {
 
     const { data: participant, error } = await supabase.from('event_participants').insert({ event_id: eventId, user_id: user.id, status: 'pending' }).select().single();
     if (error) { Alert.alert(t('error'), error.message); return; }
-    await supabase.from('notifications').insert({ user_id: createdBy, event_id: eventId, participant_id: participant.id, message: `${displayName} wants to join your event!` });
-    const { data: creatorProfile } = await supabase.from('profiles').select('push_token').eq('id', createdBy).single();
-    if (creatorProfile?.push_token) await sendPushNotification(creatorProfile.push_token, 'New join request!', `${displayName} wants to join your event!`);
+
+    if (createdBy !== user.id) {
+      await supabase.from('notifications').insert({ user_id: createdBy, event_id: eventId, participant_id: participant.id, message: `${displayName} wants to join your event!` });
+      const { data: creatorProfile } = await supabase.from('profiles').select('push_token').eq('id', createdBy).single();
+      if (creatorProfile?.push_token) {
+        await sendPushNotification(creatorProfile.push_token, 'New join request!', `${displayName} wants to join your event!`);
+      }
+    }
+
     setParticipantStatuses({ ...participantStatuses, [eventId]: 'pending' });
     Alert.alert('Request sent', 'The organiser will review your request!');
   }

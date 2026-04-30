@@ -17,8 +17,12 @@ export default function EventDetailsScreen() {
   const [joinStatus, setJoinStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
-    fetchEventDetails();
+    async function init() {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      await fetchEventDetails(session?.user ?? null);
+    }
+    init();
 
     const subscription = supabase.channel(`event-${id}`)
       .on('postgres_changes', {
@@ -26,36 +30,38 @@ export default function EventDetailsScreen() {
         schema: 'public',
         table: 'event_participants',
         filter: `event_id=eq.${id}`
-      }, () => { fetchEventDetails(); })
+      }, () => { fetchEventDetails(user); })
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
         table: 'events',
         filter: `id=eq.${id}`
-      }, () => { fetchEventDetails(); })
+      }, () => { fetchEventDetails(user); })
       .subscribe();
 
     return () => { subscription.unsubscribe(); };
   }, []);
 
-  async function fetchEventDetails() {
-    const { data: { session } } = await supabase.auth.getSession();
+  async function fetchEventDetails(currentUser?: any) {
     const { data: eventData, error } = await supabase.from('events').select('*').eq('id', id).single();
     if (error) { Alert.alert(t('error'), error.message); setLoading(false); return; }
     setEvent(eventData);
+
     const { data: participantsData } = await supabase
       .from('event_participants')
       .select('*, profiles(first_name, last_name, nickname, avatar_url)')
       .eq('event_id', id)
       .eq('status', 'approved');
     setParticipants(participantsData || []);
-    if (session) {
+
+    const sessionUser = currentUser || user;
+    if (sessionUser) {
       const { data: myParticipation } = await supabase
         .from('event_participants')
         .select('status')
         .eq('event_id', id)
-        .eq('user_id', session.user.id)
-        .single();
+        .eq('user_id', sessionUser.id)
+        .maybeSingle();
       setJoinStatus(myParticipation?.status || null);
     }
     setLoading(false);
@@ -64,7 +70,6 @@ export default function EventDetailsScreen() {
   async function handleJoin() {
     if (!user) { Alert.alert('Sign in required', 'You must be signed in to join an event'); return; }
 
-    // Провери дали корисникот е блокиран од креаторот
     const { data: blockData } = await supabase
       .from('blocks')
       .select('id')
@@ -77,7 +82,6 @@ export default function EventDetailsScreen() {
       return;
     }
 
-    // Провери дали евентот е полн
     const { data: eventData } = await supabase.from('events').select('max_players, approved_count').eq('id', id).single();
     if (eventData?.max_players && eventData?.approved_count >= eventData?.max_players) {
       Alert.alert('Event Full', 'This event is already full!');
@@ -98,7 +102,6 @@ export default function EventDetailsScreen() {
       .single();
     if (error) { Alert.alert(t('error'), error.message); return; }
 
-    // Само ако креаторот е различен од корисникот
     if (event.created_by !== user.id) {
       await supabase.from('notifications').insert({
         user_id: event.created_by,
@@ -128,6 +131,13 @@ export default function EventDetailsScreen() {
   const renderJoinButton = () => {
     const isOwner = user && user.id === event?.created_by;
     const isFull = event?.max_players && event?.approved_count >= event?.max_players;
+    const isFinished = event?.status === 'finished';
+
+    if (isFinished) return (
+      <View style={styles.fullBtn}>
+        <Text style={styles.fullBtnText}>This event has finished</Text>
+      </View>
+    );
     if (isOwner) return (
       <TouchableOpacity style={styles.editBtn} onPress={() => router.push({ pathname: '/edit-event', params: { id: event.id } } as any)}>
         <Text style={styles.editBtnText}>{t('editEvent')}</Text>
@@ -172,14 +182,19 @@ export default function EventDetailsScreen() {
 
       <View style={styles.joinContainer}>
         {renderJoinButton()}
-        {isParticipant && (
+        {isParticipant && event?.status !== 'finished' && (
           <TouchableOpacity style={styles.directionsBtn} onPress={handleDirections}>
             <Text style={styles.directionsBtnText}>{t('getDirections')}</Text>
           </TouchableOpacity>
         )}
-        {isParticipant && (
+        {isParticipant && event?.status !== 'finished' && (
           <TouchableOpacity style={styles.chatBtn} onPress={() => router.push({ pathname: '/event-chat', params: { event_id: event?.id, event_title: event?.title } } as any)}>
             <Text style={styles.chatBtnText}>{t('groupChat')}</Text>
+          </TouchableOpacity>
+        )}
+        {isParticipant && event?.status === 'finished' && (
+          <TouchableOpacity style={styles.rateBtn} onPress={() => router.push({ pathname: '/rate-players', params: { event_id: event?.id } } as any)}>
+            <Text style={styles.rateBtnText}>⭐ {t('ratePlayersTitle')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -242,6 +257,8 @@ const styles = StyleSheet.create({
   directionsBtnText: { color: '#0F6E56', fontWeight: 'bold', fontSize: 15 },
   chatBtn: { backgroundColor: '#E6F1FB', padding: 16, borderRadius: 12, alignItems: 'center' },
   chatBtnText: { color: '#185FA5', fontWeight: 'bold', fontSize: 15 },
+  rateBtn: { backgroundColor: '#FAEEDA', padding: 16, borderRadius: 12, alignItems: 'center' },
+  rateBtnText: { color: '#BA7517', fontWeight: 'bold', fontSize: 15 },
   participantsSection: { marginTop: 8 },
   sectionTitle: { fontSize: 17, fontWeight: '500', marginBottom: 12 },
   noParticipants: { fontSize: 14 },
