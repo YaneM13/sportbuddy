@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useRef } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Callout, Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 interface Event {
@@ -51,17 +51,31 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
             tracksViewChanges={false}
           >
             <Callout
-              tooltip={true}
+              tooltip={Platform.OS === 'ios'}
               onPress={() => router.push({ pathname: '/event-details', params: { id: e.id } } as any)}
             >
-              <View style={styles.callout}>
-                <Text style={styles.calloutTitle}>{e.title}</Text>
-                <Text style={styles.calloutSport}>{e.sport}</Text>
-                <Text style={styles.calloutLocation} numberOfLines={2}>{e.location}</Text>
-                <View style={styles.calloutBtn}>
-                  <Text style={styles.calloutBtnText}>View details</Text>
+              {Platform.OS === 'ios' ? (
+                <View style={styles.callout}>
+                  <Text style={styles.calloutTitle}>{e.title}</Text>
+                  <Text style={styles.calloutSport}>{e.sport}</Text>
+                  <Text style={styles.calloutLocation} numberOfLines={2}>{e.location}</Text>
+                  <View style={styles.calloutBtn}>
+                    <Text style={styles.calloutBtnText}>View details</Text>
+                  </View>
                 </View>
-              </View>
+              ) : (
+                <View style={styles.calloutAndroid}>
+                  <Text style={styles.calloutTitle}>{e.title}</Text>
+                  <Text style={styles.calloutSport}>{e.sport}</Text>
+                  <Text style={styles.calloutLocation} numberOfLines={2}>{e.location}</Text>
+                  <TouchableOpacity
+                    style={styles.calloutBtn}
+                    onPress={() => router.push({ pathname: '/event-details', params: { id: e.id } } as any)}
+                  >
+                    <Text style={styles.calloutBtnText}>View details</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </Callout>
           </Marker>
         ))}
@@ -82,6 +96,15 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  calloutAndroid: {
+    width: 200,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
     elevation: 5,
     borderWidth: 1,
     borderColor: '#e0e0e0',

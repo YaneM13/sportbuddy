@@ -18,17 +18,33 @@ export default function SettingsScreen() {
       Alert.alert('Permission required', 'Please allow access to your photo library');
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: Platform.OS === 'ios',
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (result.canceled) return;
+
+    if (Platform.OS === 'android') {
+      // Android — без crop, директно прикачување
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.8,
+      });
+      if (result.canceled) return;
+      await uploadPhoto(result.assets[0].uri);
+    } else {
+      // iOS — со crop
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (result.canceled) return;
+      await uploadPhoto(result.assets[0].uri);
+    }
+  }
+
+  async function uploadPhoto(uri: string) {
     setUploading(true);
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { setUploading(false); return; }
-    const uri = result.assets[0].uri;
     const fileName = `${session.user.id}.jpg`;
     const formData = new FormData();
     formData.append('file', { uri, name: fileName, type: 'image/jpeg' } as any);

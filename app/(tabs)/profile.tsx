@@ -64,6 +64,14 @@ export default function ProfileTab() {
             {profile?.first_name && <Text style={[styles.name, { color: colors.text }]}>{profile.first_name} {profile.last_name}</Text>}
             {!profile?.first_name && !profile?.nickname && <Text style={[styles.name, { color: colors.textSecondary }]}>{user.email}</Text>}
             {profile?.city && <Text style={[styles.city, { color: colors.textSecondary }]}>📍 {profile.city}</Text>}
+
+            {/* Омилен спорт */}
+            {profile?.favorite_sport && (
+              <View style={[styles.favoriteSportBadge, { backgroundColor: isDark ? '#1E2D3D' : '#E1F5EE' }]}>
+                <Text style={[styles.favoriteSportText, { color: colors.accent }]}>⭐ {profile.favorite_sport}</Text>
+              </View>
+            )}
+
             <View style={styles.starsRow}>
               {renderStars(stats.averageRating)}
               <Text style={[styles.ratingText, { color: colors.textSecondary }]}>
@@ -72,7 +80,6 @@ export default function ProfileTab() {
             </View>
           </View>
 
-          {/* Кликабилни статистики */}
           <View style={styles.statsGrid}>
             <TouchableOpacity
               style={[styles.statCard, { backgroundColor: isDark ? '#1E2D3D' : '#F9F9F9' }]}
@@ -121,6 +128,8 @@ const styles = StyleSheet.create({
   nickname: { fontSize: 18, fontWeight: 'bold', marginBottom: 4 },
   name: { fontSize: 16, marginBottom: 4 },
   city: { fontSize: 14, marginBottom: 8 },
+  favoriteSportBadge: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 99, marginBottom: 8 },
+  favoriteSportText: { fontSize: 14, fontWeight: '600' },
   starsRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   star: { fontSize: 20, color: '#e0e0e0' },
   starActive: { color: '#FFB800' },

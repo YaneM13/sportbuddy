@@ -117,6 +117,7 @@ export default function RootLayout() {
           <Stack.Screen name="modal" />
         </Stack>
         <StatusBar style="light" />
+        <Stack.Screen name="terms" />
       </ThemeProvider>
     </AppProvider>
   );

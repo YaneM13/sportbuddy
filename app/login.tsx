@@ -2,7 +2,7 @@ import { useLanguage } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const allSports = [
   { id: 'Football', category: 'team' },
@@ -95,7 +95,7 @@ export default function LoginScreen() {
     if (error) { setErrorMsg(error.message); setLoading(false); return; }
     if (data.user) {
       await supabase.from('profiles').upsert({ id: data.user.id, first_name: firstName, last_name: lastName, nickname, favorite_sport: favoriteSport });
-      setStep(3);
+      router.push('/terms' as any);
     }
     setLoading(false);
   }
@@ -179,8 +179,17 @@ export default function LoginScreen() {
           <TextInput style={styles.input} placeholder={t('lastName')} placeholderTextColor="#aaa" value={lastName} onChangeText={setLastName} />
           <Text style={styles.label}>{t('nickname')}</Text>
           <TextInput style={styles.input} placeholder={t('nickname')} placeholderTextColor="#aaa" value={nickname} onChangeText={setNickname} autoCapitalize="none" />
-          <Text style={styles.label}>{t('favoriteSport')}</Text>
-          <Text style={styles.sublabel}>{t('selectOneSport')}</Text>
+          <View style={styles.labelRow}>
+  <Text style={styles.label}>{t('favoriteSport')}</Text>
+  <TouchableOpacity onPress={() => Alert.alert(
+    '⭐ Favorite Sport',
+    'When someone creates an Alert Event for your favorite sport, you will receive a push notification so you never miss a game nearby!',
+    [{ text: 'Got it!' }]
+  )}>
+    <Text style={styles.infoBtn}>ℹ️</Text>
+  </TouchableOpacity>
+</View>
+<Text style={styles.sublabel}>{t('selectOneSport')}</Text>
           <View style={styles.sportsGrid}>
             {allSports.map((sport) => {
               const color = categoryColors[sport.category];
@@ -306,4 +315,6 @@ const styles = StyleSheet.create({
   confirmEmail: { fontWeight: 'bold', color: '#1D9E75' },
   confirmBtn: { backgroundColor: '#1D9E75', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12 },
   confirmBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  infoBtn: { fontSize: 18 },
 });
