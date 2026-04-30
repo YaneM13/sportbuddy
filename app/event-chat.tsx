@@ -71,7 +71,8 @@ export default function EventChatScreen() {
     const currentUser = userRef.current;
     if (!currentUser) return;
 
-    // Земи го профилот на испраќачот
+    // Прво земи го профилот на испраќачот
+    await fetchProfileIfNeeded(currentUser.id);
     const senderProfile = profilesRef.current[currentUser.id];
     const senderName = senderProfile?.nickname
       ? `@${senderProfile.nickname}`
@@ -79,7 +80,7 @@ export default function EventChatScreen() {
       ? `${senderProfile.first_name}`
       : 'Someone';
 
-    // Земи ги сите учесници на настанот
+    // Земи ги сите учесници ОСВЕН тековниот корисник
     const { data: participants } = await supabase
       .from('event_participants')
       .select('user_id')
@@ -97,10 +98,10 @@ export default function EventChatScreen() {
         message: `${senderName} sent a message in ${event_title}: "${msg.substring(0, 50)}${msg.length > 50 ? '...' : ''}"`,
       });
 
-      // Земи push token и прати push нотификација
+      // Прати push нотификација само ако push_token е различен од испраќачот
       await fetchProfileIfNeeded(participant.user_id);
       const profile = profilesRef.current[participant.user_id];
-      if (profile?.push_token) {
+      if (profile?.push_token && profile.push_token !== senderProfile?.push_token) {
         await sendPushNotification(
           profile.push_token,
           `💬 ${event_title}`,
@@ -116,7 +117,6 @@ export default function EventChatScreen() {
     const msg = newMessage.trim();
     setNewMessage('');
 
-    // Прати ја пораката
     const { error } = await supabase
       .from('messages')
       .insert({ event_id, user_id: user.id, message: msg });
@@ -127,7 +127,6 @@ export default function EventChatScreen() {
       return;
     }
 
-    // Прати нотификации до останатите учесници
     sendNotificationsToParticipants(msg);
   }
 
@@ -140,7 +139,7 @@ export default function EventChatScreen() {
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
       behavior='padding'
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 60}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 60}
     >
       <View style={[styles.header, { borderBottomColor: colors.cardBorder, backgroundColor: isDark ? '#0F1923' : '#fff' }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>

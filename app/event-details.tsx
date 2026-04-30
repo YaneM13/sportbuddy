@@ -98,16 +98,19 @@ export default function EventDetailsScreen() {
       .single();
     if (error) { Alert.alert(t('error'), error.message); return; }
 
-    await supabase.from('notifications').insert({
-      user_id: event.created_by,
-      event_id: id,
-      participant_id: participant.id,
-      message: `${displayName} wants to join your event!`
-    });
+    // Само ако креаторот е различен од корисникот
+    if (event.created_by !== user.id) {
+      await supabase.from('notifications').insert({
+        user_id: event.created_by,
+        event_id: id,
+        participant_id: participant.id,
+        message: `${displayName} wants to join your event!`
+      });
 
-    const { data: creatorProfile } = await supabase.from('profiles').select('push_token').eq('id', event.created_by).single();
-    if (creatorProfile?.push_token) {
-      await sendPushNotification(creatorProfile.push_token, 'New join request!', `${displayName} wants to join your event!`);
+      const { data: creatorProfile } = await supabase.from('profiles').select('push_token').eq('id', event.created_by).single();
+      if (creatorProfile?.push_token) {
+        await sendPushNotification(creatorProfile.push_token, 'New join request!', `${displayName} wants to join your event!`);
+      }
     }
 
     setJoinStatus('pending');
@@ -152,7 +155,6 @@ export default function EventDetailsScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]} contentContainerStyle={styles.content}>
       <BackButton />
-
       <Text style={[styles.title, { color: colors.text }]}>{event?.title}</Text>
       {event?.description && <Text style={[styles.description, { color: colors.textSecondary }]}>{event.description}</Text>}
 
