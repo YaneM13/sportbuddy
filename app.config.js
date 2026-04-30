@@ -59,7 +59,8 @@ export default {
           dark: { backgroundColor: "#0F1923" }
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-web-browser"
     ],
     experiments: {
       typedRoutes: true,
