@@ -64,6 +64,19 @@ export default function EventDetailsScreen() {
   async function handleJoin() {
     if (!user) { Alert.alert('Sign in required', 'You must be signed in to join an event'); return; }
 
+    // Провери дали корисникот е блокиран од креаторот
+    const { data: blockData } = await supabase
+      .from('blocks')
+      .select('id')
+      .eq('blocked_by', event.created_by)
+      .eq('blocked_user', user.id)
+      .maybeSingle();
+
+    if (blockData) {
+      Alert.alert('Unable to join', 'You cannot join this event.');
+      return;
+    }
+
     // Провери дали евентот е полн
     const { data: eventData } = await supabase.from('events').select('max_players, approved_count').eq('id', id).single();
     if (eventData?.max_players && eventData?.approved_count >= eventData?.max_players) {
