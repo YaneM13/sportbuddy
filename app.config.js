@@ -22,7 +22,6 @@ export default {
       }
     },
     android: {
-      googleServicesFile: "./google-services.json",
       config: {
         googleMaps: {
           apiKey: process.env.GOOGLE_MAPS_API_KEY
@@ -60,9 +59,7 @@ export default {
           dark: { backgroundColor: "#0F1923" }
         }
       ],
-      "@react-native-community/datetimepicker",
-      "@react-native-firebase/app",
-      "@react-native-firebase/messaging"
+      "@react-native-community/datetimepicker"
     ],
     experiments: {
       typedRoutes: true,

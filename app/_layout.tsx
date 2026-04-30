@@ -115,9 +115,9 @@ export default function RootLayout() {
           <Stack.Screen name="event-chat" />
           <Stack.Screen name="pick-location" />
           <Stack.Screen name="modal" />
+          <Stack.Screen name="terms" />
         </Stack>
         <StatusBar style="light" />
-        <Stack.Screen name="terms" />
       </ThemeProvider>
     </AppProvider>
   );
