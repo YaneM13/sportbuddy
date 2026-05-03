@@ -4,7 +4,7 @@ export default {
   expo: {
     name: "SportBuddy",
     slug: "SportBuddy",
-    version: "1.0.1",
+    version: "1.0.3",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "sportbuddy",
@@ -12,6 +12,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.yane31.SportBuddy",
+      buildNumber: "3",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSLocationWhenInUseUsageDescription: "SportBuddy uses your location to find sports events within 20km of your current position. For example, when you open the app, we show you football, basketball and other sports events happening near you.",
@@ -22,6 +23,7 @@ export default {
       }
     },
     android: {
+      versionCode: 3,
       config: {
         googleMaps: {
           apiKey: process.env.GOOGLE_MAPS_API_KEY
