@@ -4,7 +4,7 @@ import { Language, languageNames } from '@/lib/translations';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
   const [uploading, setUploading] = useState(false);
@@ -19,26 +19,14 @@ export default function SettingsScreen() {
       return;
     }
 
-    if (Platform.OS === 'android') {
-      // Android — без crop, директно прикачување
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: false,
-        quality: 0.8,
-      });
-      if (result.canceled) return;
-      await uploadPhoto(result.assets[0].uri);
-    } else {
-      // iOS — со crop
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-      if (result.canceled) return;
-      await uploadPhoto(result.assets[0].uri);
-    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+    await uploadPhoto(result.assets[0].uri);
   }
 
   async function uploadPhoto(uri: string) {

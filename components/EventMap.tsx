@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useRef } from 'react';
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import MapView, { Callout, Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 interface Event {
@@ -49,11 +49,9 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
             key={e.id}
             coordinate={{ latitude: e.latitude, longitude: e.longitude }}
             tracksViewChanges={false}
+            onCalloutPress={() => router.push({ pathname: '/event-details', params: { id: e.id } } as any)}
           >
-            <Callout
-              tooltip={Platform.OS === 'ios'}
-              onPress={() => router.push({ pathname: '/event-details', params: { id: e.id } } as any)}
-            >
+            <Callout tooltip={Platform.OS === 'ios'}>
               {Platform.OS === 'ios' ? (
                 <View style={styles.callout}>
                   <Text style={styles.calloutTitle}>{e.title}</Text>
@@ -68,12 +66,9 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
                   <Text style={styles.calloutTitle}>{e.title}</Text>
                   <Text style={styles.calloutSport}>{e.sport}</Text>
                   <Text style={styles.calloutLocation} numberOfLines={2}>{e.location}</Text>
-                  <TouchableOpacity
-                    style={styles.calloutBtn}
-                    onPress={() => router.push({ pathname: '/event-details', params: { id: e.id } } as any)}
-                  >
+                  <View style={styles.calloutBtn}>
                     <Text style={styles.calloutBtnText}>View details</Text>
-                  </TouchableOpacity>
+                  </View>
                 </View>
               )}
             </Callout>

@@ -2,7 +2,14 @@ import { useLanguage, useTheme } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
+const SPORTS = [
+  'Football', 'Basketball', 'Tennis', 'Volleyball', 'Swimming',
+  'Cycling', 'Running', 'Padel', 'Badminton', 'Table Tennis',
+  'Golf', 'Boxing', 'Yoga', 'Gym', 'Hiking', 'Skiing', 'Surfing',
+  'Climbing', 'Martial Arts', 'Other'
+];
 
 export default function PersonalDetailsScreen() {
   const { t } = useLanguage();
@@ -12,6 +19,7 @@ export default function PersonalDetailsScreen() {
   const [nickname, setNickname] = useState('');
   const [age, setAge] = useState('');
   const [city, setCity] = useState('');
+  const [favoriteSport, setFavoriteSport] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => { fetchProfile(); }, []);
@@ -20,7 +28,14 @@ export default function PersonalDetailsScreen() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-    if (data) { setFirstName(data.first_name || ''); setLastName(data.last_name || ''); setNickname(data.nickname || ''); setAge(data.age?.toString() || ''); setCity(data.city || ''); }
+    if (data) {
+      setFirstName(data.first_name || '');
+      setLastName(data.last_name || '');
+      setNickname(data.nickname || '');
+      setAge(data.age?.toString() || '');
+      setCity(data.city || '');
+      setFavoriteSport(data.favorite_sport || '');
+    }
   }
 
   async function handleSave() {
@@ -28,17 +43,22 @@ export default function PersonalDetailsScreen() {
     setLoading(true);
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
-    const { error } = await supabase.from('profiles').upsert({ id: session.user.id, first_name: firstName, last_name: lastName, nickname, age: age ? parseInt(age) : null, city });
+    const { error } = await supabase.from('profiles').upsert({
+      id: session.user.id,
+      first_name: firstName,
+      last_name: lastName,
+      nickname,
+      age: age ? parseInt(age) : null,
+      city,
+      favorite_sport: favoriteSport || null,
+    });
     if (error) Alert.alert(t('error'), error.message);
     else { Alert.alert(t('success'), 'Details saved!'); router.back(); }
     setLoading(false);
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
         style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
         contentContainerStyle={styles.content}
@@ -64,6 +84,34 @@ export default function PersonalDetailsScreen() {
         <Text style={[styles.label, { color: colors.textSecondary }]}>City</Text>
         <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]} placeholder="Enter city" placeholderTextColor={colors.textSecondary} value={city} onChangeText={setCity} />
 
+        <Text style={[styles.label, { color: colors.textSecondary }]}>⭐ Favorite Sport</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sportsScroll}>
+          <View style={styles.sportsRow}>
+            {SPORTS.map((sport) => (
+              <TouchableOpacity
+                key={sport}
+                style={[
+                  styles.sportChip,
+                  {
+                    backgroundColor: favoriteSport === sport
+                      ? '#1D9E75'
+                      : isDark ? '#1E2D3D' : '#F9F9F9',
+                    borderColor: favoriteSport === sport ? '#1D9E75' : colors.cardBorder,
+                  }
+                ]}
+                onPress={() => setFavoriteSport(favoriteSport === sport ? '' : sport)}
+              >
+                <Text style={[
+                  styles.sportChipText,
+                  { color: favoriteSport === sport ? '#fff' : colors.text }
+                ]}>
+                  {sport}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+
         <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
           <Text style={styles.saveBtnText}>{loading ? t('saving') : t('save')}</Text>
         </TouchableOpacity>
@@ -80,6 +128,10 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 32 },
   label: { fontSize: 14, fontWeight: '500', marginBottom: 8 },
   input: { width: '100%', padding: 16, borderRadius: 12, borderWidth: 1, marginBottom: 16, fontSize: 15 },
+  sportsScroll: { marginBottom: 16 },
+  sportsRow: { flexDirection: 'row', gap: 8, paddingBottom: 8 },
+  sportChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1 },
+  sportChipText: { fontSize: 13, fontWeight: '500' },
   saveBtn: { width: '100%', padding: 16, borderRadius: 12, backgroundColor: '#1D9E75', alignItems: 'center', marginTop: 8 },
   saveBtnText: { fontSize: 15, fontWeight: 'bold', color: '#fff' },
 });

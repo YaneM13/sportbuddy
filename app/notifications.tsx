@@ -9,9 +9,10 @@ export default function NotificationsScreen() {
   const { isDark, colors } = useTheme();
   const [joinRequests, setJoinRequests] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
+  const [adminMessages, setAdminMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'requests' | 'messages'>('requests');
+  const [activeTab, setActiveTab] = useState<'requests' | 'messages' | 'admin'>('requests');
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,6 +45,12 @@ export default function NotificationsScreen() {
         table: 'notifications',
         filter: `user_id=eq.${uid}`
       }, () => { fetchNotifications(uid); })
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'admin_messages',
+        filter: `to_user_id=eq.${uid}`
+      }, () => { fetchNotifications(uid); })
       .subscribe();
     return () => { subscription.unsubscribe(); };
   }
@@ -51,17 +58,30 @@ export default function NotificationsScreen() {
   async function fetchNotifications(uid?: string) {
     const id = uid || userId;
     if (!id) return;
+
+    // Notifications
     const { data, error } = await supabase
       .from('notifications')
       .select('*, events(title, id), event_participants!participant_id(user_id)')
       .eq('user_id', id)
       .eq('is_read', false)
       .order('created_at', { ascending: false });
+
     if (error) Alert.alert(t('error'), error.message);
     else {
       setJoinRequests((data || []).filter((n: any) => n.participant_id));
       setMessages((data || []).filter((n: any) => !n.participant_id));
     }
+
+    // Admin Messages
+    const { data: adminData } = await supabase
+      .from('admin_messages')
+      .select('*')
+      .eq('to_user_id', id)
+      .order('created_at', { ascending: false });
+
+    setAdminMessages(adminData || []);
+
     setLoading(false);
     setRefreshing(false);
   }
@@ -92,6 +112,13 @@ export default function NotificationsScreen() {
     router.push({ pathname: '/event-chat', params: { event_id: notif.event_id, event_title: notif.events?.title } } as any);
   }
 
+  async function dismissAdminMessage(id: string) {
+    await supabase.from('admin_messages').delete().eq('id', id);
+    setAdminMessages(prev => prev.filter(m => m.id !== id));
+  }
+
+  const totalNotifications = joinRequests.length + messages.length + adminMessages.length;
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
@@ -109,14 +136,28 @@ export default function NotificationsScreen() {
       ) : (
         <>
           <View style={[styles.tabs, { borderColor: colors.cardBorder }]}>
-            <TouchableOpacity style={[styles.tab, { backgroundColor: isDark ? '#1E2D3D' : '#fff' }, activeTab === 'requests' && styles.tabActive]} onPress={() => setActiveTab('requests')}>
+            <TouchableOpacity
+              style={[styles.tab, { backgroundColor: isDark ? '#1E2D3D' : '#fff' }, activeTab === 'requests' && styles.tabActive]}
+              onPress={() => setActiveTab('requests')}
+            >
               <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === 'requests' && styles.tabTextActive]}>
                 {t('joinRequests')} {joinRequests.length > 0 && `(${joinRequests.length})`}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.tab, { backgroundColor: isDark ? '#1E2D3D' : '#fff' }, activeTab === 'messages' && styles.tabActive]} onPress={() => setActiveTab('messages')}>
+            <TouchableOpacity
+              style={[styles.tab, { backgroundColor: isDark ? '#1E2D3D' : '#fff' }, activeTab === 'messages' && styles.tabActive]}
+              onPress={() => setActiveTab('messages')}
+            >
               <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === 'messages' && styles.tabTextActive]}>
                 {t('messages')} {messages.length > 0 && `(${messages.length})`}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, { backgroundColor: isDark ? '#1E2D3D' : '#fff' }, activeTab === 'admin' && styles.tabActive]}
+              onPress={() => setActiveTab('admin')}
+            >
+              <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === 'admin' && styles.tabTextActive]}>
+                ⚠️ Warnings {adminMessages.length > 0 && `(${adminMessages.length})`}
               </Text>
             </TouchableOpacity>
           </View>
@@ -126,10 +167,7 @@ export default function NotificationsScreen() {
               {joinRequests.length === 0 && <View style={styles.empty}><Text style={[styles.emptyText, { color: colors.textSecondary }]}>No join requests</Text></View>}
               {joinRequests.map((notif) => (
                 <View key={notif.id} style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}>
-                  <TouchableOpacity onPress={() => router.push({
-                    pathname: '/user-profile',
-                    params: { userId: notif.event_participants?.user_id }
-                  } as any)}>
+                  <TouchableOpacity onPress={() => router.push({ pathname: '/user-profile', params: { userId: notif.event_participants?.user_id } } as any)}>
                     <Text style={[styles.cardMessage, { color: colors.text }]}>{notif.message}</Text>
                   </TouchableOpacity>
                   <Text style={[styles.cardEvent, { color: colors.textSecondary }]}>Event: {notif.events?.title}</Text>
@@ -166,6 +204,32 @@ export default function NotificationsScreen() {
               ))}
             </>
           )}
+
+          {activeTab === 'admin' && (
+            <>
+              {adminMessages.length === 0 && (
+                <View style={styles.empty}>
+                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No warnings</Text>
+                </View>
+              )}
+              {adminMessages.map((msg) => (
+                <View
+                  key={msg.id}
+                  style={[styles.adminCard, { backgroundColor: isDark ? 'rgba(74,27,12,0.3)' : '#FAECE7', borderColor: '#E24B4A' }]}
+                >
+                  <Text style={[styles.adminCardTitle, { color: isDark ? '#F5C4B3' : '#993C1D' }]}>⚠️ Warning from SportBuddy</Text>
+                  <Text style={[styles.adminCardMessage, { color: colors.text }]}>{msg.message}</Text>
+                  <Text style={[styles.cardTime, { color: colors.textSecondary }]}>{new Date(msg.created_at).toLocaleDateString()}</Text>
+                  <TouchableOpacity
+                    style={styles.dismissBtn}
+                    onPress={() => dismissAdminMessage(msg.id)}
+                  >
+                    <Text style={styles.dismissBtnText}>✓ Dismiss</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </>
+          )}
         </>
       )}
     </ScrollView>
@@ -182,11 +246,14 @@ const styles = StyleSheet.create({
   tabs: { flexDirection: 'row', marginBottom: 20, borderRadius: 12, borderWidth: 0.5, overflow: 'hidden' },
   tab: { flex: 1, padding: 12, alignItems: 'center' },
   tabActive: { backgroundColor: '#1D9E75' },
-  tabText: { fontSize: 13, fontWeight: '500' },
+  tabText: { fontSize: 11, fontWeight: '500' },
   tabTextActive: { color: '#fff' },
   empty: { alignItems: 'center', marginTop: 60 },
   emptyText: { fontSize: 16 },
   card: { borderRadius: 16, borderWidth: 0.5, padding: 16, marginBottom: 16 },
+  adminCard: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 16 },
+  adminCardTitle: { fontSize: 15, fontWeight: 'bold', marginBottom: 8 },
+  adminCardMessage: { fontSize: 14, marginBottom: 8, lineHeight: 20 },
   cardMessage: { fontSize: 15, fontWeight: '500', marginBottom: 4 },
   cardEvent: { fontSize: 13, marginBottom: 4 },
   cardTime: { fontSize: 12, marginBottom: 12 },
@@ -197,4 +264,6 @@ const styles = StyleSheet.create({
   rejectBtnText: { color: '#E24B4A', fontWeight: 'bold', fontSize: 14 },
   goToChat: { backgroundColor: '#E6F1FB', padding: 10, borderRadius: 10, alignItems: 'center' },
   goToChatText: { color: '#185FA5', fontWeight: '500', fontSize: 13 },
+  dismissBtn: { backgroundColor: '#E1F5EE', padding: 10, borderRadius: 10, alignItems: 'center' },
+  dismissBtnText: { color: '#0F6E56', fontWeight: 'bold', fontSize: 13 },
 });

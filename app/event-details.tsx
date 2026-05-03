@@ -12,6 +12,8 @@ export default function EventDetailsScreen() {
   const { id } = useLocalSearchParams();
   const [event, setEvent] = useState<any>(null);
   const [participants, setParticipants] = useState<any[]>([]);
+  const [approvedCount, setApprovedCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [joinStatus, setJoinStatus] = useState<string | null>(null);
@@ -54,12 +56,18 @@ export default function EventDetailsScreen() {
     if (error) { Alert.alert(t('error'), error.message); setLoading(false); return; }
     setEvent(eventData);
 
-    const { data: participantsData } = await supabase
+    // Земи ги сите учесници со статус
+    const { data: allParticipants } = await supabase
       .from('event_participants')
       .select('*, profiles(first_name, last_name, nickname, avatar_url)')
-      .eq('event_id', id)
-      .eq('status', 'approved');
-    setParticipants(participantsData || []);
+      .eq('event_id', id);
+
+    const approved = (allParticipants || []).filter((p: any) => p.status === 'approved');
+    const pending = (allParticipants || []).filter((p: any) => p.status === 'pending');
+
+    setParticipants(approved);
+    setApprovedCount(approved.length);
+    setPendingCount(pending.length);
 
     const sessionUser = currentUser || user;
     if (sessionUser) {
@@ -181,7 +189,9 @@ export default function EventDetailsScreen() {
         <Text style={[styles.detail, { color: colors.text }]}>📅 {event?.date} at {event?.time} — {event?.end_time}</Text>
         {event?.skill_level && <Text style={[styles.detail, { color: colors.text }]}>⭐ {event?.skill_level}</Text>}
         {event?.max_players ? (
-          <Text style={[styles.detail, { color: colors.text }]}>👥 {event?.approved_count || 0} / {event?.max_players} players</Text>
+          <TouchableOpacity onPress={() => router.push({ pathname: '/event-participants', params: { event_id: event?.id } } as any)}>
+            <Text style={[styles.detail, { color: colors.accent }]}>👥 {approvedCount} / {event?.max_players} players →</Text>
+          </TouchableOpacity>
         ) : (
           <Text style={[styles.detail, { color: colors.text }]}>👥 {t('unlimited')}</Text>
         )}
@@ -208,9 +218,22 @@ export default function EventDetailsScreen() {
 
       {isParticipant && (
         <View style={styles.participantsSection}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('participants')} ({participants.length})</Text>
+          {/* Статистика */}
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            👥 Participants ({approvedCount + pendingCount})
+          </Text>
+          <View style={styles.statsRow}>
+            <View style={[styles.statBadge, { backgroundColor: isDark ? 'rgba(15,61,46,0.8)' : '#E1F5EE' }]}>
+              <Text style={[styles.statBadgeText, { color: '#0F6E56' }]}>✅ {approvedCount} approved</Text>
+            </View>
+            <View style={[styles.statBadge, { backgroundColor: isDark ? 'rgba(74,53,12,0.8)' : '#FAEEDA' }]}>
+              <Text style={[styles.statBadgeText, { color: '#BA7517' }]}>⏳ {pendingCount} waiting</Text>
+            </View>
+          </View>
+
+          {/* Листа на approved учесници */}
           {participants.length === 0 ? (
-            <Text style={[styles.noParticipants, { color: colors.textSecondary }]}>{t('noParticipants')}</Text>
+            <Text style={[styles.noParticipants, { color: colors.textSecondary }]}>No approved participants yet</Text>
           ) : (
             participants.map((p) => (
               <TouchableOpacity
@@ -268,6 +291,9 @@ const styles = StyleSheet.create({
   rateBtnText: { color: '#BA7517', fontWeight: 'bold', fontSize: 15 },
   participantsSection: { marginTop: 8 },
   sectionTitle: { fontSize: 17, fontWeight: '500', marginBottom: 12 },
+  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  statBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 99 },
+  statBadgeText: { fontSize: 13, fontWeight: '600' },
   noParticipants: { fontSize: 14 },
   participantRow: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, borderWidth: 0.5, marginBottom: 8, gap: 12 },
   participantAvatar: { width: 44, height: 44, borderRadius: 22 },
