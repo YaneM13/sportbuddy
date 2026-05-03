@@ -65,7 +65,6 @@ export default function ProfileTab() {
             {!profile?.first_name && !profile?.nickname && <Text style={[styles.name, { color: colors.textSecondary }]}>{user.email}</Text>}
             {profile?.city && <Text style={[styles.city, { color: colors.textSecondary }]}>📍 {profile.city}</Text>}
 
-            {/* Омилен спорт */}
             {profile?.favorite_sport && (
               <View style={[styles.favoriteSportBadge, { backgroundColor: isDark ? '#1E2D3D' : '#E1F5EE' }]}>
                 <Text style={[styles.favoriteSportText, { color: colors.accent }]}>⭐ {profile.favorite_sport}</Text>
@@ -97,12 +96,26 @@ export default function ProfileTab() {
             </TouchableOpacity>
           </View>
 
+          {/* Admin Panel копче — само за админ */}
+          {profile?.is_admin && (
+            <TouchableOpacity
+              style={[styles.adminBtn, { backgroundColor: isDark ? 'rgba(29,158,117,0.15)' : '#E1F5EE', borderColor: '#1D9E75', borderWidth: 1 }]}
+              onPress={() => router.push('/admin-panel' as any)}
+            >
+              <Text style={styles.adminBtnText}>🛡️ Admin Panel</Text>
+            </TouchableOpacity>
+          )}
+
           {[
             { label: t('myEvents'), path: '/my-events' },
             { label: t('notifications'), path: '/notifications' },
             { label: t('settings'), path: '/settings' },
           ].map((item) => (
-            <TouchableOpacity key={item.path} style={[styles.menuItem, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]} onPress={() => router.push(item.path as any)}>
+            <TouchableOpacity
+              key={item.path}
+              style={[styles.menuItem, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}
+              onPress={() => router.push(item.path as any)}
+            >
               <Text style={[styles.menuItemText, { color: colors.text }]}>{item.label}</Text>
               <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>→</Text>
             </TouchableOpacity>
@@ -134,10 +147,12 @@ const styles = StyleSheet.create({
   star: { fontSize: 20, color: '#e0e0e0' },
   starActive: { color: '#FFB800' },
   ratingText: { fontSize: 13, marginLeft: 4 },
-  statsGrid: { flexDirection: 'row', gap: 12, marginBottom: 32 },
+  statsGrid: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   statCard: { flex: 1, borderRadius: 16, padding: 16, alignItems: 'center' },
   statNumber: { fontSize: 28, fontWeight: 'bold', marginBottom: 4 },
   statLabel: { fontSize: 13 },
+  adminBtn: { padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 12 },
+  adminBtnText: { color: '#1D9E75', fontWeight: 'bold', fontSize: 15 },
   menuItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderRadius: 12, borderWidth: 0.5, marginBottom: 12 },
   menuItemText: { fontSize: 15 },
   menuArrow: { fontSize: 16 },

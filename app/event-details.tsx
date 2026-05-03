@@ -19,8 +19,9 @@ export default function EventDetailsScreen() {
   useEffect(() => {
     async function init() {
       const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      await fetchEventDetails(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      await fetchEventDetails(currentUser);
     }
     init();
 
@@ -30,13 +31,19 @@ export default function EventDetailsScreen() {
         schema: 'public',
         table: 'event_participants',
         filter: `event_id=eq.${id}`
-      }, () => { fetchEventDetails(user); })
+      }, async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        fetchEventDetails(session?.user ?? null);
+      })
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
         table: 'events',
         filter: `id=eq.${id}`
-      }, () => { fetchEventDetails(user); })
+      }, async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        fetchEventDetails(session?.user ?? null);
+      })
       .subscribe();
 
     return () => { subscription.unsubscribe(); };
