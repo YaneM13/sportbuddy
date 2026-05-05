@@ -2,7 +2,7 @@ import BackButton from '@/components/BackButton';
 import { useTheme } from '@/lib/AppContext';
 import { sendPushNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -35,22 +35,18 @@ export default function AdminUserDetailScreen() {
         .single();
       setReport(reportData);
     }
-
     setLoading(false);
   }
 
   async function sendWarning() {
     if (!message.trim()) { Alert.alert('Error', 'Please enter a message'); return; }
     setSending(true);
-
     try {
-      // Зачувај порака во admin_messages
       await supabase.from('admin_messages').insert({
         to_user_id: userId,
         message: message.trim(),
       });
 
-      // Испрати push notification ако корисникот има токен
       if (profile?.push_token) {
         await sendPushNotification(
           profile.push_token,
@@ -59,20 +55,84 @@ export default function AdminUserDetailScreen() {
         );
       }
 
-      Alert.alert('✅ Warning Sent', 'The user has been notified.');
-      setMessage('');
+      if (reportId) {
+        await supabase.from('reports').delete().eq('id', reportId);
+      }
+
+      Alert.alert('✅ Warning Sent', 'The user has been notified and the report has been removed.', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
     } catch (error) {
       Alert.alert('Error', 'Failed to send warning.');
     }
-
     setSending(false);
   }
 
-  function openBanInstructions() {
+  async function banUser() {
     Alert.alert(
-      'Ban User',
-      'To ban this user, go to Supabase → Authentication → Users, find this user and click "Ban user".\n\nUser email: ' + (profile?.email || 'Unknown'),
-      [{ text: 'OK' }]
+      '🚫 Ban User',
+      'To ban this user, go to Supabase → Authentication → Users and click "Ban user".\n\nEmail: ' + (profile?.email || 'Unknown'),
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Report',
+          onPress: async () => {
+            if (reportId) {
+              await supabase.from('reports').delete().eq('id', reportId);
+              Alert.alert('✅ Done', 'Report deleted.', [
+                { text: 'OK', onPress: () => router.back() }
+              ]);
+            }
+          }
+        }
+      ]
+    );
+  }
+
+  async function deleteUser() {
+    Alert.alert(
+      '🗑️ Delete User',
+      'This will permanently delete the user and ALL their data. This cannot be undone!',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Permanently',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await supabase.rpc('delete_user_completely', {
+              target_user_id: userId
+            });
+            if (error) {
+              Alert.alert('Error', error.message);
+            } else {
+              Alert.alert('✅ Done', 'User and all data permanently deleted.', [
+                { text: 'OK', onPress: () => router.back() }
+              ]);
+            }
+          }
+        }
+      ]
+    );
+  }
+
+  async function ignoreReport() {
+    Alert.alert(
+      '✅ Ignore Report',
+      'Are you sure this report is not valid?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Ignore & Delete',
+          onPress: async () => {
+            if (reportId) {
+              await supabase.from('reports').delete().eq('id', reportId);
+              Alert.alert('✅ Report Ignored', 'The report has been removed.', [
+                { text: 'OK', onPress: () => router.back() }
+              ]);
+            }
+          }
+        }
+      ]
     );
   }
 
@@ -106,7 +166,8 @@ export default function AdminUserDetailScreen() {
         )}
         <Text style={[styles.name, { color: colors.text }]}>{displayName}</Text>
         {profile?.email && <Text style={[styles.email, { color: colors.textSecondary }]}>{profile.email}</Text>}
-        {profile?.bio && <Text style={[styles.bio, { color: colors.textSecondary }]}>{profile.bio}</Text>}
+        {profile?.city && <Text style={[styles.bio, { color: colors.textSecondary }]}>📍 {profile.city}</Text>}
+        {profile?.favorite_sport && <Text style={[styles.bio, { color: colors.textSecondary }]}>⭐ {profile.favorite_sport}</Text>}
       </View>
 
       {/* Репорт детали */}
@@ -137,14 +198,26 @@ export default function AdminUserDetailScreen() {
           onPress={sendWarning}
           disabled={sending}
         >
-          <Text style={styles.warnBtnText}>{sending ? 'Sending...' : '⚠️ Send Warning'}</Text>
+          <Text style={styles.warnBtnText}>{sending ? 'Sending...' : '⚠️ Send Warning & Close Report'}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Бан */}
-      <TouchableOpacity style={styles.banBtn} onPress={openBanInstructions}>
+      <TouchableOpacity style={styles.banBtn} onPress={banUser}>
         <Text style={styles.banBtnText}>🚫 Ban This User</Text>
       </TouchableOpacity>
+
+      {/* Избриши */}
+      <TouchableOpacity style={styles.deleteBtn} onPress={deleteUser}>
+        <Text style={styles.deleteBtnText}>🗑️ Delete User Permanently</Text>
+      </TouchableOpacity>
+
+      {/* Игнорирај — само ако има репорт */}
+      {reportId && (
+        <TouchableOpacity style={styles.ignoreBtn} onPress={ignoreReport}>
+          <Text style={styles.ignoreBtnText}>✅ Ignore Report</Text>
+        </TouchableOpacity>
+      )}
 
       <View style={{ height: 40 }} />
     </ScrollView>
@@ -161,8 +234,8 @@ const styles = StyleSheet.create({
   avatarPlaceholder: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#1D9E75', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   avatarText: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
   name: { fontSize: 20, fontWeight: 'bold', marginBottom: 4 },
-  email: { fontSize: 14, marginBottom: 8 },
-  bio: { fontSize: 13, textAlign: 'center', fontStyle: 'italic' },
+  email: { fontSize: 14, marginBottom: 4 },
+  bio: { fontSize: 13, textAlign: 'center' },
   reportCard: { borderRadius: 16, padding: 16, marginBottom: 16 },
   reportTitle: { fontSize: 15, fontWeight: 'bold', marginBottom: 8 },
   reportReason: { fontSize: 14, marginBottom: 4 },
@@ -172,6 +245,10 @@ const styles = StyleSheet.create({
   input: { borderRadius: 12, borderWidth: 0.5, padding: 12, fontSize: 14, minHeight: 100, textAlignVertical: 'top', marginBottom: 12 },
   warnBtn: { backgroundColor: '#BA7517', padding: 14, borderRadius: 12, alignItems: 'center' },
   warnBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
-  banBtn: { backgroundColor: '#FCEBEB', padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 8 },
+  banBtn: { backgroundColor: '#FCEBEB', padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 12 },
   banBtnText: { color: '#E24B4A', fontWeight: 'bold', fontSize: 15 },
+  deleteBtn: { backgroundColor: '#E24B4A', padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 12 },
+  deleteBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
+  ignoreBtn: { backgroundColor: '#E1F5EE', padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 8 },
+  ignoreBtnText: { color: '#0F6E56', fontWeight: 'bold', fontSize: 15 },
 });

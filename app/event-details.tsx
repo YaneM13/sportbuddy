@@ -56,7 +56,6 @@ export default function EventDetailsScreen() {
     if (error) { Alert.alert(t('error'), error.message); setLoading(false); return; }
     setEvent(eventData);
 
-    // Земи ги сите учесници со статус
     const { data: allParticipants } = await supabase
       .from('event_participants')
       .select('*, profiles(first_name, last_name, nickname, avatar_url)')
@@ -69,7 +68,9 @@ export default function EventDetailsScreen() {
     setApprovedCount(approved.length);
     setPendingCount(pending.length);
 
-    const sessionUser = currentUser || user;
+    const { data: { session } } = await supabase.auth.getSession();
+    const sessionUser = currentUser || session?.user || user;
+
     if (sessionUser) {
       const { data: myParticipation } = await supabase
         .from('event_participants')
@@ -80,6 +81,25 @@ export default function EventDetailsScreen() {
       setJoinStatus(myParticipation?.status || null);
     }
     setLoading(false);
+  }
+
+  async function handleRemoveParticipant(participantId: string, participantUserId: string) {
+    Alert.alert(
+      'Remove Player',
+      'Are you sure you want to remove this player?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            await supabase.from('event_participants').delete().eq('id', participantId);
+            const { data: { session } } = await supabase.auth.getSession();
+            fetchEventDetails(session?.user ?? null);
+          }
+        }
+      ]
+    );
   }
 
   async function handleJoin() {
@@ -176,6 +196,7 @@ export default function EventDetailsScreen() {
   );
 
   const isParticipant = joinStatus === 'approved' || (user && user.id === event?.created_by);
+  const isOwner = user && user.id === event?.created_by;
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]} contentContainerStyle={styles.content}>
@@ -218,7 +239,6 @@ export default function EventDetailsScreen() {
 
       {isParticipant && (
         <View style={styles.participantsSection}>
-          {/* Статистика */}
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             👥 Participants ({approvedCount + pendingCount})
           </Text>
@@ -231,31 +251,42 @@ export default function EventDetailsScreen() {
             </View>
           </View>
 
-          {/* Листа на approved учесници */}
           {participants.length === 0 ? (
             <Text style={[styles.noParticipants, { color: colors.textSecondary }]}>No approved participants yet</Text>
           ) : (
             participants.map((p) => (
-              <TouchableOpacity
+              <View
                 key={p.id}
                 style={[styles.participantRow, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}
-                onPress={() => router.push({ pathname: '/user-profile', params: { userId: p.user_id } } as any)}
               >
-                {p.profiles?.avatar_url ? (
-                  <Image source={{ uri: p.profiles.avatar_url }} style={styles.participantAvatar} />
-                ) : (
-                  <View style={styles.participantAvatarPlaceholder}>
-                    <Text style={styles.participantAvatarText}>
-                      {p.profiles?.first_name ? p.profiles.first_name.substring(0, 2).toUpperCase() : '??'}
-                    </Text>
+                <TouchableOpacity
+                  style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 }}
+                  onPress={() => router.push({ pathname: '/user-profile', params: { userId: p.user_id } } as any)}
+                >
+                  {p.profiles?.avatar_url ? (
+                    <Image source={{ uri: p.profiles.avatar_url }} style={styles.participantAvatar} />
+                  ) : (
+                    <View style={styles.participantAvatarPlaceholder}>
+                      <Text style={styles.participantAvatarText}>
+                        {p.profiles?.first_name ? p.profiles.first_name.substring(0, 2).toUpperCase() : '??'}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.participantInfo}>
+                    {p.profiles?.nickname && <Text style={[styles.participantNickname, { color: colors.accent }]}>@{p.profiles.nickname}</Text>}
+                    {p.profiles?.first_name && <Text style={[styles.participantName, { color: colors.textSecondary }]}>{p.profiles.first_name} {p.profiles.last_name}</Text>}
                   </View>
+                </TouchableOpacity>
+
+                {isOwner && p.user_id !== user.id && (
+                  <TouchableOpacity
+                    style={styles.removeBtn}
+                    onPress={() => handleRemoveParticipant(p.id, p.user_id)}
+                  >
+                    <Text style={styles.removeBtnText}>✕</Text>
+                  </TouchableOpacity>
                 )}
-                <View style={styles.participantInfo}>
-                  {p.profiles?.nickname && <Text style={[styles.participantNickname, { color: colors.accent }]}>@{p.profiles.nickname}</Text>}
-                  {p.profiles?.first_name && <Text style={[styles.participantName, { color: colors.textSecondary }]}>{p.profiles.first_name} {p.profiles.last_name}</Text>}
-                </View>
-                <Text style={[styles.participantArrow, { color: colors.textSecondary }]}>→</Text>
-              </TouchableOpacity>
+              </View>
             ))
           )}
         </View>
@@ -295,7 +326,7 @@ const styles = StyleSheet.create({
   statBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 99 },
   statBadgeText: { fontSize: 13, fontWeight: '600' },
   noParticipants: { fontSize: 14 },
-  participantRow: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, borderWidth: 0.5, marginBottom: 8, gap: 12 },
+  participantRow: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, borderWidth: 0.5, marginBottom: 8 },
   participantAvatar: { width: 44, height: 44, borderRadius: 22 },
   participantAvatarPlaceholder: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#1D9E75', alignItems: 'center', justifyContent: 'center' },
   participantAvatarText: { fontSize: 14, fontWeight: 'bold', color: '#fff' },
@@ -303,4 +334,6 @@ const styles = StyleSheet.create({
   participantNickname: { fontSize: 14, fontWeight: '500' },
   participantName: { fontSize: 13 },
   participantArrow: { fontSize: 16 },
+  removeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#FCEBEB', alignItems: 'center', justifyContent: 'center' },
+  removeBtnText: { color: '#E24B4A', fontWeight: 'bold', fontSize: 16 },
 });

@@ -179,20 +179,23 @@ export default function CreateEventScreen() {
     if (!session) { Alert.alert(t('error'), 'You must be signed in'); setLoading(false); return; }
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-const { data: newEvent, error } = await supabase.from('events').insert({
-  title, description, category, sport, location,
-  date: formatDate(date), time: formatTime(startTime), end_time: formatTime(endTime),
-  max_players: isWatchSport ? null : parseInt(players),
-  skill_level: isWatchSport ? null : skillLevel,
-  created_by: session.user.id, latitude, longitude, is_alert: isAlert,
-  timezone,
-}).select().single();
-if (error) { Alert.alert(t('error'), JSON.stringify(error)); setLoading(false); return; }
-await supabase.from('event_participants').insert({
-  event_id: newEvent.id,
-  user_id: session.user.id,
-  status: 'approved',
-});
+    const { data: newEvent, error } = await supabase.from('events').insert({
+      title, description, category, sport, location,
+      date: formatDate(date), time: formatTime(startTime), end_time: formatTime(endTime),
+      // +1 за да го вброи и самиот организатор
+      max_players: isWatchSport ? null : parseInt(players) + 1,
+      skill_level: isWatchSport ? null : skillLevel,
+      created_by: session.user.id, latitude, longitude, is_alert: isAlert,
+      timezone,
+    }).select().single();
+    if (error) { Alert.alert(t('error'), JSON.stringify(error)); setLoading(false); return; }
+
+    await supabase.from('event_participants').insert({
+      event_id: newEvent.id,
+      user_id: session.user.id,
+      status: 'approved',
+    });
+
     if (isAlert && latitude && longitude) {
       const { data: nearbyUsers } = await supabase.from('profiles').select('id, push_token, favorite_sport').eq('favorite_sport', sport).not('push_token', 'is', null);
       for (const profile of nearbyUsers || []) {
@@ -325,7 +328,7 @@ await supabase.from('event_participants').insert({
 
         {!isWatchSport && (
           <>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('playersNeeded')}</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Players needed (excluding you)</Text>
             <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]} placeholder="e.g. 5" placeholderTextColor={colors.textSecondary} value={players} onChangeText={setPlayers} keyboardType="numeric" />
           </>
         )}
