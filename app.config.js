@@ -22,6 +22,7 @@ export default {
       }
     },
     android: {
+      googleServicesFile: "./google-services.json",
       notification: {
         icon: "./assets/images/icon.png",
         color: "#1D9E75"
@@ -40,7 +41,7 @@ export default {
         }
       ],
       adaptiveIcon: {
-        foregroundImage: "./assets/images/icon.png",
+        foregroundImage: "./assets/images/android-icon-foreground1.png",
         backgroundColor: "#1D9E75"
       },
       predictiveBackGestureEnabled: false,

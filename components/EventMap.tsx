@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
-import { useRef } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Callout, Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 interface Event {
@@ -20,6 +20,7 @@ interface EventMapProps {
 
 export default function EventMap({ events, userLatitude, userLongitude }: EventMapProps) {
   const mapRef = useRef<any>(null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   return (
     <View style={styles.container}>
@@ -37,6 +38,7 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
         showsMyLocationButton={true}
         moveOnMarkerPress={false}
         toolbarEnabled={false}
+        onPress={() => setSelectedEvent(null)}
       >
         <Circle
           center={{ latitude: userLatitude, longitude: userLongitude }}
@@ -49,10 +51,15 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
             key={e.id}
             coordinate={{ latitude: e.latitude, longitude: e.longitude }}
             tracksViewChanges={false}
+            onPress={() => {
+              if (Platform.OS === 'android') {
+                setSelectedEvent(e);
+              }
+            }}
             onCalloutPress={() => router.push({ pathname: '/event-details', params: { id: e.id } } as any)}
           >
-            <Callout tooltip={Platform.OS === 'ios'}>
-              {Platform.OS === 'ios' ? (
+            {Platform.OS === 'ios' && (
+              <Callout tooltip={true}>
                 <View style={styles.callout}>
                   <Text style={styles.calloutTitle}>{e.title}</Text>
                   <Text style={styles.calloutSport}>{e.sport}</Text>
@@ -61,20 +68,26 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
                     <Text style={styles.calloutBtnText}>View details</Text>
                   </View>
                 </View>
-              ) : (
-                <View style={styles.calloutAndroid}>
-                  <Text style={styles.calloutTitle}>{e.title}</Text>
-                  <Text style={styles.calloutSport}>{e.sport}</Text>
-                  <Text style={styles.calloutLocation} numberOfLines={2}>{e.location}</Text>
-                  <View style={styles.calloutBtn}>
-                    <Text style={styles.calloutBtnText}>View details</Text>
-                  </View>
-                </View>
-              )}
-            </Callout>
+              </Callout>
+            )}
           </Marker>
         ))}
       </MapView>
+
+      {/* Android Bottom Sheet */}
+      {Platform.OS === 'android' && selectedEvent && (
+        <View style={styles.bottomSheet}>
+          <Text style={styles.calloutTitle}>{selectedEvent.title}</Text>
+          <Text style={styles.calloutSport}>{selectedEvent.sport}</Text>
+          <Text style={styles.calloutLocation} numberOfLines={2}>{selectedEvent.location}</Text>
+          <TouchableOpacity
+            style={styles.calloutBtn}
+            onPress={() => router.push({ pathname: '/event-details', params: { id: selectedEvent.id } } as any)}
+          >
+            <Text style={styles.calloutBtnText}>View details</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -95,14 +108,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e0e0e0',
   },
-  calloutAndroid: {
-    width: 200,
+  bottomSheet: {
+    position: 'absolute',
+    bottom: 20,
+    left: 16,
+    right: 16,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderRadius: 16,
+    padding: 16,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
   },
   calloutTitle: { fontSize: 15, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 4 },
   calloutSport: { fontSize: 12, color: '#1D9E75', fontWeight: '500', marginBottom: 4 },

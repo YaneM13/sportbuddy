@@ -4,12 +4,32 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-const SPORTS = [
-  'Football', 'Basketball', 'Tennis', 'Volleyball', 'Swimming',
-  'Cycling', 'Running', 'Padel', 'Badminton', 'Table Tennis',
-  'Golf', 'Boxing', 'Yoga', 'Gym', 'Hiking', 'Skiing', 'Surfing',
-  'Climbing', 'Martial Arts', 'Other'
+const allSports = [
+  { id: 'Football', category: 'team' },
+  { id: 'Basketball', category: 'team' },
+  { id: 'Basketball 3x3', category: 'team' },
+  { id: 'Volleyball', category: 'team' },
+  { id: 'Beach Volleyball', category: 'team' },
+  { id: 'Rugby', category: 'team' },
+  { id: 'Cricket', category: 'team' },
+  { id: 'Handball', category: 'team' },
+  { id: 'Tennis', category: 'individual' },
+  { id: 'Ping Pong', category: 'individual' },
+  { id: 'Roller Skating', category: 'individual' },
+  { id: 'Cycling', category: 'individual' },
+  { id: 'Padel', category: 'individual' },
+  { id: 'Swimming', category: 'individual' },
+  { id: 'Kayaking', category: 'water' },
+  { id: 'Paddleboarding', category: 'water' },
+  { id: 'Rafting', category: 'water' },
+  { id: 'Fishing', category: 'water' },
 ];
+
+const categoryColors: any = {
+  team: { bg: '#E1F5EE', text: '#0F6E56' },
+  individual: { bg: '#E6F1FB', text: '#185FA5' },
+  water: { bg: '#EEEDFE', text: '#534AB7' },
+};
 
 export default function PersonalDetailsScreen() {
   const { t } = useLanguage();
@@ -84,33 +104,39 @@ export default function PersonalDetailsScreen() {
         <Text style={[styles.label, { color: colors.textSecondary }]}>City</Text>
         <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]} placeholder="Enter city" placeholderTextColor={colors.textSecondary} value={city} onChangeText={setCity} />
 
-        <Text style={[styles.label, { color: colors.textSecondary }]}>⭐ Favorite Sport</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sportsScroll}>
-          <View style={styles.sportsRow}>
-            {SPORTS.map((sport) => (
+        <View style={styles.labelRow}>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>⭐ Favorite Sport</Text>
+          <TouchableOpacity onPress={() => Alert.alert(
+            '⭐ Favorite Sport',
+            'When someone creates an Alert Event for your favorite sport, you will receive a push notification so you never miss a game nearby!',
+            [{ text: 'Got it!' }]
+          )}>
+            <Text style={styles.infoBtn}>ℹ️</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={[styles.sublabel, { color: colors.textSecondary }]}>Select your favorite sport</Text>
+
+        <View style={styles.sportsGrid}>
+          {allSports.map((sport) => {
+            const color = categoryColors[sport.category];
+            const isSelected = favoriteSport === sport.id;
+            return (
               <TouchableOpacity
-                key={sport}
+                key={sport.id}
                 style={[
-                  styles.sportChip,
-                  {
-                    backgroundColor: favoriteSport === sport
-                      ? '#1D9E75'
-                      : isDark ? '#1E2D3D' : '#F9F9F9',
-                    borderColor: favoriteSport === sport ? '#1D9E75' : colors.cardBorder,
-                  }
+                  styles.sportBtn,
+                  { backgroundColor: isSelected ? '#1D9E75' : isDark ? '#1E2D3D' : color.bg },
+                  isSelected && styles.sportBtnSelected
                 ]}
-                onPress={() => setFavoriteSport(favoriteSport === sport ? '' : sport)}
+                onPress={() => setFavoriteSport(favoriteSport === sport.id ? '' : sport.id)}
               >
-                <Text style={[
-                  styles.sportChipText,
-                  { color: favoriteSport === sport ? '#fff' : colors.text }
-                ]}>
-                  {sport}
+                <Text style={[styles.sportBtnText, { color: isSelected ? '#fff' : isDark ? color.bg : color.text }]}>
+                  {sport.id}
                 </Text>
               </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
+            );
+          })}
+        </View>
 
         <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
           <Text style={styles.saveBtnText}>{loading ? t('saving') : t('save')}</Text>
@@ -127,11 +153,14 @@ const styles = StyleSheet.create({
   backText: { fontSize: 17, fontWeight: '500' },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 32 },
   label: { fontSize: 14, fontWeight: '500', marginBottom: 8 },
+  sublabel: { fontSize: 12, marginBottom: 10 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 0 },
+  infoBtn: { fontSize: 18 },
   input: { width: '100%', padding: 16, borderRadius: 12, borderWidth: 1, marginBottom: 16, fontSize: 15 },
-  sportsScroll: { marginBottom: 16 },
-  sportsRow: { flexDirection: 'row', gap: 8, paddingBottom: 8 },
-  sportChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1 },
-  sportChipText: { fontSize: 13, fontWeight: '500' },
+  sportsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 },
+  sportBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99 },
+  sportBtnSelected: { backgroundColor: '#1D9E75' },
+  sportBtnText: { fontSize: 13, fontWeight: '500' },
   saveBtn: { width: '100%', padding: 16, borderRadius: 12, backgroundColor: '#1D9E75', alignItems: 'center', marginTop: 8 },
   saveBtnText: { fontSize: 15, fontWeight: 'bold', color: '#fff' },
 });
