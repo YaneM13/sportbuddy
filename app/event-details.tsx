@@ -55,7 +55,11 @@ export default function EventDetailsScreen() {
     const { data: { session } } = await supabase.auth.getSession();
     const sessionUser = currentUser || session?.user;
 
-    const { data: eventData, error } = await supabase.from('events').select('*').eq('id', id).single();
+    const { data: eventData, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('id', id)
+      .single();
     if (error) { Alert.alert(t('error'), error.message); setLoading(false); return; }
     setEvent(eventData);
 
@@ -73,12 +77,10 @@ export default function EventDetailsScreen() {
 
     if (sessionUser) {
       setUser(sessionUser);
-      const { data: myParticipation } = await supabase
-        .from('event_participants')
-        .select('status')
-        .eq('event_id', id)
-        .eq('user_id', sessionUser.id)
-        .maybeSingle();
+      // Земи статус директно од allParticipants наместо нов query
+      const myParticipation = (allParticipants || []).find(
+        (p: any) => p.user_id === sessionUser.id
+      );
       setJoinStatus(myParticipation?.status || null);
     }
     setLoading(false);
@@ -211,7 +213,9 @@ export default function EventDetailsScreen() {
         <Text style={[styles.detail, { color: colors.text }]}>📅 {event?.date} at {event?.time} — {event?.end_time}</Text>
         {event?.skill_level && <Text style={[styles.detail, { color: colors.text }]}>⭐ {event?.skill_level}</Text>}
         {event?.max_players ? (
-          <Text style={[styles.detail, { color: colors.text }]}>👥 {approvedCount} / {event?.max_players} players</Text>
+          <TouchableOpacity onPress={() => router.push({ pathname: '/event-participants', params: { event_id: event?.id } } as any)}>
+            <Text style={[styles.detail, { color: colors.accent }]}>👥 {approvedCount} / {event?.max_players} players →</Text>
+          </TouchableOpacity>
         ) : (
           <Text style={[styles.detail, { color: colors.text }]}>👥 {t('unlimited')}</Text>
         )}
