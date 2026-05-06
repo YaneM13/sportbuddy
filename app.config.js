@@ -41,7 +41,7 @@ export default {
         }
       ],
       adaptiveIcon: {
-        foregroundImage: "./assets/images/android-icon-foreground1.png",
+        foregroundImage: "./assets/images/android-icon-foreground_3.png",
         backgroundColor: "#1D9E75"
       },
       predictiveBackGestureEnabled: false,
