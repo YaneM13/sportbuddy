@@ -70,12 +70,13 @@ export default function AdminPanelScreen() {
     if (query.length < 2) { setSearchResults([]); return; }
     setSearching(true);
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, nickname, avatar_url')
-      .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,nickname.ilike.%${query}%,id.eq.${query}`)
-      .limit(10);
+      .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,nickname.ilike.%${query}%`)
+      .limit(20);
 
+    if (error) console.log('Search error:', error.message);
     setSearchResults(data || []);
     setSearching(false);
   }
@@ -166,7 +167,7 @@ export default function AdminPanelScreen() {
             <Text style={styles.searchIcon}>🔍</Text>
             <TextInput
               style={[styles.searchInput, { color: colors.text }]}
-              placeholder="Search by name, nickname or ID..."
+              placeholder="Search by name or nickname..."
               placeholderTextColor={colors.textSecondary}
               value={searchQuery}
               onChangeText={searchUsers}

@@ -197,11 +197,30 @@ export default function CreateEventScreen() {
     });
 
     if (isAlert && latitude && longitude) {
-      const { data: nearbyUsers } = await supabase.from('profiles').select('id, push_token, favorite_sport').eq('favorite_sport', sport).not('push_token', 'is', null);
-      for (const profile of nearbyUsers || []) {
-        if (profile.push_token && profile.id !== session.user.id) await sendPushNotification(profile.push_token, '🔔 Alert Event!', `New ${sport} event nearby: ${title}`);
-      }
+  const { data: nearbyUsers } = await supabase
+    .from('profiles')
+    .select('id, push_token, favorite_sport')
+    .eq('favorite_sport', sport)
+    .neq('id', session.user.id);
+
+  for (const profile of nearbyUsers || []) {
+    // Зачувај во notifications табелата
+    await supabase.from('notifications').insert({
+      user_id: profile.id,
+      event_id: newEvent.id,
+      message: `🔔 New ${sport} event nearby: ${title}`,
+    });
+
+    // Испрати push notification
+    if (profile.push_token) {
+      await sendPushNotification(
+        profile.push_token,
+        '🔔 Alert Event!',
+        `New ${sport} event nearby: ${title}`
+      );
     }
+  }
+}
     Alert.alert(t('success'), 'Event created!');
     router.replace('/');
     setLoading(false);

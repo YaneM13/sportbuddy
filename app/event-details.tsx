@@ -52,6 +52,9 @@ export default function EventDetailsScreen() {
   }, []);
 
   async function fetchEventDetails(currentUser?: any) {
+    const { data: { session } } = await supabase.auth.getSession();
+    const sessionUser = currentUser || session?.user;
+
     const { data: eventData, error } = await supabase.from('events').select('*').eq('id', id).single();
     if (error) { Alert.alert(t('error'), error.message); setLoading(false); return; }
     setEvent(eventData);
@@ -68,10 +71,8 @@ export default function EventDetailsScreen() {
     setApprovedCount(approved.length);
     setPendingCount(pending.length);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    const sessionUser = currentUser || session?.user || user;
-
     if (sessionUser) {
+      setUser(sessionUser);
       const { data: myParticipation } = await supabase
         .from('event_participants')
         .select('status')
@@ -83,7 +84,7 @@ export default function EventDetailsScreen() {
     setLoading(false);
   }
 
-  async function handleRemoveParticipant(participantId: string, participantUserId: string) {
+  async function handleRemoveParticipant(participantId: string) {
     Alert.alert(
       'Remove Player',
       'Are you sure you want to remove this player?',
@@ -195,8 +196,8 @@ export default function EventDetailsScreen() {
     </View>
   );
 
-  const isParticipant = joinStatus === 'approved' || (user && user.id === event?.created_by);
   const isOwner = user && user.id === event?.created_by;
+  const isParticipant = joinStatus === 'approved' || isOwner;
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]} contentContainerStyle={styles.content}>
@@ -281,7 +282,7 @@ export default function EventDetailsScreen() {
                 {isOwner && p.user_id !== user.id && (
                   <TouchableOpacity
                     style={styles.removeBtn}
-                    onPress={() => handleRemoveParticipant(p.id, p.user_id)}
+                    onPress={() => handleRemoveParticipant(p.id)}
                   >
                     <Text style={styles.removeBtnText}>✕</Text>
                   </TouchableOpacity>
@@ -333,7 +334,6 @@ const styles = StyleSheet.create({
   participantInfo: { flex: 1 },
   participantNickname: { fontSize: 14, fontWeight: '500' },
   participantName: { fontSize: 13 },
-  participantArrow: { fontSize: 16 },
   removeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#FCEBEB', alignItems: 'center', justifyContent: 'center' },
   removeBtnText: { color: '#E24B4A', fontWeight: 'bold', fontSize: 16 },
 });

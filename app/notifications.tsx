@@ -59,7 +59,6 @@ export default function NotificationsScreen() {
     const id = uid || userId;
     if (!id) return;
 
-    // Notifications
     const { data, error } = await supabase
       .from('notifications')
       .select('*, events(title, id), event_participants!participant_id(user_id)')
@@ -73,7 +72,6 @@ export default function NotificationsScreen() {
       setMessages((data || []).filter((n: any) => !n.participant_id));
     }
 
-    // Admin Messages
     const { data: adminData } = await supabase
       .from('admin_messages')
       .select('*')
@@ -81,7 +79,6 @@ export default function NotificationsScreen() {
       .order('created_at', { ascending: false });
 
     setAdminMessages(adminData || []);
-
     setLoading(false);
     setRefreshing(false);
   }
@@ -109,15 +106,17 @@ export default function NotificationsScreen() {
 
   async function handleMessagePress(notif: any) {
     await supabase.from('notifications').update({ is_read: true }).eq('id', notif.id);
-    router.push({ pathname: '/event-chat', params: { event_id: notif.event_id, event_title: notif.events?.title } } as any);
+    if (notif.message?.startsWith('🔔')) {
+      router.push({ pathname: '/event-details', params: { id: notif.event_id } } as any);
+    } else {
+      router.push({ pathname: '/event-chat', params: { event_id: notif.event_id, event_title: notif.events?.title } } as any);
+    }
   }
 
   async function dismissAdminMessage(id: string) {
     await supabase.from('admin_messages').delete().eq('id', id);
     setAdminMessages(prev => prev.filter(m => m.id !== id));
   }
-
-  const totalNotifications = joinRequests.length + messages.length + adminMessages.length;
 
   return (
     <ScrollView
@@ -188,20 +187,29 @@ export default function NotificationsScreen() {
           {activeTab === 'messages' && (
             <>
               {messages.length === 0 && <View style={styles.empty}><Text style={[styles.emptyText, { color: colors.textSecondary }]}>No new messages</Text></View>}
-              {messages.map((notif) => (
-                <TouchableOpacity
-                  key={notif.id}
-                  style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}
-                  onPress={() => handleMessagePress(notif)}
-                >
-                  <Text style={[styles.cardMessage, { color: colors.text }]}>{notif.message}</Text>
-                  <Text style={[styles.cardEvent, { color: colors.textSecondary }]}>Event: {notif.events?.title}</Text>
-                  <Text style={[styles.cardTime, { color: colors.textSecondary }]}>{new Date(notif.created_at).toLocaleDateString()}</Text>
-                  <View style={styles.goToChat}>
-                    <Text style={styles.goToChatText}>💬 Go to chat →</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+              {messages.map((notif) => {
+                const isAlert = notif.message?.startsWith('🔔');
+                return (
+                  <TouchableOpacity
+                    key={notif.id}
+                    style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}
+                    onPress={() => handleMessagePress(notif)}
+                  >
+                    <Text style={[styles.cardMessage, { color: colors.text }]}>{notif.message}</Text>
+                    <Text style={[styles.cardEvent, { color: colors.textSecondary }]}>Event: {notif.events?.title}</Text>
+                    <Text style={[styles.cardTime, { color: colors.textSecondary }]}>{new Date(notif.created_at).toLocaleDateString()}</Text>
+                    {isAlert ? (
+                      <View style={styles.viewEvent}>
+                        <Text style={styles.viewEventText}>🔔 View event →</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.goToChat}>
+                        <Text style={styles.goToChatText}>💬 Go to chat →</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </>
           )}
 
@@ -220,10 +228,7 @@ export default function NotificationsScreen() {
                   <Text style={[styles.adminCardTitle, { color: isDark ? '#F5C4B3' : '#993C1D' }]}>⚠️ Warning from SportBuddy</Text>
                   <Text style={[styles.adminCardMessage, { color: colors.text }]}>{msg.message}</Text>
                   <Text style={[styles.cardTime, { color: colors.textSecondary }]}>{new Date(msg.created_at).toLocaleDateString()}</Text>
-                  <TouchableOpacity
-                    style={styles.dismissBtn}
-                    onPress={() => dismissAdminMessage(msg.id)}
-                  >
+                  <TouchableOpacity style={styles.dismissBtn} onPress={() => dismissAdminMessage(msg.id)}>
                     <Text style={styles.dismissBtnText}>✓ Dismiss</Text>
                   </TouchableOpacity>
                 </View>
@@ -264,6 +269,8 @@ const styles = StyleSheet.create({
   rejectBtnText: { color: '#E24B4A', fontWeight: 'bold', fontSize: 14 },
   goToChat: { backgroundColor: '#E6F1FB', padding: 10, borderRadius: 10, alignItems: 'center' },
   goToChatText: { color: '#185FA5', fontWeight: '500', fontSize: 13 },
+  viewEvent: { backgroundColor: '#FAEEDA', padding: 10, borderRadius: 10, alignItems: 'center' },
+  viewEventText: { color: '#BA7517', fontWeight: '500', fontSize: 13 },
   dismissBtn: { backgroundColor: '#E1F5EE', padding: 10, borderRadius: 10, alignItems: 'center' },
   dismissBtnText: { color: '#0F6E56', fontWeight: 'bold', fontSize: 13 },
 });
