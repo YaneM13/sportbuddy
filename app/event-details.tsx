@@ -9,8 +9,7 @@ import { ActivityIndicator, Alert, Image, Linking, Platform, ScrollView, StyleSh
 export default function EventDetailsScreen() {
   const { t } = useLanguage();
   const { isDark, colors } = useTheme();
-  const params = useLocalSearchParams();
-  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const { id } = useLocalSearchParams();
   const [event, setEvent] = useState<any>(null);
   const [participants, setParticipants] = useState<any[]>([]);
   const [approvedCount, setApprovedCount] = useState(0);
@@ -56,20 +55,14 @@ export default function EventDetailsScreen() {
     const { data: { session } } = await supabase.auth.getSession();
     const sessionUser = currentUser || session?.user;
 
-    const { data: eventData, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { data: eventData, error } = await supabase.from('events').select('*').eq('id', id).single();
     if (error) { Alert.alert(t('error'), error.message); setLoading(false); return; }
     setEvent(eventData);
 
-    const { data: allParticipants, error: participantsError } = await supabase
+    const { data: allParticipants } = await supabase
       .from('event_participants')
       .select('*, profiles(first_name, last_name, nickname, avatar_url)')
       .eq('event_id', id);
-
-    if (participantsError) console.log('Participants error:', participantsError.message);
 
     const approved = (allParticipants || []).filter((p: any) => p.status === 'approved');
     const pending = (allParticipants || []).filter((p: any) => p.status === 'pending');
@@ -218,9 +211,7 @@ export default function EventDetailsScreen() {
         <Text style={[styles.detail, { color: colors.text }]}>📅 {event?.date} at {event?.time} — {event?.end_time}</Text>
         {event?.skill_level && <Text style={[styles.detail, { color: colors.text }]}>⭐ {event?.skill_level}</Text>}
         {event?.max_players ? (
-          <TouchableOpacity onPress={() => router.push({ pathname: '/event-participants', params: { event_id: event?.id } } as any)}>
-            <Text style={[styles.detail, { color: colors.accent }]}>👥 {approvedCount} / {event?.max_players} players →</Text>
-          </TouchableOpacity>
+          <Text style={[styles.detail, { color: colors.text }]}>👥 {approvedCount} / {event?.max_players} players</Text>
         ) : (
           <Text style={[styles.detail, { color: colors.text }]}>👥 {t('unlimited')}</Text>
         )}
