@@ -76,7 +76,9 @@ export default function LoginScreen() {
   async function handleStep1() {
     setErrorMsg('');
     if (!email || !password) { setErrorMsg('Please enter email and password'); return; }
-    if (!checks.length || !checks.uppercase || !checks.lowercase || !checks.number) { setErrorMsg('Password does not meet all requirements'); return; }
+    if (!checks.length || !checks.uppercase || !checks.lowercase || !checks.number) {
+      setErrorMsg('Password does not meet all requirements'); return;
+    }
     setStep(2);
   }
 
@@ -85,16 +87,24 @@ export default function LoginScreen() {
     if (!firstName || !lastName || !nickname) { setErrorMsg('Please fill in all fields'); return; }
     if (!favoriteSport) { setErrorMsg('Please select your favorite sport'); return; }
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({ 
-  email, 
-  password,
-  options: {
-    emailRedirectTo: 'sportbuddy://email-confirmed',
-  }
-});
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: 'sportbuddy://email-confirmed',
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          nickname: nickname,
+          favorite_sport: favoriteSport,
+        }
+      }
+    });
+
     if (error) { setErrorMsg(error.message); setLoading(false); return; }
+
     if (data.user) {
-      await supabase.from('profiles').upsert({ id: data.user.id, first_name: firstName, last_name: lastName, nickname, favorite_sport: favoriteSport });
       router.push('/terms' as any);
     }
     setLoading(false);
@@ -109,17 +119,14 @@ export default function LoginScreen() {
     setLoading(false);
   }
 
-  // Forgot Password екран
   if (isForgotPassword) {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Text style={styles.title}>SportBuddy 🏆</Text>
           <Text style={styles.subtitle}>Reset your password</Text>
-
           {errorMsg ? <View style={styles.errorBox}><Text style={styles.errorText}>⚠️ {errorMsg}</Text></View> : null}
           {successMsg ? <View style={styles.successBox}><Text style={styles.successText}>✅ {successMsg}</Text></View> : null}
-
           <Text style={styles.label}>{t('email')}</Text>
           <TextInput
             style={styles.input}
@@ -130,11 +137,9 @@ export default function LoginScreen() {
             autoCapitalize="none"
             keyboardType="email-address"
           />
-
           <TouchableOpacity style={styles.buttonGreen} onPress={handleForgotPassword} disabled={loading}>
             <Text style={styles.buttonTextGreen}>{loading ? 'Sending...' : 'Send reset link'}</Text>
           </TouchableOpacity>
-
           <TouchableOpacity onPress={() => { setIsForgotPassword(false); setErrorMsg(''); setSuccessMsg(''); }} style={styles.backStepBtn}>
             <Text style={styles.backStepText}>← Back to login</Text>
           </TouchableOpacity>
@@ -180,22 +185,26 @@ export default function LoginScreen() {
           <Text style={styles.label}>{t('nickname')}</Text>
           <TextInput style={styles.input} placeholder={t('nickname')} placeholderTextColor="#aaa" value={nickname} onChangeText={setNickname} autoCapitalize="none" />
           <View style={styles.labelRow}>
-  <Text style={styles.label}>{t('favoriteSport')}</Text>
-  <TouchableOpacity onPress={() => Alert.alert(
-    '⭐ Favorite Sport',
-    'When someone creates an Alert Event for your favorite sport, you will receive a push notification so you never miss a game nearby!',
-    [{ text: 'Got it!' }]
-  )}>
-    <Text style={styles.infoBtn}>ℹ️</Text>
-  </TouchableOpacity>
-</View>
-<Text style={styles.sublabel}>{t('selectOneSport')}</Text>
+            <Text style={styles.label}>{t('favoriteSport')}</Text>
+            <TouchableOpacity onPress={() => Alert.alert(
+              '⭐ Favorite Sport',
+              'When someone creates an Alert Event for your favorite sport, you will receive a push notification so you never miss a game nearby!',
+              [{ text: 'Got it!' }]
+            )}>
+              <Text style={styles.infoBtn}>ℹ️</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.sublabel}>{t('selectOneSport')}</Text>
           <View style={styles.sportsGrid}>
             {allSports.map((sport) => {
               const color = categoryColors[sport.category];
               const isSelected = favoriteSport === sport.id;
               return (
-                <TouchableOpacity key={sport.id} style={[styles.sportBtn, { backgroundColor: isSelected ? '#1D9E75' : color.bg }, isSelected && styles.sportBtnSelected]} onPress={() => setFavoriteSport(sport.id)}>
+                <TouchableOpacity
+                  key={sport.id}
+                  style={[styles.sportBtn, { backgroundColor: isSelected ? '#1D9E75' : color.bg }, isSelected && styles.sportBtnSelected]}
+                  onPress={() => setFavoriteSport(sport.id)}
+                >
                   <Text style={[styles.sportBtnText, { color: isSelected ? '#fff' : color.text }]}>{sport.id}</Text>
                 </TouchableOpacity>
               );
@@ -246,7 +255,6 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Forgot Password — само за login */}
         {isLogin && (
           <TouchableOpacity onPress={() => { setIsForgotPassword(true); setErrorMsg(''); }} style={styles.forgotBtn}>
             <Text style={styles.forgotText}>Forgot password?</Text>
@@ -263,7 +271,11 @@ export default function LoginScreen() {
           </View>
         )}
 
-        <TouchableOpacity style={[styles.buttonGreen, !isLogin && passed < 4 && password.length > 0 && styles.buttonDisabled]} onPress={isLogin ? handleLogin : handleStep1} disabled={loading}>
+        <TouchableOpacity
+          style={[styles.buttonGreen, !isLogin && passed < 4 && password.length > 0 && styles.buttonDisabled]}
+          onPress={isLogin ? handleLogin : handleStep1}
+          disabled={loading}
+        >
           <Text style={styles.buttonTextGreen}>{loading ? t('loading') : isLogin ? t('signIn') : t('next')}</Text>
         </TouchableOpacity>
 
