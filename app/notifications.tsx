@@ -16,44 +16,53 @@ export default function NotificationsScreen() {
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
+    let subscription: any = null;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUserId(session.user.id);
         fetchNotifications(session.user.id);
-        setupRealtime(session.user.id);
+
+        subscription = supabase.channel(`notifications-${session.user.id}`)
+          .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${session.user.id}`
+          }, () => { fetchNotifications(session.user.id); })
+          .on('postgres_changes', {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${session.user.id}`
+          }, () => { fetchNotifications(session.user.id); })
+          .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'admin_messages',
+            filter: `to_user_id=eq.${session.user.id}`
+          }, () => { fetchNotifications(session.user.id); })
+          .subscribe();
       }
     });
+
+    return () => { if (subscription) subscription.unsubscribe(); };
   }, []);
+
+  // Автоматско освежување на секои 5 секунди
+  useEffect(() => {
+    if (!userId) return;
+    const interval = setInterval(() => {
+      fetchNotifications(userId);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [userId]);
 
   useFocusEffect(useCallback(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) fetchNotifications(session.user.id);
     });
   }, []));
-
-  function setupRealtime(uid: string) {
-    const subscription = supabase.channel(`notifications-${uid}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
-        filter: `user_id=eq.${uid}`
-      }, () => { fetchNotifications(uid); })
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'notifications',
-        filter: `user_id=eq.${uid}`
-      }, () => { fetchNotifications(uid); })
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'admin_messages',
-        filter: `to_user_id=eq.${uid}`
-      }, () => { fetchNotifications(uid); })
-      .subscribe();
-    return () => { subscription.unsubscribe(); };
-  }
 
   async function fetchNotifications(uid?: string) {
     const id = uid || userId;
