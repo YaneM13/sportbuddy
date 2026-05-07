@@ -60,11 +60,11 @@ export default function NotificationsScreen() {
     if (!id) return;
 
     const { data, error } = await supabase
-  .from('notifications')
-  .select('*, events(title, id)')
-  .eq('user_id', id)
-  .eq('is_read', false)
-  .order('created_at', { ascending: false });
+      .from('notifications')
+      .select('*, events(title, id)')
+      .eq('user_id', id)
+      .eq('is_read', false)
+      .order('created_at', { ascending: false });
 
     if (error) Alert.alert(t('error'), error.message);
     else {
@@ -188,7 +188,7 @@ export default function NotificationsScreen() {
             <>
               {messages.length === 0 && <View style={styles.empty}><Text style={[styles.emptyText, { color: colors.textSecondary }]}>No new messages</Text></View>}
               {messages.map((notif) => {
-                const isAlert = notif.message?.startsWith('🔔');
+                const isAlertMsg = notif.message?.startsWith('🔔');
                 return (
                   <TouchableOpacity
                     key={notif.id}
@@ -198,7 +198,7 @@ export default function NotificationsScreen() {
                     <Text style={[styles.cardMessage, { color: colors.text }]}>{notif.message}</Text>
                     <Text style={[styles.cardEvent, { color: colors.textSecondary }]}>Event: {notif.events?.title}</Text>
                     <Text style={[styles.cardTime, { color: colors.textSecondary }]}>{new Date(notif.created_at).toLocaleDateString()}</Text>
-                    {isAlert ? (
+                    {isAlertMsg ? (
                       <View style={styles.viewEvent}>
                         <Text style={styles.viewEventText}>🔔 View event →</Text>
                       </View>

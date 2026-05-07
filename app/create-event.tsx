@@ -182,7 +182,6 @@ export default function CreateEventScreen() {
     const { data: newEvent, error } = await supabase.from('events').insert({
       title, description, category, sport, location,
       date: formatDate(date), time: formatTime(startTime), end_time: formatTime(endTime),
-      // +1 за да го вброи и самиот организатор
       max_players: isWatchSport ? null : parseInt(players) + 1,
       skill_level: isWatchSport ? null : skillLevel,
       created_by: session.user.id, latitude, longitude, is_alert: isAlert,
@@ -197,31 +196,30 @@ export default function CreateEventScreen() {
     });
 
     if (isAlert && latitude && longitude) {
-  const { data: nearbyUsers } = await supabase
-    .from('profiles')
-    .select('id, push_token, favorite_sport')
-    .eq('favorite_sport', sport)
-    .neq('id', session.user.id);
+      const { data: nearbyUsers } = await supabase
+        .from('profiles')
+        .select('id, push_token, favorite_sport')
+        .eq('favorite_sport', sport)
+        .neq('id', session.user.id);
 
-  for (const profile of nearbyUsers || []) {
-    // Зачувај во notifications табелата
-    await supabase.from('notifications').insert({
-      user_id: profile.id,
-      event_id: newEvent.id,
-      message: `🔔 New ${sport} event nearby: ${title}`,
-      is_read: false,
-    });
+      for (const profile of nearbyUsers || []) {
+        await supabase.from('notifications').insert({
+          user_id: profile.id,
+          event_id: newEvent.id,
+          message: `🔔 New ${sport} event nearby: ${title}`,
+          is_read: false,
+        });
 
-    // Испрати push notification
-    if (profile.push_token) {
-      await sendPushNotification(
-        profile.push_token,
-        '🔔 Alert Event!',
-        `New ${sport} event nearby: ${title}`
-      );
+        if (profile.push_token) {
+          await sendPushNotification(
+            profile.push_token,
+            '🔔 Alert Event!',
+            `New ${sport} event nearby: ${title}`
+          );
+        }
+      }
     }
-  }
-}
+
     Alert.alert(t('success'), 'Event created!');
     router.replace('/');
     setLoading(false);
