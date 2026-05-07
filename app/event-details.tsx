@@ -52,39 +52,50 @@ export default function EventDetailsScreen() {
   }, []);
 
   async function fetchEventDetails(currentUser?: any) {
-    const { data: { session } } = await supabase.auth.getSession();
-    const sessionUser = currentUser || session?.user;
+  const { data: { session } } = await supabase.auth.getSession();
+  const sessionUser = currentUser || session?.user;
 
-    const { data: eventData, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('id', id)
-      .single();
-    if (error) { Alert.alert(t('error'), error.message); setLoading(false); return; }
-    setEvent(eventData);
+  const { data: eventData, error } = await supabase
+    .from('events')
+    .select('*')
+    .eq('id', id)
+    .single();
+  if (error) { Alert.alert(t('error'), error.message); setLoading(false); return; }
+  setEvent(eventData);
 
-    const { data: allParticipants } = await supabase
-      .from('event_participants')
-      .select('*, profiles(first_name, last_name, nickname, avatar_url)')
-      .eq('event_id', id);
+  const { data: allParticipants } = await supabase
+    .from('event_participants')
+    .select('*')
+    .eq('event_id', id);
 
-    const approved = (allParticipants || []).filter((p: any) => p.status === 'approved');
-    const pending = (allParticipants || []).filter((p: any) => p.status === 'pending');
+  // Земи профили посебно
+  const participantsWithProfiles = await Promise.all(
+    (allParticipants || []).map(async (p: any) => {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, nickname, avatar_url')
+        .eq('id', p.user_id)
+        .single();
+      return { ...p, profiles: profile };
+    })
+  );
 
-    setParticipants(approved);
-    setApprovedCount(approved.length);
-    setPendingCount(pending.length);
+  const approved = participantsWithProfiles.filter((p: any) => p.status === 'approved');
+  const pending = participantsWithProfiles.filter((p: any) => p.status === 'pending');
 
-    if (sessionUser) {
-      setUser(sessionUser);
-      // Земи статус директно од allParticipants наместо нов query
-      const myParticipation = (allParticipants || []).find(
-        (p: any) => p.user_id === sessionUser.id
-      );
-      setJoinStatus(myParticipation?.status || null);
-    }
-    setLoading(false);
+  setParticipants(approved);
+  setApprovedCount(approved.length);
+  setPendingCount(pending.length);
+
+  if (sessionUser) {
+    setUser(sessionUser);
+    const myParticipation = participantsWithProfiles.find(
+      (p: any) => p.user_id === sessionUser.id
+    );
+    setJoinStatus(myParticipation?.status || null);
   }
+  setLoading(false);
+}
 
   async function handleRemoveParticipant(participantId: string) {
     Alert.alert(
