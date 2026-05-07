@@ -47,6 +47,7 @@ export default function PersonalDetailsScreen() {
   async function fetchProfile() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
+    console.log('Saving favorite_sport:', favoriteSport);
     const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
     if (data) {
       setFirstName(data.first_name || '');
@@ -128,7 +129,10 @@ export default function PersonalDetailsScreen() {
                   { backgroundColor: isSelected ? '#1D9E75' : isDark ? '#1E2D3D' : color.bg },
                   isSelected && styles.sportBtnSelected
                 ]}
-                onPress={() => setFavoriteSport(favoriteSport === sport.id ? '' : sport.id)}
+                onPress={() => {
+               console.log('Sport pressed:', sport.id);
+                 setFavoriteSport(favoriteSport === sport.id ? '' : sport.id);
+            }}
               >
                 <Text style={[styles.sportBtnText, { color: isSelected ? '#fff' : isDark ? color.bg : color.text }]}>
                   {sport.id}

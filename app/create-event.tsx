@@ -209,6 +209,7 @@ export default function CreateEventScreen() {
       user_id: profile.id,
       event_id: newEvent.id,
       message: `🔔 New ${sport} event nearby: ${title}`,
+      is_read: false,
     });
 
     // Испрати push notification
