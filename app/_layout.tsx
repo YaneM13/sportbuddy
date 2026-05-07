@@ -105,6 +105,14 @@ export default function RootLayout() {
           event.longitude
         );
         if (distance <= 20) {
+          // Зачувај во notifications табела
+          await supabase.from('notifications').insert({
+            user_id: session.user.id,
+            event_id: event.id,
+            message: `🔔 New ${event.sport} Alert Event nearby: ${event.title}`,
+          });
+
+          // Прати push notification
           await sendPushNotification(
             profile.push_token,
             '🔔 Alert Event Nearby!',

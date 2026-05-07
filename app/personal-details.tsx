@@ -47,7 +47,6 @@ export default function PersonalDetailsScreen() {
   async function fetchProfile() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
-    console.log('Saving favorite_sport:', favoriteSport);
     const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
     if (data) {
       setFirstName(data.first_name || '');
