@@ -1,7 +1,9 @@
 import { useLanguage } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
+import appleAuth from '@invertase/react-native-apple-authentication';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const allSports = [
@@ -55,10 +57,70 @@ export default function LoginScreen() {
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
   const { checks, passed } = getPasswordStrength(password);
+
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: '657761128514-l1ftdeql01ptbcr1r5dgktchur2gimva.apps.googleusercontent.com',
+      iosClientId: '657761128514-mgb5fbea2sv790f3gir1qrljb6a10j11.apps.googleusercontent.com',
+    });
+  }, []);
+
+  async function handleGoogleSignIn() {
+    setGoogleLoading(true);
+    setErrorMsg('');
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const idToken = userInfo.data?.idToken;
+      if (!idToken) { setErrorMsg('Google sign in failed'); setGoogleLoading(false); return; }
+
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+      });
+
+      if (error) { setErrorMsg(error.message); setGoogleLoading(false); return; }
+      router.replace('/');
+    } catch (error: any) {
+      if (error.code !== '-5') {
+        setErrorMsg('Google sign in failed. Please try again.');
+      }
+    }
+    setGoogleLoading(false);
+  }
+
+  async function handleAppleSignIn() {
+    setAppleLoading(true);
+    setErrorMsg('');
+    try {
+      const appleAuthRequestResponse = await appleAuth.performRequest({
+        requestedOperation: appleAuth.Operation.LOGIN,
+        requestedScopes: [appleAuth.Scope.FULL_NAME, appleAuth.Scope.EMAIL],
+      });
+
+      const { identityToken } = appleAuthRequestResponse;
+      if (!identityToken) { setErrorMsg('Apple sign in failed'); setAppleLoading(false); return; }
+
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: identityToken,
+      });
+
+      if (error) { setErrorMsg(error.message); setAppleLoading(false); return; }
+      router.replace('/');
+    } catch (error: any) {
+      if (error.code !== '1001') {
+        setErrorMsg('Apple sign in failed. Please try again.');
+      }
+    }
+    setAppleLoading(false);
+  }
 
   async function handleForgotPassword() {
     setErrorMsg('');
@@ -103,10 +165,7 @@ export default function LoginScreen() {
     });
 
     if (error) { setErrorMsg(error.message); setLoading(false); return; }
-
-    if (data.user) {
-      router.push('/terms' as any);
-    }
+    if (data.user) { router.push('/terms' as any); }
     setLoading(false);
   }
 
@@ -186,11 +245,7 @@ export default function LoginScreen() {
           <TextInput style={styles.input} placeholder={t('nickname')} placeholderTextColor="#aaa" value={nickname} onChangeText={setNickname} autoCapitalize="none" />
           <View style={styles.labelRow}>
             <Text style={styles.label}>{t('favoriteSport')}</Text>
-            <TouchableOpacity onPress={() => Alert.alert(
-              '⭐ Favorite Sport',
-              'When someone creates an Alert Event for your favorite sport, you will receive a push notification so you never miss a game nearby!',
-              [{ text: 'Got it!' }]
-            )}>
+            <TouchableOpacity onPress={() => Alert.alert('⭐ Favorite Sport', 'Select your favorite sport!', [{ text: 'Got it!' }])}>
               <Text style={styles.infoBtn}>ℹ️</Text>
             </TouchableOpacity>
           </View>
@@ -279,6 +334,35 @@ export default function LoginScreen() {
           <Text style={styles.buttonTextGreen}>{loading ? t('loading') : isLogin ? t('signIn') : t('next')}</Text>
         </TouchableOpacity>
 
+        {/* Divider */}
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        {/* Google Sign In */}
+        <TouchableOpacity
+          style={styles.googleBtn}
+          onPress={handleGoogleSignIn}
+          disabled={googleLoading}
+        >
+          <Text style={styles.googleIcon}>G</Text>
+          <Text style={styles.googleBtnText}>{googleLoading ? 'Signing in...' : 'Continue with Google'}</Text>
+        </TouchableOpacity>
+
+        {/* Apple Sign In — само на iOS */}
+        {Platform.OS === 'ios' && (
+          <TouchableOpacity
+            style={styles.appleBtn}
+            onPress={handleAppleSignIn}
+            disabled={appleLoading}
+          >
+            <Text style={styles.appleIcon}>🍎</Text>
+            <Text style={styles.appleBtnText}>{appleLoading ? 'Signing in...' : 'Continue with Apple'}</Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity onPress={() => { setIsLogin(!isLogin); setStep(1); setErrorMsg(''); }}>
           <Text style={styles.switchText}>{isLogin ? t('noAccount') : t('haveAccount')}</Text>
         </TouchableOpacity>
@@ -317,6 +401,15 @@ const styles = StyleSheet.create({
   buttonGreen: { width: '100%', padding: 18, borderRadius: 12, backgroundColor: '#1D9E75', alignItems: 'center', marginBottom: 16, marginTop: 8 },
   buttonDisabled: { backgroundColor: '#aaa' },
   buttonTextGreen: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#e0e0e0' },
+  dividerText: { marginHorizontal: 12, color: '#aaa', fontSize: 14 },
+  googleBtn: { width: '100%', padding: 16, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#e0e0e0', flexDirection: 'row', justifyContent: 'center', gap: 10 },
+  googleIcon: { fontSize: 18, fontWeight: 'bold', color: '#4285F4' },
+  googleBtnText: { fontSize: 16, fontWeight: '600', color: '#444' },
+  appleBtn: { width: '100%', padding: 16, borderRadius: 12, backgroundColor: '#000', alignItems: 'center', marginBottom: 16, flexDirection: 'row', justifyContent: 'center', gap: 10 },
+  appleIcon: { fontSize: 18 },
+  appleBtnText: { fontSize: 16, fontWeight: '600', color: '#fff' },
   switchText: { fontSize: 14, color: '#1D9E75', textAlign: 'center' },
   backStepBtn: { alignItems: 'center', marginTop: 8 },
   backStepText: { fontSize: 14, color: '#888' },

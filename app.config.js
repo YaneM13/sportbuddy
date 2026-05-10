@@ -14,11 +14,11 @@ export default {
       bundleIdentifier: "com.yane31.SportBuddy",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
-        NSLocationWhenInUseUsageDescription: "SportBuddy uses your location to find sports events within 20km of your current position. For example, when you open the app, we show you football, basketball and other sports events happening near you.",
-        NSLocationAlwaysAndWhenInUseUsageDescription: "SportBuddy uses your location to find sports events within 20km of your current position. For example, when you open the app, we show you football, basketball and other sports events happening near you.",
-        NSLocationAlwaysUsageDescription: "SportBuddy uses your location to find sports events within 20km of your current position. For example, when you open the app, we show you football, basketball and other sports events happening near you.",
-        NSPhotoLibraryUsageDescription: "SportBuddy uses your photo library to let you set a profile photo. For example, you can choose a photo of yourself so other players can recognize you at events.",
-        NSPhotoLibraryAddUsageDescription: "SportBuddy saves photos to your library. For example, event photos can be saved to your device."
+        NSLocationWhenInUseUsageDescription: "SportBuddy uses your location to find sports events within 20km of your current position.",
+        NSLocationAlwaysAndWhenInUseUsageDescription: "SportBuddy uses your location to find sports events within 20km of your current position.",
+        NSLocationAlwaysUsageDescription: "SportBuddy uses your location to find sports events within 20km of your current position.",
+        NSPhotoLibraryUsageDescription: "SportBuddy uses your photo library to let you set a profile photo.",
+        NSPhotoLibraryAddUsageDescription: "SportBuddy saves photos to your library."
       }
     },
     android: {
@@ -64,7 +64,14 @@ export default {
         }
       ],
       "@react-native-community/datetimepicker",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          iosUrlScheme: "com.googleusercontent.apps.657761128514-mgb5fbea2sv790f3gir1qrljb6a10j11"
+        }
+      ],
+      "@invertase/react-native-apple-authentication"
     ],
     experiments: {
       typedRoutes: true,
