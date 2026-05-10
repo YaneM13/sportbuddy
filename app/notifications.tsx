@@ -16,53 +16,46 @@ export default function NotificationsScreen() {
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    let subscription: any = null;
+    async function init() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUserId(session.user.id);
-        fetchNotifications(session.user.id);
-
-        subscription = supabase.channel(`notifications-${session.user.id}`)
-          .on('postgres_changes', {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${session.user.id}`
-          }, () => { fetchNotifications(session.user.id); })
-          .on('postgres_changes', {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${session.user.id}`
-          }, () => { fetchNotifications(session.user.id); })
-          .on('postgres_changes', {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'admin_messages',
-            filter: `to_user_id=eq.${session.user.id}`
-          }, () => { fetchNotifications(session.user.id); })
-          .subscribe();
-      }
-    });
-
-    return () => { if (subscription) subscription.unsubscribe(); };
+      setUserId(session.user.id);
+      await fetchNotifications(session.user.id);
+    }
+    init();
   }, []);
 
-  // Автоматско освежување на секои 5 секунди
   useEffect(() => {
     if (!userId) return;
-    const interval = setInterval(() => {
-      fetchNotifications(userId);
-    }, 5000);
-    return () => clearInterval(interval);
+
+    const subscription = supabase.channel(`notifications-${userId}-${Date.now()}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${userId}`
+      }, () => { fetchNotifications(userId); })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${userId}`
+      }, () => { fetchNotifications(userId); })
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'admin_messages',
+        filter: `to_user_id=eq.${userId}`
+      }, () => { fetchNotifications(userId); })
+      .subscribe();
+
+    return () => { subscription.unsubscribe(); };
   }, [userId]);
 
   useFocusEffect(useCallback(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) fetchNotifications(session.user.id);
-    });
-  }, []));
+    if (userId) fetchNotifications(userId);
+  }, [userId]));
 
   async function fetchNotifications(uid?: string) {
     const id = uid || userId;
@@ -115,11 +108,7 @@ export default function NotificationsScreen() {
 
   async function handleMessagePress(notif: any) {
     await supabase.from('notifications').update({ is_read: true }).eq('id', notif.id);
-    if (notif.message?.startsWith('🔔')) {
-      router.push({ pathname: '/event-details', params: { id: notif.event_id } } as any);
-    } else {
-      router.push({ pathname: '/event-chat', params: { event_id: notif.event_id, event_title: notif.events?.title } } as any);
-    }
+    router.push({ pathname: '/event-chat', params: { event_id: notif.event_id, event_title: notif.events?.title } } as any);
   }
 
   async function dismissAdminMessage(id: string) {
@@ -196,29 +185,20 @@ export default function NotificationsScreen() {
           {activeTab === 'messages' && (
             <>
               {messages.length === 0 && <View style={styles.empty}><Text style={[styles.emptyText, { color: colors.textSecondary }]}>No new messages</Text></View>}
-              {messages.map((notif) => {
-                const isAlertMsg = notif.message?.startsWith('🔔');
-                return (
-                  <TouchableOpacity
-                    key={notif.id}
-                    style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}
-                    onPress={() => handleMessagePress(notif)}
-                  >
-                    <Text style={[styles.cardMessage, { color: colors.text }]}>{notif.message}</Text>
-                    <Text style={[styles.cardEvent, { color: colors.textSecondary }]}>Event: {notif.events?.title}</Text>
-                    <Text style={[styles.cardTime, { color: colors.textSecondary }]}>{new Date(notif.created_at).toLocaleDateString()}</Text>
-                    {isAlertMsg ? (
-                      <View style={styles.viewEvent}>
-                        <Text style={styles.viewEventText}>🔔 View event →</Text>
-                      </View>
-                    ) : (
-                      <View style={styles.goToChat}>
-                        <Text style={styles.goToChatText}>💬 Go to chat →</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
+              {messages.map((notif) => (
+                <TouchableOpacity
+                  key={notif.id}
+                  style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}
+                  onPress={() => handleMessagePress(notif)}
+                >
+                  <Text style={[styles.cardMessage, { color: colors.text }]}>{notif.message}</Text>
+                  <Text style={[styles.cardEvent, { color: colors.textSecondary }]}>Event: {notif.events?.title}</Text>
+                  <Text style={[styles.cardTime, { color: colors.textSecondary }]}>{new Date(notif.created_at).toLocaleDateString()}</Text>
+                  <View style={styles.goToChat}>
+                    <Text style={styles.goToChatText}>💬 Go to chat →</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
             </>
           )}
 
@@ -278,8 +258,6 @@ const styles = StyleSheet.create({
   rejectBtnText: { color: '#E24B4A', fontWeight: 'bold', fontSize: 14 },
   goToChat: { backgroundColor: '#E6F1FB', padding: 10, borderRadius: 10, alignItems: 'center' },
   goToChatText: { color: '#185FA5', fontWeight: '500', fontSize: 13 },
-  viewEvent: { backgroundColor: '#FAEEDA', padding: 10, borderRadius: 10, alignItems: 'center' },
-  viewEventText: { color: '#BA7517', fontWeight: '500', fontSize: 13 },
   dismissBtn: { backgroundColor: '#E1F5EE', padding: 10, borderRadius: 10, alignItems: 'center' },
   dismissBtnText: { color: '#0F6E56', fontWeight: 'bold', fontSize: 13 },
 });

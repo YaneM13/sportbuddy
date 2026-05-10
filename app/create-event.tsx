@@ -1,5 +1,4 @@
 import { useLanguage, useTheme } from '@/lib/AppContext';
-import { sendPushNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
@@ -96,7 +95,6 @@ export default function CreateEventScreen() {
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
   const [players, setPlayers] = useState('');
   const [skillLevel, setSkillLevel] = useState('');
-  const [isAlert, setIsAlert] = useState(false);
   const [loading, setLoading] = useState(false);
   const searchTimeout = useRef<any>(null);
   const isWatchSport = category === 'watch';
@@ -184,7 +182,7 @@ export default function CreateEventScreen() {
       date: formatDate(date), time: formatTime(startTime), end_time: formatTime(endTime),
       max_players: isWatchSport ? null : parseInt(players) + 1,
       skill_level: isWatchSport ? null : skillLevel,
-      created_by: session.user.id, latitude, longitude, is_alert: isAlert,
+      created_by: session.user.id, latitude, longitude,
       timezone,
     }).select().single();
     if (error) { Alert.alert(t('error'), JSON.stringify(error)); setLoading(false); return; }
@@ -194,31 +192,6 @@ export default function CreateEventScreen() {
       user_id: session.user.id,
       status: 'approved',
     });
-
-    if (isAlert && latitude && longitude) {
-      const { data: nearbyUsers } = await supabase
-        .from('profiles')
-        .select('id, push_token, favorite_sport')
-        .eq('favorite_sport', sport)
-        .neq('id', session.user.id);
-
-      for (const profile of nearbyUsers || []) {
-        await supabase.from('notifications').insert({
-          user_id: profile.id,
-          event_id: newEvent.id,
-          message: `🔔 New ${sport} event nearby: ${title}`,
-          is_read: false,
-        });
-
-        if (profile.push_token) {
-          await sendPushNotification(
-            profile.push_token,
-            '🔔 Alert Event!',
-            `New ${sport} event nearby: ${title}`
-          );
-        }
-      }
-    }
 
     Alert.alert(t('success'), 'Event created!');
     router.replace('/');
@@ -366,11 +339,6 @@ export default function CreateEventScreen() {
           </>
         )}
 
-        <TouchableOpacity style={[styles.alertToggle, { backgroundColor: isDark ? '#1E2D3D' : '#F1EFE8', borderColor: colors.cardBorder }, isAlert && styles.alertToggleActive]} onPress={() => setIsAlert(!isAlert)}>
-          <Text style={[styles.alertToggleText, { color: colors.text }, isAlert && styles.alertToggleTextActive]}>🔔 {isAlert ? t('alertEventOn') : t('alertEventOff')}</Text>
-          <Text style={[styles.alertToggleDesc, { color: colors.textSecondary }, isAlert && styles.alertToggleDescActive]}>{t('alertEventDesc')}</Text>
-        </TouchableOpacity>
-
         <TouchableOpacity style={styles.createBtn} onPress={handleCreate} disabled={loading}>
           <Text style={styles.createBtnText}>{loading ? t('creating') : t('createEvent')}</Text>
         </TouchableOpacity>
@@ -406,12 +374,6 @@ const styles = StyleSheet.create({
   optionTextActive: { color: '#fff', fontWeight: '500' },
   unlimitedBadge: { padding: 12, borderRadius: 12, marginBottom: 20, alignItems: 'center' },
   unlimitedText: { fontWeight: '500', fontSize: 14 },
-  alertToggle: { padding: 16, borderRadius: 12, marginBottom: 16, borderWidth: 1 },
-  alertToggleActive: { backgroundColor: 'rgba(65,57,12,0.8)', borderColor: '#BA7517' },
-  alertToggleText: { fontSize: 15, fontWeight: '500', marginBottom: 4 },
-  alertToggleTextActive: { color: '#BA7517' },
-  alertToggleDesc: { fontSize: 12 },
-  alertToggleDescActive: { color: '#BA7517' },
   createBtn: { width: '100%', padding: 18, borderRadius: 12, backgroundColor: '#1D9E75', alignItems: 'center', marginTop: 8, marginBottom: 40 },
   createBtnText: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
   timeModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },

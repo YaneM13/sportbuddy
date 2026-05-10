@@ -1,5 +1,5 @@
 import { AppProvider } from '@/lib/AppContext';
-import { registerForPushNotifications, savePushToken, sendPushNotification } from '@/lib/notifications';
+import { registerForPushNotifications, savePushToken } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import * as Location from 'expo-location';
@@ -13,14 +13,6 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
 export default function RootLayout() {
   const [locationGranted, setLocationGranted] = useState<boolean | null>(null);
 
@@ -30,10 +22,6 @@ export default function RootLayout() {
       setLocationGranted(status === 'granted');
       const token = await registerForPushNotifications();
       if (token) await savePushToken(token);
-
-      if (status === 'granted') {
-        checkNearbyAlertEvents();
-      }
     }
     setup();
 
@@ -73,56 +61,6 @@ export default function RootLayout() {
     const subscription = Linking.addEventListener('url', ({ url }) => { handleDeepLink(url); });
     return () => { subscription.remove(); };
   }, []);
-
-  async function checkNearbyAlertEvents() {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('favorite_sport, push_token')
-        .eq('id', session.user.id)
-        .single();
-
-      if (!profile?.favorite_sport || !profile?.push_token) return;
-
-      const loc = await Location.getCurrentPositionAsync({});
-
-      const { data: alertEvents } = await supabase
-        .from('events')
-        .select('*')
-        .eq('status', 'active')
-        .eq('is_alert', true)
-        .eq('sport', profile.favorite_sport);
-
-      for (const event of alertEvents || []) {
-        if (!event.latitude || !event.longitude) continue;
-        const distance = getDistanceKm(
-          loc.coords.latitude,
-          loc.coords.longitude,
-          event.latitude,
-          event.longitude
-        );
-        if (distance <= 20) {
-          await supabase.from('notifications').insert({
-            user_id: session.user.id,
-            event_id: event.id,
-            message: `🔔 New ${event.sport} Alert Event nearby: ${event.title}`,
-            is_read: false,
-          });
-
-          await sendPushNotification(
-            profile.push_token,
-            '🔔 Alert Event Nearby!',
-            `${event.sport} event: ${event.title} is happening near you!`
-          );
-        }
-      }
-    } catch (e) {
-      console.error('Alert events error:', e);
-    }
-  }
 
   if (locationGranted === false) {
     return (
