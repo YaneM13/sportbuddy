@@ -13,6 +13,7 @@ export default function HomeScreen() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showAvatarBanner, setShowAvatarBanner] = useState(false);
   const [displayName, setDisplayName] = useState('');
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -87,22 +88,32 @@ export default function HomeScreen() {
 
       <View style={styles.centerContent}>
         <Image source={require('../../assets/images/icon.png')} style={styles.centerLogo} />
-        
-          <Text style={[styles.slogan, { color: colors.accent }]}>Stop Waiting,</Text>
-          <Text style={[styles.slogan, { color: colors.text }]}>Start Playing!</Text>
-        
+        <Text style={[styles.slogan, { color: colors.accent }]}>Stop Waiting,</Text>
+        <Text style={[styles.slogan, { color: colors.text }]}>Start Playing!</Text>
         <Text style={[styles.tagline, { color: colors.textSecondary }]}>{t('tagline')}</Text>
       </View>
 
       <View style={styles.bottomContent}>
         <View style={styles.buttonsRow}>
-          <TouchableOpacity style={[styles.findBtn, { borderColor: colors.accent, backgroundColor: isDark ? 'rgba(29,158,117,0.15)' : '#E1F5EE' }]} onPress={() => router.push('/find-event' as any)}>
+          <TouchableOpacity
+            style={[styles.findBtn, { borderColor: colors.accent, backgroundColor: isDark ? 'rgba(29,158,117,0.15)' : '#E1F5EE' }]}
+            onPress={() => {
+              if (!user) { setShowLoginModal(true); return; }
+              router.push('/find-event' as any);
+            }}
+          >
             <Text style={styles.findBtnIcon}>🔍</Text>
             <Text style={[styles.findBtnText, { color: colors.text }]}>{t('findEvent')}</Text>
             <Text style={[styles.findBtnSub, { color: colors.textSecondary }]}>{t('findEventSub')}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.createBtn} onPress={() => router.push('/create-event' as any)}>
+          <TouchableOpacity
+            style={styles.createBtn}
+            onPress={() => {
+              if (!user) { setShowLoginModal(true); return; }
+              router.push('/create-event' as any);
+            }}
+          >
             <Text style={styles.createBtnIcon}>➕</Text>
             <Text style={styles.createBtnText}>{t('createEvent')}</Text>
             <Text style={styles.createBtnSub}>{t('createEventSub')}</Text>
@@ -114,6 +125,29 @@ export default function HomeScreen() {
         </View>
       </View>
 
+      {/* Login Required Modal */}
+      <Modal visible={showLoginModal} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowLoginModal(false)}>
+          <View style={[styles.modalBox, { backgroundColor: isDark ? '#1E2D3D' : '#fff' }]}>
+            <Text style={styles.modalEmoji}>🔒</Text>
+            <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#1a1a1a' }]}>Sign in required</Text>
+            <Text style={[styles.modalText, { color: isDark ? '#aaa' : '#666' }]}>
+              Sign in to access this feature and connect with players near you!
+            </Text>
+            <TouchableOpacity
+              style={styles.modalSignInBtn}
+              onPress={() => { setShowLoginModal(false); router.push('/login' as any); }}
+            >
+              <Text style={styles.modalSignInBtnText}>Sign in</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowLoginModal(false)}>
+              <Text style={[styles.modalCancelBtnText, { color: isDark ? '#aaa' : '#666' }]}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Menu Modal */}
       <Modal visible={menuVisible} transparent animationType="fade">
         <TouchableOpacity style={styles.overlay2} onPress={() => setMenuVisible(false)}>
           <View style={[styles.menu, { backgroundColor: colors.menuBg, borderColor: colors.cardBorder }]}>
@@ -126,9 +160,7 @@ export default function HomeScreen() {
               <Text style={[styles.menuDisplayName, { color: colors.text }]}>{displayName || user?.email}</Text>
             </View>
 
-            {[
-             { label: t('settings'), path: '/settings' },
-              ].map((item) => (
+            {[{ label: t('settings'), path: '/settings' }].map((item) => (
               <TouchableOpacity key={item.path} style={[styles.menuItem, { borderBottomColor: colors.cardBorder }]} onPress={() => { setMenuVisible(false); router.push(item.path as any); }}>
                 <Text style={[styles.menuItemText, { color: colors.text }]}>{item.label}</Text>
               </TouchableOpacity>
@@ -184,6 +216,15 @@ const styles = StyleSheet.create({
   createBtnSub: { fontSize: 11, color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
   adBanner: { borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 1, borderStyle: 'dashed' },
   adText: { fontSize: 12 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 32 },
+  modalBox: { borderRadius: 20, padding: 32, alignItems: 'center', width: '100%' },
+  modalEmoji: { fontSize: 48, marginBottom: 16 },
+  modalTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 8, textAlign: 'center' },
+  modalText: { fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 24 },
+  modalSignInBtn: { width: '100%', backgroundColor: '#1D9E75', padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 12 },
+  modalSignInBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  modalCancelBtn: { padding: 8 },
+  modalCancelBtnText: { fontSize: 15 },
   overlay2: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-start', alignItems: 'flex-end', paddingTop: 110, paddingRight: 24 },
   menu: { borderRadius: 16, width: 230, overflow: 'hidden', borderWidth: 0.5 },
   menuHeader: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 0.5, gap: 10 },

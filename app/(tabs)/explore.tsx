@@ -12,7 +12,7 @@ const sports = [
     category: 'Individual sports',
     light: { bg: '#E6F1FB', text: '#185FA5', card: '#fff', border: '#e0e0e0' },
     dark: { bg: '#0C1E35', text: '#B5D4F4', card: '#1E2D3D', border: '#2A3D50' },
-    items: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Padel', 'Swimming'],
+    items: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Padel', 'Swimming', 'Chess'],
   },
   {
     category: 'Water sports',

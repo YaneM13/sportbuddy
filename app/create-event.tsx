@@ -8,7 +8,7 @@ import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, T
 
 const sportsByCategory: any = {
   team: ['Football', 'Basketball', 'Basketball 3x3', 'Volleyball', 'Beach Volleyball', 'Rugby', 'Cricket', 'Handball'],
-  individual: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Padel', 'Swimming'],
+  individual: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Padel', 'Swimming', 'Chess'],
   water: ['Kayaking', 'Paddleboarding', 'Rafting', 'Fishing'],
   watch: ['Stadium', 'Sports bar / Cafe', 'Open air'],
 };

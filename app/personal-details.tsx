@@ -19,6 +19,7 @@ const allSports = [
   { id: 'Cycling', category: 'individual' },
   { id: 'Padel', category: 'individual' },
   { id: 'Swimming', category: 'individual' },
+  { id: 'Chess', category: 'individual' },
   { id: 'Kayaking', category: 'water' },
   { id: 'Paddleboarding', category: 'water' },
   { id: 'Rafting', category: 'water' },
@@ -108,7 +109,7 @@ export default function PersonalDetailsScreen() {
           <Text style={[styles.label, { color: colors.textSecondary }]}>⭐ Favorite Sport</Text>
           <TouchableOpacity onPress={() => Alert.alert(
             '⭐ Favorite Sport',
-            'When someone creates an Alert Event for your favorite sport, you will receive a push notification so you never miss a game nearby!',
+            'Select your favorite sport to personalize your SportBuddy account!',
             [{ text: 'Got it!' }]
           )}>
             <Text style={styles.infoBtn}>ℹ️</Text>

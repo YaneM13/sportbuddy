@@ -41,7 +41,7 @@ export default {
         }
       ],
       adaptiveIcon: {
-        foregroundImage: "./assets/images/android-icon-foreground_3.png",
+        foregroundImage: "./assets/images/android-icon.png",
         backgroundColor: "#1D9E75"
       },
       predictiveBackGestureEnabled: false,
@@ -70,8 +70,7 @@ export default {
         {
           iosUrlScheme: "com.googleusercontent.apps.657761128514-mgb5fbea2sv790f3gir1qrljb6a10j11"
         }
-      ],
-      "@invertase/react-native-apple-authentication"
+      ]
     ],
     experiments: {
       typedRoutes: true,
