@@ -127,19 +127,9 @@ export default function LoginScreen() {
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
       });
-
       const { identityToken } = credential;
-      if (!identityToken) {
-        setErrorMsg('Apple sign in failed');
-        setAppleLoading(false);
-        return;
-      }
-
-      const { error } = await supabase.auth.signInWithIdToken({
-        provider: 'apple',
-        token: identityToken,
-      });
-
+      if (!identityToken) { setErrorMsg('Apple sign in failed'); setAppleLoading(false); return; }
+      const { error } = await supabase.auth.signInWithIdToken({ provider: 'apple', token: identityToken });
       if (error) { setErrorMsg(error.message); setAppleLoading(false); return; }
       router.replace('/');
     } catch (error: any) {
@@ -199,6 +189,11 @@ export default function LoginScreen() {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {router.canGoBack() && (
+            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+              <Text style={styles.backBtnText}>← Back</Text>
+            </TouchableOpacity>
+          )}
           <Text style={styles.title}>SportBuddy 🏆</Text>
           <Text style={styles.subtitle}>Reset your password</Text>
           {errorMsg ? <View style={styles.errorBox}><Text style={styles.errorText}>⚠️ {errorMsg}</Text></View> : null}
@@ -220,6 +215,11 @@ export default function LoginScreen() {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {router.canGoBack() && (
+            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+              <Text style={styles.backBtnText}>← Back</Text>
+            </TouchableOpacity>
+          )}
           <Text style={styles.title}>SportBuddy 🏆</Text>
           <Text style={styles.subtitle}>{t('tellUsAboutYourself')}</Text>
           <Text style={styles.stepText}>{t('step2of2')}</Text>
@@ -262,6 +262,11 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {router.canGoBack() && (
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Text style={styles.backBtnText}>← Back</Text>
+          </TouchableOpacity>
+        )}
         <Text style={styles.title}>SportBuddy 🏆</Text>
         <Text style={styles.subtitle}>{isLogin ? t('signInAccount') : t('createAccount')}</Text>
         {!isLogin && <Text style={styles.stepText}>{t('step1of2')}</Text>}
@@ -331,6 +336,8 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   content: { flexGrow: 1, justifyContent: 'center', padding: 24, paddingTop: 60, paddingBottom: 40 },
+  backBtn: { marginBottom: 16 },
+  backBtnText: { fontSize: 16, color: '#1D9E75', fontWeight: '500' },
   title: { fontSize: 32, fontWeight: 'bold', color: '#1D9E75', marginBottom: 8, textAlign: 'center' },
   subtitle: { fontSize: 16, color: '#888', marginBottom: 8, textAlign: 'center' },
   stepText: { fontSize: 13, color: '#1D9E75', fontWeight: '500', textAlign: 'center', marginBottom: 24 },
