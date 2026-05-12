@@ -76,6 +76,65 @@ function TimePickerModal({ visible, value, onConfirm, onCancel, isDark, colors, 
   );
 }
 
+function DatePickerModal({ visible, value, onConfirm, onCancel, isDark, colors, title }: any) {
+  const [selectedDay, setSelectedDay] = useState(value.getDate().toString().padStart(2, '0'));
+  const [selectedMonth, setSelectedMonth] = useState((value.getMonth() + 1).toString().padStart(2, '0'));
+  const [selectedYear, setSelectedYear] = useState(value.getFullYear());
+
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={styles.timeModalOverlay}>
+        <View style={[styles.timeModalContent, { backgroundColor: isDark ? '#1E2D3D' : '#fff' }]}>
+          <Text style={[styles.timeModalTitle, { color: colors.text }]}>{title}</Text>
+          <View style={styles.timePickerRow}>
+            <View style={styles.timeColumn}>
+              <Text style={[styles.timeColumnLabel, { color: colors.textSecondary }]}>Day</Text>
+              <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
+                {Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0')).map((d) => (
+                  <TouchableOpacity key={d} style={[styles.timeItem, selectedDay === d && { backgroundColor: colors.accent, borderRadius: 8 }]} onPress={() => setSelectedDay(d)}>
+                    <Text style={[styles.timeItemText, { color: selectedDay === d ? '#fff' : colors.text }]}>{d}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+            <View style={styles.timeColumn}>
+              <Text style={[styles.timeColumnLabel, { color: colors.textSecondary }]}>Month</Text>
+              <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
+                {['01','02','03','04','05','06','07','08','09','10','11','12'].map((m) => (
+                  <TouchableOpacity key={m} style={[styles.timeItem, selectedMonth === m && { backgroundColor: colors.accent, borderRadius: 8 }]} onPress={() => setSelectedMonth(m)}>
+                    <Text style={[styles.timeItemText, { color: selectedMonth === m ? '#fff' : colors.text }]}>{m}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+            <View style={styles.timeColumn}>
+              <Text style={[styles.timeColumnLabel, { color: colors.textSecondary }]}>Year</Text>
+              <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
+                {[2025, 2026, 2027].map((y) => (
+                  <TouchableOpacity key={y} style={[styles.timeItem, selectedYear === y && { backgroundColor: colors.accent, borderRadius: 8 }]} onPress={() => setSelectedYear(y)}>
+                    <Text style={[styles.timeItemText, { color: selectedYear === y ? '#fff' : colors.text }]}>{y}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+          <View style={styles.timeModalButtons}>
+            <TouchableOpacity style={[styles.timeModalBtn, { borderColor: colors.cardBorder }]} onPress={onCancel}>
+              <Text style={[styles.timeModalBtnText, { color: colors.textSecondary }]}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.timeModalBtn, { backgroundColor: colors.accent }]} onPress={() => {
+              const nd = new Date(selectedYear, parseInt(selectedMonth) - 1, parseInt(selectedDay));
+              onConfirm(nd);
+            }}>
+              <Text style={[styles.timeModalBtnText, { color: '#fff' }]}>Confirm</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function CreateEventScreen() {
   const { t } = useLanguage();
   const { isDark, colors } = useTheme();
@@ -88,9 +147,11 @@ export default function CreateEventScreen() {
   const [selectedLat, setSelectedLat] = useState<number | null>(null);
   const [selectedLon, setSelectedLon] = useState<number | null>(null);
   const [date, setDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date());
   const [startTime, setStartTime] = useState(new Date());
   const [endTime, setEndTime] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
   const [players, setPlayers] = useState('');
@@ -179,7 +240,10 @@ export default function CreateEventScreen() {
 
     const { data: newEvent, error } = await supabase.from('events').insert({
       title, description, category, sport, location,
-      date: formatDate(date), time: formatTime(startTime), end_time: formatTime(endTime),
+      date: formatDate(date),
+      end_date: formatDate(endDate),
+      time: formatTime(startTime),
+      end_time: formatTime(endTime),
       max_players: isWatchSport ? null : parseInt(players) + 1,
       skill_level: isWatchSport ? null : skillLevel,
       created_by: session.user.id, latitude, longitude,
@@ -257,53 +321,7 @@ export default function CreateEventScreen() {
         <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]} onPress={() => setShowDatePicker(true)}>
           <Text style={[styles.pickerText, { color: colors.text }]}>{formatDate(date)}</Text>
         </TouchableOpacity>
-        <Modal visible={showDatePicker} transparent animationType="fade">
-          <View style={styles.timeModalOverlay}>
-            <View style={[styles.timeModalContent, { backgroundColor: isDark ? '#1E2D3D' : '#fff' }]}>
-              <Text style={[styles.timeModalTitle, { color: colors.text }]}>{t('date')}</Text>
-              <View style={styles.timePickerRow}>
-                <View style={styles.timeColumn}>
-                  <Text style={[styles.timeColumnLabel, { color: colors.textSecondary }]}>Day</Text>
-                  <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
-                    {Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0')).map((d) => (
-                      <TouchableOpacity key={d} style={[styles.timeItem, date.getDate().toString().padStart(2,'0') === d && { backgroundColor: colors.accent, borderRadius: 8 }]} onPress={() => { const nd = new Date(date); nd.setDate(parseInt(d)); setDate(nd); }}>
-                        <Text style={[styles.timeItemText, { color: date.getDate().toString().padStart(2,'0') === d ? '#fff' : colors.text }]}>{d}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-                <View style={styles.timeColumn}>
-                  <Text style={[styles.timeColumnLabel, { color: colors.textSecondary }]}>Month</Text>
-                  <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
-                    {['01','02','03','04','05','06','07','08','09','10','11','12'].map((m) => (
-                      <TouchableOpacity key={m} style={[styles.timeItem, (date.getMonth()+1).toString().padStart(2,'0') === m && { backgroundColor: colors.accent, borderRadius: 8 }]} onPress={() => { const nd = new Date(date); nd.setMonth(parseInt(m)-1); setDate(nd); }}>
-                        <Text style={[styles.timeItemText, { color: (date.getMonth()+1).toString().padStart(2,'0') === m ? '#fff' : colors.text }]}>{m}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-                <View style={styles.timeColumn}>
-                  <Text style={[styles.timeColumnLabel, { color: colors.textSecondary }]}>Year</Text>
-                  <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
-                    {[2025, 2026, 2027].map((y) => (
-                      <TouchableOpacity key={y} style={[styles.timeItem, date.getFullYear() === y && { backgroundColor: colors.accent, borderRadius: 8 }]} onPress={() => { const nd = new Date(date); nd.setFullYear(y); setDate(nd); }}>
-                        <Text style={[styles.timeItemText, { color: date.getFullYear() === y ? '#fff' : colors.text }]}>{y}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              </View>
-              <View style={styles.timeModalButtons}>
-                <TouchableOpacity style={[styles.timeModalBtn, { borderColor: colors.cardBorder }]} onPress={() => setShowDatePicker(false)}>
-                  <Text style={[styles.timeModalBtnText, { color: colors.textSecondary }]}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.timeModalBtn, { backgroundColor: colors.accent }]} onPress={() => setShowDatePicker(false)}>
-                  <Text style={[styles.timeModalBtnText, { color: '#fff' }]}>Confirm</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
+        <DatePickerModal visible={showDatePicker} value={date} title={t('date')} isDark={isDark} colors={colors} onCancel={() => setShowDatePicker(false)} onConfirm={(d: Date) => { setDate(d); setEndDate(d); setShowDatePicker(false); }} />
 
         <Text style={[styles.label, { color: colors.textSecondary }]}>{t('startTime')}</Text>
         <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]} onPress={() => setShowStartTimePicker(true)}>
@@ -316,6 +334,12 @@ export default function CreateEventScreen() {
           <Text style={[styles.pickerText, { color: colors.text }]}>{formatTime(endTime)}</Text>
         </TouchableOpacity>
         <TimePickerModal visible={showEndTimePicker} value={endTime} title={t('endTime')} isDark={isDark} colors={colors} onCancel={() => setShowEndTimePicker(false)} onConfirm={(d: Date) => { setEndTime(d); setShowEndTimePicker(false); }} />
+
+        <Text style={[styles.label, { color: colors.textSecondary }]}>End Date</Text>
+        <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]} onPress={() => setShowEndDatePicker(true)}>
+          <Text style={[styles.pickerText, { color: colors.text }]}>{formatDate(endDate)}</Text>
+        </TouchableOpacity>
+        <DatePickerModal visible={showEndDatePicker} value={endDate} title="End Date" isDark={isDark} colors={colors} onCancel={() => setShowEndDatePicker(false)} onConfirm={(d: Date) => { setEndDate(d); setShowEndDatePicker(false); }} />
 
         {!isWatchSport && (
           <>
