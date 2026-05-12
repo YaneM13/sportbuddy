@@ -18,7 +18,7 @@ const categories = [
     emoji: '🏃',
     color: { bg: '#E6F1FB', text: '#185FA5', border: '#B5D4F4' },
     darkColor: { bg: 'rgba(12,30,53,0.8)', text: '#B5D4F4', border: '#185FA5' },
-    sports: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Padel', 'Swimming'],
+    sports: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Padel', 'Swimming','Chess'],
   },
   {
     id: 'water',

@@ -1,19 +1,15 @@
 import { useLanguage } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 let GoogleSignin: any = null;
-let appleAuth: any = null;
 
 try {
   GoogleSignin = require('@react-native-google-signin/google-signin').GoogleSignin;
-} catch (e) {}
-
-try {
-  appleAuth = require('@invertase/react-native-apple-authentication').default;
 } catch (e) {}
 
 function GoogleIcon() {
@@ -51,7 +47,6 @@ const allSports = [
   { id: 'Cycling', category: 'individual' },
   { id: 'Padel', category: 'individual' },
   { id: 'Swimming', category: 'individual' },
-  { id: 'Chess', category: 'individual' },
   { id: 'Kayaking', category: 'water' },
   { id: 'Paddleboarding', category: 'water' },
   { id: 'Rafting', category: 'water' },
@@ -123,21 +118,34 @@ export default function LoginScreen() {
   }
 
   async function handleAppleSignIn() {
-    if (!appleAuth) { Alert.alert('Error', 'Apple Sign In not available'); return; }
     setAppleLoading(true);
     setErrorMsg('');
     try {
-      const appleAuthRequestResponse = await appleAuth.performRequest({
-        requestedOperation: appleAuth.Operation.LOGIN,
-        requestedScopes: [appleAuth.Scope.FULL_NAME, appleAuth.Scope.EMAIL],
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
       });
-      const { identityToken } = appleAuthRequestResponse;
-      if (!identityToken) { setErrorMsg('Apple sign in failed'); setAppleLoading(false); return; }
-      const { error } = await supabase.auth.signInWithIdToken({ provider: 'apple', token: identityToken });
+
+      const { identityToken } = credential;
+      if (!identityToken) {
+        setErrorMsg('Apple sign in failed');
+        setAppleLoading(false);
+        return;
+      }
+
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: identityToken,
+      });
+
       if (error) { setErrorMsg(error.message); setAppleLoading(false); return; }
       router.replace('/');
     } catch (error: any) {
-      if (error.code !== '1001') setErrorMsg('Apple sign in failed. Please try again.');
+      if (error.code !== 'ERR_REQUEST_CANCELED') {
+        setErrorMsg('Apple sign in failed. Please try again.');
+      }
     }
     setAppleLoading(false);
   }
@@ -191,11 +199,6 @@ export default function LoginScreen() {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          {router.canGoBack() && (
-            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-              <Text style={styles.backBtnText}>← Back</Text>
-            </TouchableOpacity>
-          )}
           <Text style={styles.title}>SportBuddy 🏆</Text>
           <Text style={styles.subtitle}>Reset your password</Text>
           {errorMsg ? <View style={styles.errorBox}><Text style={styles.errorText}>⚠️ {errorMsg}</Text></View> : null}
@@ -208,28 +211,6 @@ export default function LoginScreen() {
           <TouchableOpacity onPress={() => { setIsForgotPassword(false); setErrorMsg(''); setSuccessMsg(''); }} style={styles.backStepBtn}>
             <Text style={styles.backStepText}>← Back to login</Text>
           </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    );
-  }
-
-  if (!isLogin && step === 3) {
-    return (
-      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.title}>SportBuddy 🏆</Text>
-          <View style={styles.confirmBox}>
-            <Text style={styles.confirmEmoji}>📧</Text>
-            <Text style={styles.confirmTitle}>Check your email!</Text>
-            <Text style={styles.confirmText}>
-              We sent a confirmation link to{'\n'}
-              <Text style={styles.confirmEmail}>{email}</Text>
-              {'\n\n'}Please check your inbox and confirm your email to start using SportBuddy!
-            </Text>
-            <TouchableOpacity style={styles.confirmBtn} onPress={() => router.replace('/')}>
-              <Text style={styles.confirmBtnText}>Continue to app →</Text>
-            </TouchableOpacity>
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     );
@@ -281,11 +262,6 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {router.canGoBack() && (
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>← Back</Text>
-          </TouchableOpacity>
-        )}
         <Text style={styles.title}>SportBuddy 🏆</Text>
         <Text style={styles.subtitle}>{isLogin ? t('signInAccount') : t('createAccount')}</Text>
         {!isLogin && <Text style={styles.stepText}>{t('step1of2')}</Text>}
@@ -355,8 +331,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   content: { flexGrow: 1, justifyContent: 'center', padding: 24, paddingTop: 60, paddingBottom: 40 },
-  backBtn: { position: 'absolute', top: 60, left: 24, zIndex: 10 },
-  backBtnText: { fontSize: 16, color: '#1D9E75', fontWeight: '500' },
   title: { fontSize: 32, fontWeight: 'bold', color: '#1D9E75', marginBottom: 8, textAlign: 'center' },
   subtitle: { fontSize: 16, color: '#888', marginBottom: 8, textAlign: 'center' },
   stepText: { fontSize: 13, color: '#1D9E75', fontWeight: '500', textAlign: 'center', marginBottom: 24 },
@@ -394,13 +368,6 @@ const styles = StyleSheet.create({
   switchText: { fontSize: 14, color: '#1D9E75', textAlign: 'center' },
   backStepBtn: { alignItems: 'center', marginTop: 8 },
   backStepText: { fontSize: 14, color: '#888' },
-  confirmBox: { backgroundColor: '#F0FBF7', borderRadius: 20, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: '#9FE1CB', marginTop: 32 },
-  confirmEmoji: { fontSize: 48, marginBottom: 16 },
-  confirmTitle: { fontSize: 22, fontWeight: 'bold', color: '#1D9E75', marginBottom: 12 },
-  confirmText: { fontSize: 15, color: '#444', textAlign: 'center', lineHeight: 22, marginBottom: 24 },
-  confirmEmail: { fontWeight: 'bold', color: '#1D9E75' },
-  confirmBtn: { backgroundColor: '#1D9E75', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12 },
-  confirmBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   infoBtn: { fontSize: 18 },
 });

@@ -66,6 +66,7 @@ export default {
       ],
       "@react-native-community/datetimepicker",
       "expo-web-browser",
+      "expo-apple-authentication",
       [
         "@react-native-google-signin/google-signin",
         {
