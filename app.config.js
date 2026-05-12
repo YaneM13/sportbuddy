@@ -4,7 +4,7 @@ export default {
   expo: {
     name: "SportBuddy",
     slug: "SportBuddy",
-    version: "1.0.5",
+    version: "1.0.6",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "sportbuddy",
@@ -12,6 +12,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.yane31.SportBuddy",
+      usesAppleSignIn: true,
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSLocationWhenInUseUsageDescription: "SportBuddy uses your location to find sports events within 20km of your current position.",
