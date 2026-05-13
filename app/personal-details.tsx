@@ -74,7 +74,7 @@ export default function PersonalDetailsScreen() {
       favorite_sport: favoriteSport || null,
     });
     if (error) Alert.alert(t('error'), error.message);
-    else { Alert.alert(t('success'), 'Details saved!'); router.back(); }
+    else { Alert.alert(t('success'), 'Details saved!'); router.replace('/'); }
     setLoading(false);
   }
 

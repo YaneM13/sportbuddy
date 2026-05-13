@@ -4,7 +4,6 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 let GoogleSignin: any = null;
@@ -48,7 +47,6 @@ const allSports = [
   { id: 'Cycling', category: 'individual' },
   { id: 'Padel', category: 'individual' },
   { id: 'Swimming', category: 'individual' },
-  { id: 'Chess', category: 'individual' },
   { id: 'Kayaking', category: 'water' },
   { id: 'Paddleboarding', category: 'water' },
   { id: 'Rafting', category: 'water' },
@@ -74,7 +72,6 @@ function getPasswordStrength(password: string) {
 
 export default function LoginScreen() {
   const { t } = useLanguage();
-  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -111,7 +108,12 @@ export default function LoginScreen() {
       const userInfo = await GoogleSignin.signIn();
       const idToken = userInfo.data?.idToken;
       if (!idToken) { setErrorMsg('Google sign in failed'); setGoogleLoading(false); return; }
-      const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: idToken });
+
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+      });
+
       if (error) { setErrorMsg(error.message); setGoogleLoading(false); return; }
       router.replace('/');
     } catch (error: any) {
@@ -132,7 +134,10 @@ export default function LoginScreen() {
       });
       const { identityToken } = credential;
       if (!identityToken) { setErrorMsg('Apple sign in failed'); setAppleLoading(false); return; }
-      const { error } = await supabase.auth.signInWithIdToken({ provider: 'apple', token: identityToken });
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: identityToken,
+      });
       if (error) { setErrorMsg(error.message); setAppleLoading(false); return; }
       router.replace('/');
     } catch (error: any) {
@@ -192,9 +197,11 @@ export default function LoginScreen() {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <TouchableOpacity onPress={() => { setIsForgotPassword(false); setErrorMsg(''); setSuccessMsg(''); }} style={[styles.backBtn, { top: insets.top + 16 }]}>
-            <Text style={styles.backBtnText}>← Back</Text>
-          </TouchableOpacity>
+          {router.canGoBack() && (
+            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+              <Text style={styles.backBtnText}>← Back</Text>
+            </TouchableOpacity>
+          )}
           <Text style={styles.title}>SportBuddy 🏆</Text>
           <Text style={styles.subtitle}>Reset your password</Text>
           {errorMsg ? <View style={styles.errorBox}><Text style={styles.errorText}>⚠️ {errorMsg}</Text></View> : null}
@@ -203,6 +210,9 @@ export default function LoginScreen() {
           <TextInput style={styles.input} placeholder={t('email')} placeholderTextColor="#aaa" value={email} onChangeText={(v) => { setEmail(v); setErrorMsg(''); setSuccessMsg(''); }} autoCapitalize="none" keyboardType="email-address" />
           <TouchableOpacity style={styles.buttonGreen} onPress={handleForgotPassword} disabled={loading}>
             <Text style={styles.buttonTextGreen}>{loading ? 'Sending...' : 'Send reset link'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => { setIsForgotPassword(false); setErrorMsg(''); setSuccessMsg(''); }} style={styles.backStepBtn}>
+            <Text style={styles.backStepText}>← Back to login</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -213,9 +223,11 @@ export default function LoginScreen() {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <TouchableOpacity onPress={() => setStep(1)} style={[styles.backBtn, { top: insets.top + 16 }]}>
-            <Text style={styles.backBtnText}>← Back</Text>
-          </TouchableOpacity>
+          {router.canGoBack() && (
+            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+              <Text style={styles.backBtnText}>← Back</Text>
+            </TouchableOpacity>
+          )}
           <Text style={styles.title}>SportBuddy 🏆</Text>
           <Text style={styles.subtitle}>{t('tellUsAboutYourself')}</Text>
           <Text style={styles.stepText}>{t('step2of2')}</Text>
@@ -247,6 +259,9 @@ export default function LoginScreen() {
           <TouchableOpacity style={styles.buttonGreen} onPress={handleRegister} disabled={loading}>
             <Text style={styles.buttonTextGreen}>{loading ? t('creatingAccount') : t('register')}</Text>
           </TouchableOpacity>
+          <TouchableOpacity onPress={() => setStep(1)} style={styles.backStepBtn}>
+            <Text style={styles.backStepText}>{t('back')}</Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     );
@@ -255,9 +270,11 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { top: insets.top + 16 }]}>
-          <Text style={styles.backBtnText}>← Back</Text>
-        </TouchableOpacity>
+        {router.canGoBack() && (
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Text style={styles.backBtnText}>← Back</Text>
+          </TouchableOpacity>
+        )}
         <Text style={styles.title}>SportBuddy 🏆</Text>
         <Text style={styles.subtitle}>{isLogin ? t('signInAccount') : t('createAccount')}</Text>
         {!isLogin && <Text style={styles.stepText}>{t('step1of2')}</Text>}
@@ -326,8 +343,8 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  content: { flexGrow: 1, justifyContent: 'center', padding: 24, paddingTop: 80, paddingBottom: 40 },
-  backBtn: { position: 'absolute', left: 24, zIndex: 10 },
+  content: { flexGrow: 1, justifyContent: 'center', padding: 24, paddingTop: 60, paddingBottom: 40 },
+  backBtn: { marginBottom: 16 },
   backBtnText: { fontSize: 16, color: '#1D9E75', fontWeight: '500' },
   title: { fontSize: 32, fontWeight: 'bold', color: '#1D9E75', marginBottom: 8, textAlign: 'center' },
   subtitle: { fontSize: 16, color: '#888', marginBottom: 8, textAlign: 'center' },
