@@ -1,7 +1,6 @@
-import { useLanguage, useTheme } from '@/lib/AppContext';
+import { useLanguage, useLocation, useTheme } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -31,7 +30,6 @@ function TimePickerModal({ visible, value, onConfirm, onCancel, isDark, colors, 
       Math.abs(parseInt(curr) - value.getMinutes()) < Math.abs(parseInt(prev) - value.getMinutes()) ? curr : prev
     )
   );
-
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.timeModalOverlay}>
@@ -80,7 +78,6 @@ function DatePickerModal({ visible, value, onConfirm, onCancel, isDark, colors, 
   const [selectedDay, setSelectedDay] = useState(value.getDate().toString().padStart(2, '0'));
   const [selectedMonth, setSelectedMonth] = useState((value.getMonth() + 1).toString().padStart(2, '0'));
   const [selectedYear, setSelectedYear] = useState(value.getFullYear());
-
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.timeModalOverlay}>
@@ -138,6 +135,7 @@ function DatePickerModal({ visible, value, onConfirm, onCancel, isDark, colors, 
 export default function CreateEventScreen() {
   const { t } = useLanguage();
   const { isDark, colors } = useTheme();
+  const { userLocation } = useLocation(); // ← од Context, без GPS чекање
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -214,19 +212,18 @@ export default function CreateEventScreen() {
   async function handleCreate() {
     if (!title || !category || !sport || !location) { Alert.alert(t('error'), 'Please fill in all fields'); return; }
     if (!isWatchSport && !players) { Alert.alert(t('error'), 'Please enter number of players'); return; }
+    if (!userLocation) { Alert.alert(t('error'), 'Location not available. Please try again.'); return; }
     setLoading(true);
-
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') { Alert.alert(t('error'), 'Location permission is needed'); setLoading(false); return; }
-    const userLoc = await Location.getCurrentPositionAsync({});
 
     let latitude = selectedLat, longitude = selectedLon;
 
     if (!latitude || !longitude) {
-      latitude = userLoc.coords.latitude;
-      longitude = userLoc.coords.longitude;
+      // Ако не е избрана локација, користи ја локацијата на корисникот
+      latitude = userLocation.latitude;
+      longitude = userLocation.longitude;
     } else {
-      const distance = getDistanceKm(userLoc.coords.latitude, userLoc.coords.longitude, latitude, longitude);
+      // Провери дали е во 20км радиус
+      const distance = getDistanceKm(userLocation.latitude, userLocation.longitude, latitude, longitude);
       if (distance > 20) {
         Alert.alert(t('error'), 'Event location must be within 20km of your current location');
         setLoading(false);
@@ -378,6 +375,7 @@ const styles = StyleSheet.create({
   backText: { fontSize: 17, fontWeight: '500' },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 32 },
   label: { fontSize: 14, fontWeight: '500', marginBottom: 8 },
+  sublabel: { fontSize: 12, color: '#888', marginBottom: 10 },
   input: { width: '100%', padding: 16, borderRadius: 12, borderWidth: 1, marginBottom: 8, fontSize: 15 },
   textArea: { height: 90, textAlignVertical: 'top', marginBottom: 20 },
   locationRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },

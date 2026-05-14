@@ -1,38 +1,46 @@
 import EventMap from '@/components/EventMap';
-import { useTheme } from '@/lib/AppContext';
+import { useLocation, useTheme } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
-import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const screenHeight = Dimensions.get('window').height;
 
+function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
 export default function AllEventsMapScreen() {
   const { isDark, colors } = useTheme();
+  const { userLocation } = useLocation(); // ← од Context, без GPS чекање
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userLocation, setUserLocation] = useState<any>(null);
   const [mapError, setMapError] = useState(false);
 
-  useEffect(() => { fetchLocationAndEvents(); }, []);
+  useEffect(() => {
+    if (userLocation) fetchEvents();
+  }, [userLocation]);
 
-  async function fetchLocationAndEvents() {
+  async function fetchEvents() {
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') { Alert.alert('Permission denied', 'Location permission is needed'); setLoading(false); return; }
-      const loc = await Location.getCurrentPositionAsync({});
-      setUserLocation(loc.coords);
-      const { data, error } = await supabase.from('events').select('*').eq('status', 'active').order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+
       if (error) { Alert.alert('Error', error.message); setLoading(false); return; }
+
       const filtered = (data || []).filter((event: any) => {
         if (!event.latitude || !event.longitude) return false;
-        const R = 6371;
-        const dLat = (event.latitude - loc.coords.latitude) * Math.PI / 180;
-        const dLon = (event.longitude - loc.coords.longitude) * Math.PI / 180;
-        const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(loc.coords.latitude*Math.PI/180)*Math.cos(event.latitude*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)) <= 20;
+        return getDistanceKm(userLocation!.latitude, userLocation!.longitude, event.latitude, event.longitude) <= 20;
       });
+
       setEvents(filtered);
     } catch (e) {
       setMapError(true);
@@ -40,7 +48,11 @@ export default function AllEventsMapScreen() {
     setLoading(false);
   }
 
-  if (loading) return <View style={[styles.centered, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}><ActivityIndicator size="large" color="#1D9E75" /></View>;
+  if (loading) return (
+    <View style={[styles.centered, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}>
+      <ActivityIndicator size="large" color="#1D9E75" />
+    </View>
+  );
 
   if (mapError) return (
     <View style={[styles.centered, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}>

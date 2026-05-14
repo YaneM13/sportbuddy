@@ -1,8 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Language, translations } from './translations';
 
 export type Theme = 'dark' | 'light';
+
+interface UserLocation {
+  latitude: number;
+  longitude: number;
+  fetchedAt: number;
+}
 
 interface AppContextType {
   isDark: boolean;
@@ -11,13 +18,20 @@ interface AppContextType {
   currentLanguage: Language;
   t: (key: string) => string;
   setLanguage: (lang: Language) => void;
+  userLocation: UserLocation | null;
+  locationLoading: boolean;
+  refreshLocation: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType>({} as AppContextType);
 
+const LOCATION_CACHE_MS = 5 * 60 * 1000; // 5 минути
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('dark');
   const [language, setLanguageState] = useState<Language>('en');
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -29,7 +43,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {}
     }
     load();
+    fetchLocation();
   }, []);
+
+  async function fetchLocation() {
+    // Ако локацијата е помлада од 5 минути, не бараме повторно
+    if (userLocation && Date.now() - userLocation.fetchedAt < LOCATION_CACHE_MS) return;
+
+    setLocationLoading(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') { setLocationLoading(false); return; }
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced, // Побрзо од High на Android
+      });
+      setUserLocation({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+        fetchedAt: Date.now(),
+      });
+    } catch (e) {}
+    setLocationLoading(false);
+  }
 
   async function setTheme(t: Theme) {
     setThemeState(t);
@@ -64,7 +99,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AppContext.Provider value={{ isDark, colors, setTheme, currentLanguage: language, t, setLanguage }}>
+    <AppContext.Provider value={{
+      isDark, colors, setTheme,
+      currentLanguage: language, t, setLanguage,
+      userLocation, locationLoading, refreshLocation: fetchLocation,
+    }}>
       {children}
     </AppContext.Provider>
   );
@@ -78,4 +117,9 @@ export function useTheme() {
 export function useLanguage() {
   const { t, currentLanguage, setLanguage } = useContext(AppContext);
   return { t, currentLanguage, setLanguage };
+}
+
+export function useLocation() {
+  const { userLocation, locationLoading, refreshLocation } = useContext(AppContext);
+  return { userLocation, locationLoading, refreshLocation };
 }

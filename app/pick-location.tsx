@@ -1,30 +1,18 @@
+import { useLocation } from '@/lib/AppContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function PickLocationScreen() {
-  const [userLocation, setUserLocation] = useState<any>(null);
+  const { userLocation, locationLoading } = useLocation(); // ← од Context, без GPS чекање
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [selectedAddress, setSelectedAddress] = useState('');
-  const [loading, setLoading] = useState(true);
   const [geocoding, setGeocoding] = useState(false);
   const mapRef = useRef<any>(null);
   const insets = useSafeAreaInsets();
-
-  useEffect(() => { fetchLocation(); }, []);
-
-  async function fetchLocation() {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status === 'granted') {
-      const loc = await Location.getCurrentPositionAsync({});
-      setUserLocation(loc.coords);
-    }
-    setLoading(false);
-  }
 
   async function reverseGeocode(lat: number, lon: number) {
     setGeocoding(true);
@@ -57,7 +45,7 @@ export default function PickLocationScreen() {
     router.back();
   }
 
-  if (loading) {
+  if (locationLoading) {
     return <View style={styles.centered}><ActivityIndicator size="large" color="#1D9E75" /></View>;
   }
 

@@ -1,7 +1,6 @@
-import { useLanguage, useTheme } from '@/lib/AppContext';
+import { useLanguage, useLocation, useTheme } from '@/lib/AppContext';
 import { sendPushNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
-import * as Location from 'expo-location';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -24,12 +23,12 @@ const categoryColors: any = {
 export default function EventsBySportScreen() {
   const { t } = useLanguage();
   const { isDark, colors } = useTheme();
+  const { userLocation } = useLocation(); // ← од Context, без GPS чекање
   const { sport, category } = useLocalSearchParams();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [userLocation, setUserLocation] = useState<any>(null);
   const [participantStatuses, setParticipantStatuses] = useState<{ [key: string]: string }>({});
 
   const catColors = categoryColors[category as string] || { light: { bg: '#F1EFE8', text: '#444441' }, dark: { bg: 'rgba(30,45,61,0.8)', text: '#888' } };
@@ -37,33 +36,18 @@ export default function EventsBySportScreen() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
-    fetchLocationAndEvents();
   }, []);
 
+  // Кога се вчитува локацијата или екранот добива фокус - земи евенти
+  useEffect(() => {
+    if (userLocation) fetchEvents();
+  }, [userLocation]);
+
   useFocusEffect(useCallback(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        supabase.from('event_participants')
-          .select('event_id, status')
-          .eq('user_id', session.user.id)
-          .then(({ data: participants }) => {
-            const statusMap: { [key: string]: string } = {};
-            (participants || []).forEach((p: any) => { statusMap[p.event_id] = p.status; });
-            setParticipantStatuses(statusMap);
-          });
-      }
-    });
-  }, []));
+    if (userLocation) fetchEvents();
+  }, [userLocation]));
 
-  async function fetchLocationAndEvents() {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') { setLoading(false); return; }
-    const loc = await Location.getCurrentPositionAsync({});
-    setUserLocation(loc.coords);
-    await fetchEvents(loc.coords);
-  }
-
-  async function fetchEvents(coords?: any) {
+  async function fetchEvents() {
     const { data, error } = await supabase
       .from('events')
       .select('*')
@@ -78,12 +62,11 @@ export default function EventsBySportScreen() {
       return;
     }
 
-    const currentCoords = coords || userLocation;
     let filtered = data || [];
-    if (currentCoords) {
+    if (userLocation) {
       filtered = filtered.filter((event: any) => {
         if (!event.latitude || !event.longitude) return true;
-        return getDistanceKm(currentCoords.latitude, currentCoords.longitude, event.latitude, event.longitude) <= 20;
+        return getDistanceKm(userLocation.latitude, userLocation.longitude, event.latitude, event.longitude) <= 20;
       });
     }
 

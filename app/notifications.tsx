@@ -54,8 +54,10 @@ export default function NotificationsScreen() {
   }, [userId]);
 
   useFocusEffect(useCallback(() => {
-    if (userId) fetchNotifications(userId);
-  }, [userId]));
+  if (userId && !joinRequests.length && !messages.length) {
+    fetchNotifications(userId);
+  }
+}, [userId]));
 
   async function fetchNotifications(uid?: string) {
     const id = uid || userId;
