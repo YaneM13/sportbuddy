@@ -17,7 +17,8 @@
       },
       "env": {
         "APP_VARIANT": "dev",
-        "EXPO_PUBLIC_APP_VARIANT": "dev"
+        "EXPO_PUBLIC_APP_VARIANT": "dev",
+        "GOOGLE_MAPS_API_KEY": "AIzaSyCtgU5nv9hJFrZXMundys1mxM5zDqowVoA"
       }
     },
     "preview": {

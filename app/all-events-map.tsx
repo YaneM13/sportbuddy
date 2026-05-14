@@ -3,7 +3,7 @@ import { useLocation, useTheme } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const screenHeight = Dimensions.get('window').height;
 
@@ -46,20 +46,42 @@ export default function AllEventsMapScreen() {
 
   async function fetchEvents() {
   try {
+    if (!userLocation) return;
+    
     const { data, error } = await supabase
       .rpc('get_events_within_radius', {
-        user_lat: userLocation!.latitude,
-        user_lon: userLocation!.longitude,
+        user_lat: userLocation.latitude,
+        user_lon: userLocation.longitude,
         radius_km: 20,
         sport_filter: null,
         category_filter: null,
       });
 
-    if (error) { Alert.alert('Error', error.message); setLoading(false); return; }
+    if (error) {
+      console.log('RPC Error:', error);
+      // Fallback на стар начин ако функцијата не постои
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('events')
+        .select('id, title, sport, category, location, latitude, longitude')
+        .eq('status', 'active');
+
+      if (fallbackError) { setMapError(true); setLoading(false); return; }
+
+      const filtered = (fallbackData || []).filter((event: any) => {
+        if (!event.latitude || !event.longitude) return false;
+        return getDistanceKm(userLocation.latitude, userLocation.longitude, event.latitude, event.longitude) <= 20;
+      });
+
+      setAllEvents(filtered);
+      setFilteredEvents(filtered.filter(e => e.category === selectedCategory));
+      setLoading(false);
+      return;
+    }
 
     setAllEvents(data || []);
-    setFilteredEvents(data || []);
+    setFilteredEvents((data || []).filter((e: any) => e.category === selectedCategory));
   } catch (e) {
+    console.log('Map error:', e);
     setMapError(true);
   }
   setLoading(false);
