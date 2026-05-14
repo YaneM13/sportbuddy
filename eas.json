@@ -16,7 +16,8 @@
         "buildType": "apk"
       },
       "env": {
-        "APP_VARIANT": "dev"
+        "APP_VARIANT": "dev",
+        "EXPO_PUBLIC_APP_VARIANT": "dev"
       }
     },
     "preview": {
