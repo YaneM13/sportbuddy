@@ -52,12 +52,12 @@ export async function savePushToken(token: string) {
   });
 }
 
+// Испраќа една нотификација
 export async function sendPushNotification(token: string, title: string, body: string) {
-  await fetch('https://exp.host/--/api/v2/push/send', {
+  // Не чека одговор — fire and forget
+  fetch('https://exp.host/--/api/v2/push/send', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       to: token,
       title,
@@ -65,5 +65,37 @@ export async function sendPushNotification(token: string, title: string, body: s
       sound: 'default',
       channelId: 'default',
     }),
-  });
+  }).catch(() => {}); // Игнорирај грешки — нотификациите не се критични
+}
+
+// Испраќа повеќе нотификации одеднаш (batch)
+export async function sendPushNotificationsBatch(
+  tokens: string[],
+  title: string,
+  body: string
+) {
+  if (tokens.length === 0) return;
+
+  // Expo дозволува максимум 100 нотификации по барање
+  const chunks = [];
+  for (let i = 0; i < tokens.length; i += 100) {
+    chunks.push(tokens.slice(i, i + 100));
+  }
+
+  for (const chunk of chunks) {
+    const messages = chunk.map(token => ({
+      to: token,
+      title,
+      body,
+      sound: 'default',
+      channelId: 'default',
+    }));
+
+    // Fire and forget — не чека одговор
+    fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(messages),
+    }).catch(() => {});
+  }
 }

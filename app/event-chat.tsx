@@ -1,5 +1,5 @@
 import { useTheme } from '@/lib/AppContext';
-import { sendPushNotification } from '@/lib/notifications';
+import { sendPushNotificationsBatch } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -88,23 +88,32 @@ export default function EventChatScreen() {
 
     if (!participants) return;
 
-    for (const participant of participants) {
-      await supabase.from('notifications').insert({
-        user_id: participant.user_id,
-        event_id: event_id,
-        message: `${senderName} sent a message in ${event_title}: "${msg.substring(0, 50)}${msg.length > 50 ? '...' : ''}"`,
-      });
+    const notifications = participants.map(p => ({
+      user_id: p.user_id,
+      event_id: event_id,
+      message: `${senderName} sent a message in ${event_title}: "${msg.substring(0, 50)}${msg.length > 50 ? '...' : ''}"`,
+    }));
 
-      await fetchProfileIfNeeded(participant.user_id);
-      const profile = profilesRef.current[participant.user_id];
-      if (profile?.push_token) {
-        await sendPushNotification(
-          profile.push_token,
-          `💬 ${event_title}`,
-          `${senderName}: ${msg.substring(0, 100)}`
-        );
-      }
+    if (notifications.length > 0) {
+      await supabase.from('notifications').insert(notifications);
     }
+
+    const userIds = participants.map(p => p.user_id);
+    const { data: profilesData } = await supabase
+      .from('profiles')
+      .select('push_token')
+      .in('id', userIds)
+      .not('push_token', 'is', null);
+
+    const tokens = (profilesData || [])
+      .map((p: any) => p.push_token)
+      .filter(Boolean);
+
+    sendPushNotificationsBatch(
+      tokens,
+      `💬 ${event_title}`,
+      `${senderName}: ${msg.substring(0, 100)}`
+    );
   }
 
   async function handleSend() {
