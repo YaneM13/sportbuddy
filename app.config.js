@@ -1,17 +1,19 @@
 import 'dotenv/config';
 
+const IS_DEV = process.env.APP_VARIANT === 'dev';
+
 export default {
   expo: {
-    name: "SportBuddy",
+    name: IS_DEV ? "SportBuddy Dev" : "SportBuddy",
     slug: "SportBuddy",
     version: "1.0.7",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
-    scheme: "sportbuddy",
+    scheme: IS_DEV ? "sportbuddydev" : "sportbuddy",
     userInterfaceStyle: "automatic",
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.yane31.SportBuddy",
+      bundleIdentifier: IS_DEV ? "com.yane31.SportBuddyDev" : "com.yane31.SportBuddy",
       usesAppleSignIn: true,
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -37,16 +39,16 @@ export default {
         {
           action: "VIEW",
           autoVerify: true,
-          data: [{ scheme: "sportbuddy" }],
+          data: [{ scheme: IS_DEV ? "sportbuddydev" : "sportbuddy" }],
           category: ["BROWSABLE", "DEFAULT"]
         }
       ],
       adaptiveIcon: {
         foregroundImage: "./assets/images/android-icon.png",
-        backgroundColor: "#1D9E75"
+        backgroundColor: IS_DEV ? "#E85D04" : "#1D9E75"
       },
       predictiveBackGestureEnabled: false,
-      package: "com.yane31.SportBuddy"
+      package: IS_DEV ? "com.yane31.SportBuddyDev" : "com.yane31.SportBuddy"
     },
     web: {
       output: "single",
@@ -60,8 +62,8 @@ export default {
           image: "./assets/images/icon.png",
           imageWidth: 200,
           resizeMode: "contain",
-          backgroundColor: "#0F1923",
-          dark: { backgroundColor: "#0F1923" }
+          backgroundColor: IS_DEV ? "#E85D04" : "#0F1923",
+          dark: { backgroundColor: IS_DEV ? "#E85D04" : "#0F1923" }
         }
       ],
       "@react-native-community/datetimepicker",

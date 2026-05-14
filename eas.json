@@ -9,6 +9,16 @@
       "distribution": "internal",
       "channel": "development"
     },
+    "dev": {
+      "distribution": "internal",
+      "channel": "dev",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "dev"
+      }
+    },
     "preview": {
       "distribution": "internal",
       "channel": "preview"
