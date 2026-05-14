@@ -5,7 +5,7 @@ const IS_DEV = process.env.APP_VARIANT === 'dev';
 export default {
   expo: {
     name: IS_DEV ? "SportBuddy Dev" : "SportBuddy",
-    slug: "SportBuddy",
+    slug: IS_DEV ? "sportbuddy-dev" : "SportBuddy",
     version: "1.0.7",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
