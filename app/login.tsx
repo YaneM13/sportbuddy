@@ -90,13 +90,10 @@ export default function LoginScreen() {
 
   const { checks, passed } = getPasswordStrength(password);
 
-  useEffect(() => {
+ useEffect(() => {
   if (GoogleSignin) {
-    const IS_DEV = process.env.EXPO_PUBLIC_APP_VARIANT === 'dev';
     GoogleSignin.configure({
-      webClientId: IS_DEV
-        ? '657761128514-l5o8gvpjfe3re1tu06tbq4u608ccie1c.apps.googleusercontent.com' // Dev Android Client ID
-        : '657761128514-l1ftdeql01ptbcr1r5dgktchur2gimva.apps.googleusercontent.com', // Production Web Client ID
+      webClientId: '657761128514-l1ftdeql01ptbcr1r5dgktchur2gimva.apps.googleusercontent.com',
       iosClientId: '657761128514-mgb5fbea2sv790f3gir1qrljb6a10j11.apps.googleusercontent.com',
     });
   }
