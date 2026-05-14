@@ -83,7 +83,9 @@ export default {
     extra: {
       router: {},
       eas: {
-        projectId: "e7709b1f-aabd-49a4-86c9-f6c7ae3b16db"
+        projectId: IS_DEV
+          ? '0936013b-5797-45ac-b1cb-6f6e3134d385'
+          : 'e7709b1f-aabd-49a4-86c9-f6c7ae3b16db'
       }
     },
     owner: "yane31",
@@ -91,7 +93,9 @@ export default {
       policy: "appVersion"
     },
     updates: {
-      url: "https://u.expo.dev/e7709b1f-aabd-49a4-86c9-f6c7ae3b16db"
+      url: IS_DEV
+        ? "https://u.expo.dev/0936013b-5797-45ac-b1cb-6f6e3134d385"
+        : "https://u.expo.dev/e7709b1f-aabd-49a4-86c9-f6c7ae3b16db"
     }
   }
 };
