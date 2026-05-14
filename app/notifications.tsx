@@ -19,7 +19,6 @@ export default function NotificationsScreen() {
     async function init() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
-
       setUserId(session.user.id);
       await fetchNotifications(session.user.id);
     }
@@ -29,13 +28,23 @@ export default function NotificationsScreen() {
   useEffect(() => {
     if (!userId) return;
 
-    const subscription = supabase.channel(`notifications-${userId}-${Date.now()}`)
+    const channelName = `notifications-${userId}`;
+    supabase.removeChannel(supabase.channel(channelName));
+
+    const subscription = supabase.channel(channelName)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'notifications',
         filter: `user_id=eq.${userId}`
-      }, () => { fetchNotifications(userId); })
+      }, (payload) => {
+        const newNotif = payload.new as any;
+        if (newNotif.participant_id) {
+          setJoinRequests(prev => [newNotif, ...prev]);
+        } else {
+          setMessages(prev => [newNotif, ...prev]);
+        }
+      })
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
@@ -47,17 +56,19 @@ export default function NotificationsScreen() {
         schema: 'public',
         table: 'admin_messages',
         filter: `to_user_id=eq.${userId}`
-      }, () => { fetchNotifications(userId); })
+      }, (payload) => {
+        setAdminMessages(prev => [payload.new as any, ...prev]);
+      })
       .subscribe();
 
-    return () => { subscription.unsubscribe(); };
+    return () => { supabase.removeChannel(subscription); };
   }, [userId]);
 
   useFocusEffect(useCallback(() => {
-  if (userId && !joinRequests.length && !messages.length) {
-    fetchNotifications(userId);
-  }
-}, [userId]));
+    if (userId && !joinRequests.length && !messages.length) {
+      fetchNotifications(userId);
+    }
+  }, [userId]));
 
   async function fetchNotifications(uid?: string) {
     const id = uid || userId;

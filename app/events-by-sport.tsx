@@ -2,8 +2,10 @@ import { useLanguage, useLocation, useTheme } from '@/lib/AppContext';
 import { sendPushNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+const PAGE_SIZE = 20;
 
 function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
@@ -23,13 +25,16 @@ const categoryColors: any = {
 export default function EventsBySportScreen() {
   const { t } = useLanguage();
   const { isDark, colors } = useTheme();
-  const { userLocation } = useLocation(); // ← од Context, без GPS чекање
+  const { userLocation } = useLocation();
   const { sport, category } = useLocalSearchParams();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [participantStatuses, setParticipantStatuses] = useState<{ [key: string]: string }>({});
+  const pageRef = useRef(0);
 
   const catColors = categoryColors[category as string] || { light: { bg: '#F1EFE8', text: '#444441' }, dark: { bg: 'rgba(30,45,61,0.8)', text: '#888' } };
   const color = isDark ? catColors.dark : catColors.light;
@@ -38,49 +43,71 @@ export default function EventsBySportScreen() {
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
   }, []);
 
-  // Кога се вчитува локацијата или екранот добива фокус - земи евенти
   useEffect(() => {
-    if (userLocation) fetchEvents();
+    if (userLocation) fetchEvents(true);
   }, [userLocation]);
 
   useFocusEffect(useCallback(() => {
-    if (userLocation) fetchEvents();
+    if (userLocation) fetchEvents(true);
   }, [userLocation]));
 
-  async function fetchEvents() {
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('sport', sport)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false });
+  async function fetchEvents(reset = false) {
+  if (reset) {
+    pageRef.current = 0;
+    setHasMore(true);
+  }
 
-    if (error) {
-      setEvents([]);
-      setLoading(false);
-      setRefreshing(false);
-      return;
-    }
+  const from = pageRef.current * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
 
-    let filtered = data || [];
-    if (userLocation) {
-      filtered = filtered.filter((event: any) => {
-        if (!event.latitude || !event.longitude) return true;
-        return getDistanceKm(userLocation.latitude, userLocation.longitude, event.latitude, event.longitude) <= 20;
-      });
-    }
+  const { data, error } = await supabase
+    .rpc('get_events_within_radius', {
+      user_lat: userLocation!.latitude,
+      user_lon: userLocation!.longitude,
+      radius_km: 20,
+      sport_filter: sport as string,
+      category_filter: null,
+    })
+    .range(from, to);
 
-    setEvents(filtered);
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      const { data: participants } = await supabase.from('event_participants').select('event_id, status').eq('user_id', session.user.id);
-      const statusMap: { [key: string]: string } = {};
-      (participants || []).forEach((p: any) => { statusMap[p.event_id] = p.status; });
-      setParticipantStatuses(statusMap);
-    }
+  if (error) {
+    setEvents([]);
     setLoading(false);
     setRefreshing(false);
+    return;
+  }
+
+  const filtered = data || [];
+
+  if (reset) {
+    setEvents(filtered);
+  } else {
+    setEvents(prev => [...prev, ...filtered]);
+  }
+
+  if (filtered.length < PAGE_SIZE) setHasMore(false);
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    const { data: participants } = await supabase
+      .from('event_participants')
+      .select('event_id, status')
+      .eq('user_id', session.user.id);
+    const statusMap: { [key: string]: string } = {};
+    (participants || []).forEach((p: any) => { statusMap[p.event_id] = p.status; });
+    setParticipantStatuses(statusMap);
+  }
+
+  setLoading(false);
+  setRefreshing(false);
+  setLoadingMore(false);
+}
+
+  async function loadMore() {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    pageRef.current += 1;
+    await fetchEvents(false);
   }
 
   async function handleJoin(eventId: string, createdBy: string) {
@@ -125,7 +152,13 @@ export default function EventsBySportScreen() {
     <ScrollView
       style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchEvents(); }} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchEvents(true); }} />}
+      onScroll={({ nativeEvent }) => {
+        const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+        const isNearBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 200;
+        if (isNearBottom) loadMore();
+      }}
+      scrollEventThrottle={400}
     >
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
         <Text style={[styles.backText, { color: colors.accent }]}>{t('back')}</Text>
@@ -172,6 +205,17 @@ export default function EventsBySportScreen() {
           </TouchableOpacity>
         );
       })}
+
+      {loadingMore && (
+        <View style={styles.loadingMore}>
+          <ActivityIndicator size="small" color="#1D9E75" />
+        </View>
+      )}
+
+      {!hasMore && events.length > 0 && (
+        <Text style={[styles.noMore, { color: colors.textSecondary }]}>No more events</Text>
+      )}
+
     </ScrollView>
   );
 }
@@ -211,4 +255,6 @@ const styles = StyleSheet.create({
   fullBtnText: { color: '#E24B4A', fontWeight: 'bold', fontSize: 14 },
   editBtn: { backgroundColor: '#EEEDFE', padding: 12, borderRadius: 12, alignItems: 'center' },
   editBtnText: { color: '#534AB7', fontWeight: 'bold', fontSize: 14 },
+  loadingMore: { alignItems: 'center', paddingVertical: 16 },
+  noMore: { textAlign: 'center', fontSize: 13, paddingVertical: 16 },
 });

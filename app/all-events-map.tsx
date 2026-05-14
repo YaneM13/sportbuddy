@@ -3,9 +3,16 @@ import { useLocation, useTheme } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const screenHeight = Dimensions.get('window').height;
+
+const CATEGORIES = [
+  { id: 'team', label: '👥 Team' },
+  { id: 'individual', label: '🏃 Individual' },
+  { id: 'water', label: '🌊 Water' },
+  { id: 'watch', label: '🏟️ Watch' },
+];
 
 function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
@@ -17,8 +24,10 @@ function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
 
 export default function AllEventsMapScreen() {
   const { isDark, colors } = useTheme();
-  const { userLocation } = useLocation(); // ← од Context, без GPS чекање
-  const [events, setEvents] = useState<any[]>([]);
+  const { userLocation } = useLocation();
+  const [allEvents, setAllEvents] = useState<any[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('team');
   const [loading, setLoading] = useState(true);
   const [mapError, setMapError] = useState(false);
 
@@ -26,27 +35,35 @@ export default function AllEventsMapScreen() {
     if (userLocation) fetchEvents();
   }, [userLocation]);
 
+  // Филтрирај кога се менува категоријата
+  useEffect(() => {
+    if (selectedCategory === null) {
+      setFilteredEvents(allEvents);
+    } else {
+      setFilteredEvents(allEvents.filter(e => e.category === selectedCategory));
+    }
+  }, [selectedCategory, allEvents]);
+
   async function fetchEvents() {
-    try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .eq('status', 'active')
-        .order('created_at', { ascending: false });
-
-      if (error) { Alert.alert('Error', error.message); setLoading(false); return; }
-
-      const filtered = (data || []).filter((event: any) => {
-        if (!event.latitude || !event.longitude) return false;
-        return getDistanceKm(userLocation!.latitude, userLocation!.longitude, event.latitude, event.longitude) <= 20;
+  try {
+    const { data, error } = await supabase
+      .rpc('get_events_within_radius', {
+        user_lat: userLocation!.latitude,
+        user_lon: userLocation!.longitude,
+        radius_km: 20,
+        sport_filter: null,
+        category_filter: null,
       });
 
-      setEvents(filtered);
-    } catch (e) {
-      setMapError(true);
-    }
-    setLoading(false);
+    if (error) { Alert.alert('Error', error.message); setLoading(false); return; }
+
+    setAllEvents(data || []);
+    setFilteredEvents(data || []);
+  } catch (e) {
+    setMapError(true);
   }
+  setLoading(false);
+}
 
   if (loading) return (
     <View style={[styles.centered, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}>
@@ -72,13 +89,43 @@ export default function AllEventsMapScreen() {
           <Text style={[styles.backText, { color: colors.accent }]}>← Back</Text>
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.accent }]}>All events on map</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{events.length} events within 20km</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          {filteredEvents.length} events within 20km
+        </Text>
+
+        {/* Филтер копчиња */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterScroll}
+          contentContainerStyle={styles.filterContainer}
+        >
+          {CATEGORIES.map((cat) => (
+            <TouchableOpacity
+              key={String(cat.id)}
+              style={[
+                styles.filterBtn,
+                { borderColor: colors.cardBorder, backgroundColor: isDark ? '#1E2D3D' : '#fff' },
+                selectedCategory === cat.id && styles.filterBtnActive
+              ]}
+              onPress={() => setSelectedCategory(cat.id)}
+            >
+              <Text style={[
+                styles.filterBtnText,
+                { color: colors.textSecondary },
+                selectedCategory === cat.id && styles.filterBtnTextActive
+              ]}>
+                {cat.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {userLocation && !mapError && (
         <View style={[styles.mapContainer, { borderColor: colors.cardBorder }]}>
           <EventMap
-            events={events}
+            events={filteredEvents}
             userLatitude={userLocation.latitude}
             userLongitude={userLocation.longitude}
           />
@@ -95,6 +142,12 @@ const styles = StyleSheet.create({
   backBtn: { marginBottom: 16 },
   backText: { fontSize: 17, fontWeight: '500' },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 4 },
-  subtitle: { fontSize: 14 },
-  mapContainer: { height: screenHeight - 200, margin: 16, borderRadius: 16, overflow: 'hidden', borderWidth: 0.5 },
+  subtitle: { fontSize: 14, marginBottom: 12 },
+  filterScroll: { marginTop: 8 },
+  filterContainer: { gap: 8, paddingBottom: 4 },
+  filterBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1 },
+  filterBtnActive: { backgroundColor: '#1D9E75', borderColor: '#1D9E75' },
+  filterBtnText: { fontSize: 13, fontWeight: '500' },
+  filterBtnTextActive: { color: '#fff' },
+  mapContainer: { height: screenHeight - 240, margin: 16, borderRadius: 16, overflow: 'hidden', borderWidth: 0.5 },
 });
