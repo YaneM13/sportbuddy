@@ -81,14 +81,19 @@ export default function EventChatScreen() {
 
     const { data: participants } = await supabase
       .from('event_participants')
-      .select('user_id')
+      .select('user_id, chat_notified')
       .eq('event_id', event_id)
       .eq('status', 'approved')
       .neq('user_id', currentUser.id);
 
     if (!participants) return;
 
-    const notifications = participants.map(p => ({
+    // Само корисници кои НИКОГАШ не добиле нотификација за овој чат
+    const toNotify = participants.filter(p => !p.chat_notified);
+
+    if (toNotify.length === 0) return; // Сите веќе добиле — стоп!
+
+    const notifications = toNotify.map(p => ({
       user_id: p.user_id,
       event_id: event_id,
       message: `${senderName} sent a message in ${event_title}: "${msg.substring(0, 50)}${msg.length > 50 ? '...' : ''}"`,
@@ -98,7 +103,7 @@ export default function EventChatScreen() {
       await supabase.from('notifications').insert(notifications);
     }
 
-    const userIds = participants.map(p => p.user_id);
+    const userIds = toNotify.map(p => p.user_id);
     const { data: profilesData } = await supabase
       .from('profiles')
       .select('push_token')
@@ -114,6 +119,13 @@ export default function EventChatScreen() {
       `💬 ${event_title}`,
       `${senderName}: ${msg.substring(0, 100)}`
     );
+
+    // Означи дека добиле нотификација — никогаш повеќе
+    await supabase
+      .from('event_participants')
+      .update({ chat_notified: true })
+      .in('user_id', userIds)
+      .eq('event_id', event_id);
   }
 
   async function handleSend() {
