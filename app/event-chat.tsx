@@ -121,11 +121,13 @@ export default function EventChatScreen() {
     );
 
     // Означи дека добиле нотификација — никогаш повеќе
-    await supabase
-      .from('event_participants')
-      .update({ chat_notified: true })
-      .in('user_id', userIds)
-      .eq('event_id', event_id);
+    for (const uid of userIds) {
+  await supabase
+    .from('event_participants')
+    .update({ chat_notified: true })
+    .eq('user_id', uid)
+    .eq('event_id', event_id);
+}
   }
 
   async function handleSend() {
