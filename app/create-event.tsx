@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Calendar } from 'react-native-calendars';
 
 const sportsByCategory: any = {
   team: ['Football', 'Basketball', 'Basketball 3x3', 'Volleyball', 'Beach Volleyball', 'Rugby', 'Cricket', 'Handball'],
@@ -23,49 +24,44 @@ function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-function TimePickerModal({ visible, value, onConfirm, onCancel, isDark, colors, title }: any) {
-  const [selectedHour, setSelectedHour] = useState(value.getHours().toString().padStart(2, '0'));
-  const [selectedMinute, setSelectedMinute] = useState(
-    MINUTES.reduce((prev, curr) =>
-      Math.abs(parseInt(curr) - value.getMinutes()) < Math.abs(parseInt(prev) - value.getMinutes()) ? curr : prev
-    )
-  );
+function CalendarModal({ visible, value, onConfirm, onCancel, isDark, colors, title, minDate }: any) {
+  const toCalendarDate = (d: Date) => `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
+  const [selected, setSelected] = useState(toCalendarDate(value));
+
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.timeModalOverlay}>
-        <View style={[styles.timeModalContent, { backgroundColor: isDark ? '#1E2D3D' : '#fff' }]}>
-          <Text style={[styles.timeModalTitle, { color: colors.text }]}>{title}</Text>
-          <View style={styles.timePickerRow}>
-            <View style={styles.timeColumn}>
-              <Text style={[styles.timeColumnLabel, { color: colors.textSecondary }]}>Hour</Text>
-              <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
-                {HOURS.map((h) => (
-                  <TouchableOpacity key={h} style={[styles.timeItem, selectedHour === h && { backgroundColor: colors.accent, borderRadius: 8 }]} onPress={() => setSelectedHour(h)}>
-                    <Text style={[styles.timeItemText, { color: selectedHour === h ? '#fff' : colors.text }]}>{h}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-            <Text style={[styles.timeColon, { color: colors.text }]}>:</Text>
-            <View style={styles.timeColumn}>
-              <Text style={[styles.timeColumnLabel, { color: colors.textSecondary }]}>Min</Text>
-              <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
-                {MINUTES.map((m) => (
-                  <TouchableOpacity key={m} style={[styles.timeItem, selectedMinute === m && { backgroundColor: colors.accent, borderRadius: 8 }]} onPress={() => setSelectedMinute(m)}>
-                    <Text style={[styles.timeItemText, { color: selectedMinute === m ? '#fff' : colors.text }]}>{m}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          </View>
-          <View style={styles.timeModalButtons}>
-            <TouchableOpacity style={[styles.timeModalBtn, { borderColor: colors.cardBorder }]} onPress={onCancel}>
-              <Text style={[styles.timeModalBtnText, { color: colors.textSecondary }]}>Cancel</Text>
+      <View style={styles.modalOverlay}>
+        <View style={[styles.calendarContent, { backgroundColor: isDark ? '#1E2D3D' : '#fff' }]}>
+          <Text style={[styles.modalTitle, { color: colors.text }]}>{title}</Text>
+          <Calendar
+            current={selected}
+            minDate={minDate || toCalendarDate(new Date())}
+            onDayPress={(day: any) => setSelected(day.dateString)}
+            markedDates={{
+              [selected]: { selected: true, selectedColor: '#1D9E75' }
+            }}
+            theme={{
+              backgroundColor: isDark ? '#1E2D3D' : '#fff',
+              calendarBackground: isDark ? '#1E2D3D' : '#fff',
+              textSectionTitleColor: colors.textSecondary,
+              selectedDayBackgroundColor: '#1D9E75',
+              selectedDayTextColor: '#fff',
+              todayTextColor: '#1D9E75',
+              dayTextColor: colors.text,
+              textDisabledColor: isDark ? '#3A4D5C' : '#d0d0d0',
+              monthTextColor: colors.text,
+              arrowColor: '#1D9E75',
+            }}
+          />
+          <View style={styles.modalButtons}>
+            <TouchableOpacity style={[styles.modalBtn, { borderColor: colors.cardBorder, borderWidth: 1 }]} onPress={onCancel}>
+              <Text style={[styles.modalBtnText, { color: colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.timeModalBtn, { backgroundColor: colors.accent }]} onPress={() => {
-              const d = new Date(); d.setHours(parseInt(selectedHour), parseInt(selectedMinute), 0); onConfirm(d);
+            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#1D9E75' }]} onPress={() => {
+              const [y, m, d] = selected.split('-').map(Number);
+              onConfirm(new Date(y, m - 1, d));
             }}>
-              <Text style={[styles.timeModalBtnText, { color: '#fff' }]}>Confirm</Text>
+              <Text style={[styles.modalBtnText, { color: '#fff' }]}>Confirm</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -74,56 +70,73 @@ function TimePickerModal({ visible, value, onConfirm, onCancel, isDark, colors, 
   );
 }
 
-function DatePickerModal({ visible, value, onConfirm, onCancel, isDark, colors, title }: any) {
-  const [selectedDay, setSelectedDay] = useState(value.getDate().toString().padStart(2, '0'));
-  const [selectedMonth, setSelectedMonth] = useState((value.getMonth() + 1).toString().padStart(2, '0'));
-  const [selectedYear, setSelectedYear] = useState(value.getFullYear());
+function TimePickerModal({ visible, value, onConfirm, onCancel, isDark, colors, title }: any) {
+  const [selectedHour, setSelectedHour] = useState(value.getHours().toString().padStart(2, '0'));
+  const [selectedMinute, setSelectedMinute] = useState(
+    MINUTES.reduce((prev, curr) =>
+      Math.abs(parseInt(curr) - value.getMinutes()) < Math.abs(parseInt(prev) - value.getMinutes()) ? curr : prev
+    )
+  );
+
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.timeModalOverlay}>
-        <View style={[styles.timeModalContent, { backgroundColor: isDark ? '#1E2D3D' : '#fff' }]}>
-          <Text style={[styles.timeModalTitle, { color: colors.text }]}>{title}</Text>
+      <View style={styles.modalOverlay}>
+        <View style={[styles.timeContent, { backgroundColor: isDark ? '#1E2D3D' : '#fff' }]}>
+          <Text style={[styles.modalTitle, { color: colors.text }]}>{title}</Text>
+
+          {/* Поубав time picker со голем display */}
+          <View style={styles.timeDisplay}>
+            <Text style={[styles.timeDisplayText, { color: '#1D9E75' }]}>
+              {selectedHour}:{selectedMinute}
+            </Text>
+          </View>
+
           <View style={styles.timePickerRow}>
+            {/* Hours */}
             <View style={styles.timeColumn}>
-              <Text style={[styles.timeColumnLabel, { color: colors.textSecondary }]}>Day</Text>
+              <Text style={[styles.timeLabel, { color: colors.textSecondary }]}>Hour</Text>
               <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
-                {Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0')).map((d) => (
-                  <TouchableOpacity key={d} style={[styles.timeItem, selectedDay === d && { backgroundColor: colors.accent, borderRadius: 8 }]} onPress={() => setSelectedDay(d)}>
-                    <Text style={[styles.timeItemText, { color: selectedDay === d ? '#fff' : colors.text }]}>{d}</Text>
+                {HOURS.map((h) => (
+                  <TouchableOpacity
+                    key={h}
+                    style={[styles.timeItem, selectedHour === h && { backgroundColor: '#1D9E75', borderRadius: 10 }]}
+                    onPress={() => setSelectedHour(h)}
+                  >
+                    <Text style={[styles.timeItemText, { color: selectedHour === h ? '#fff' : colors.text }]}>{h}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
             </View>
+
+            <Text style={[styles.timeSeparator, { color: '#1D9E75' }]}>:</Text>
+
+            {/* Minutes */}
             <View style={styles.timeColumn}>
-              <Text style={[styles.timeColumnLabel, { color: colors.textSecondary }]}>Month</Text>
-              <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
-                {['01','02','03','04','05','06','07','08','09','10','11','12'].map((m) => (
-                  <TouchableOpacity key={m} style={[styles.timeItem, selectedMonth === m && { backgroundColor: colors.accent, borderRadius: 8 }]} onPress={() => setSelectedMonth(m)}>
-                    <Text style={[styles.timeItemText, { color: selectedMonth === m ? '#fff' : colors.text }]}>{m}</Text>
+              <Text style={[styles.timeLabel, { color: colors.textSecondary }]}>Min</Text>
+              <View style={styles.minutesGrid}>
+                {MINUTES.map((m) => (
+                  <TouchableOpacity
+                    key={m}
+                    style={[styles.minuteBtn, { borderColor: colors.cardBorder }, selectedMinute === m && { backgroundColor: '#1D9E75', borderColor: '#1D9E75' }]}
+                    onPress={() => setSelectedMinute(m)}
+                  >
+                    <Text style={[styles.minuteBtnText, { color: selectedMinute === m ? '#fff' : colors.text }]}>{m}</Text>
                   </TouchableOpacity>
                 ))}
-              </ScrollView>
-            </View>
-            <View style={styles.timeColumn}>
-              <Text style={[styles.timeColumnLabel, { color: colors.textSecondary }]}>Year</Text>
-              <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
-                {[2025, 2026, 2027].map((y) => (
-                  <TouchableOpacity key={y} style={[styles.timeItem, selectedYear === y && { backgroundColor: colors.accent, borderRadius: 8 }]} onPress={() => setSelectedYear(y)}>
-                    <Text style={[styles.timeItemText, { color: selectedYear === y ? '#fff' : colors.text }]}>{y}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+              </View>
             </View>
           </View>
-          <View style={styles.timeModalButtons}>
-            <TouchableOpacity style={[styles.timeModalBtn, { borderColor: colors.cardBorder }]} onPress={onCancel}>
-              <Text style={[styles.timeModalBtnText, { color: colors.textSecondary }]}>Cancel</Text>
+
+          <View style={styles.modalButtons}>
+            <TouchableOpacity style={[styles.modalBtn, { borderColor: colors.cardBorder, borderWidth: 1 }]} onPress={onCancel}>
+              <Text style={[styles.modalBtnText, { color: colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.timeModalBtn, { backgroundColor: colors.accent }]} onPress={() => {
-              const nd = new Date(selectedYear, parseInt(selectedMonth) - 1, parseInt(selectedDay));
-              onConfirm(nd);
+            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#1D9E75' }]} onPress={() => {
+              const d = new Date();
+              d.setHours(parseInt(selectedHour), parseInt(selectedMinute), 0);
+              onConfirm(d);
             }}>
-              <Text style={[styles.timeModalBtnText, { color: '#fff' }]}>Confirm</Text>
+              <Text style={[styles.modalBtnText, { color: '#fff' }]}>Confirm</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -135,7 +148,7 @@ function DatePickerModal({ visible, value, onConfirm, onCancel, isDark, colors, 
 export default function CreateEventScreen() {
   const { t } = useLanguage();
   const { isDark, colors } = useTheme();
-  const { userLocation } = useLocation(); // ← од Context, без GPS чекање
+  const { userLocation } = useLocation();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -157,6 +170,9 @@ export default function CreateEventScreen() {
   const [loading, setLoading] = useState(false);
   const searchTimeout = useRef<any>(null);
   const isWatchSport = category === 'watch';
+
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2,'0')}-${today.getDate().toString().padStart(2,'0')}`;
 
   const categories = [
     { id: 'team', label: t('teamSports') },
@@ -213,16 +229,31 @@ export default function CreateEventScreen() {
     if (!title || !category || !sport || !location) { Alert.alert(t('error'), 'Please fill in all fields'); return; }
     if (!isWatchSport && !players) { Alert.alert(t('error'), 'Please enter number of players'); return; }
     if (!userLocation) { Alert.alert(t('error'), 'Location not available. Please try again.'); return; }
+
+    // Валидација — не може во минато
+    const now = new Date();
+    const eventDateTime = new Date(date);
+    eventDateTime.setHours(startTime.getHours(), startTime.getMinutes());
+    if (eventDateTime <= now) {
+      Alert.alert(t('error'), 'Event cannot be in the past!');
+      return;
+    }
+
+    // Валидација — крај мора да биде по почетокот
+    const endDateTime = new Date(endDate);
+    endDateTime.setHours(endTime.getHours(), endTime.getMinutes());
+    if (endDateTime <= eventDateTime) {
+      Alert.alert(t('error'), 'End time must be after start time!');
+      return;
+    }
+
     setLoading(true);
 
     let latitude = selectedLat, longitude = selectedLon;
-
     if (!latitude || !longitude) {
-      // Ако не е избрана локација, користи ја локацијата на корисникот
       latitude = userLocation.latitude;
       longitude = userLocation.longitude;
     } else {
-      // Провери дали е во 20км радиус
       const distance = getDistanceKm(userLocation.latitude, userLocation.longitude, latitude, longitude);
       if (distance > 20) {
         Alert.alert(t('error'), 'Event location must be within 20km of your current location');
@@ -314,29 +345,37 @@ export default function CreateEventScreen() {
         )}
         {selectedLat && <View style={[styles.locationConfirmed, { backgroundColor: colors.accentLight }]}><Text style={[styles.locationConfirmedText, { color: colors.accentText }]}>{t('locationSelected')}</Text></View>}
 
+        {/* Start Date */}
         <Text style={[styles.label, { color: colors.textSecondary }]}>{t('date')}</Text>
         <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]} onPress={() => setShowDatePicker(true)}>
+          <Text style={styles.pickerIcon}>📅</Text>
           <Text style={[styles.pickerText, { color: colors.text }]}>{formatDate(date)}</Text>
         </TouchableOpacity>
-        <DatePickerModal visible={showDatePicker} value={date} title={t('date')} isDark={isDark} colors={colors} onCancel={() => setShowDatePicker(false)} onConfirm={(d: Date) => { setDate(d); setEndDate(d); setShowDatePicker(false); }} />
+        <CalendarModal visible={showDatePicker} value={date} title={t('date')} isDark={isDark} colors={colors} minDate={todayStr} onCancel={() => setShowDatePicker(false)} onConfirm={(d: Date) => { setDate(d); setEndDate(d); setShowDatePicker(false); }} />
 
+        {/* Start Time */}
         <Text style={[styles.label, { color: colors.textSecondary }]}>{t('startTime')}</Text>
         <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]} onPress={() => setShowStartTimePicker(true)}>
+          <Text style={styles.pickerIcon}>🕐</Text>
           <Text style={[styles.pickerText, { color: colors.text }]}>{formatTime(startTime)}</Text>
         </TouchableOpacity>
         <TimePickerModal visible={showStartTimePicker} value={startTime} title={t('startTime')} isDark={isDark} colors={colors} onCancel={() => setShowStartTimePicker(false)} onConfirm={(d: Date) => { setStartTime(d); setShowStartTimePicker(false); }} />
 
+        {/* End Time */}
         <Text style={[styles.label, { color: colors.textSecondary }]}>{t('endTime')}</Text>
         <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]} onPress={() => setShowEndTimePicker(true)}>
+          <Text style={styles.pickerIcon}>🕐</Text>
           <Text style={[styles.pickerText, { color: colors.text }]}>{formatTime(endTime)}</Text>
         </TouchableOpacity>
         <TimePickerModal visible={showEndTimePicker} value={endTime} title={t('endTime')} isDark={isDark} colors={colors} onCancel={() => setShowEndTimePicker(false)} onConfirm={(d: Date) => { setEndTime(d); setShowEndTimePicker(false); }} />
 
+        {/* End Date */}
         <Text style={[styles.label, { color: colors.textSecondary }]}>End Date</Text>
         <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]} onPress={() => setShowEndDatePicker(true)}>
+          <Text style={styles.pickerIcon}>📅</Text>
           <Text style={[styles.pickerText, { color: colors.text }]}>{formatDate(endDate)}</Text>
         </TouchableOpacity>
-        <DatePickerModal visible={showEndDatePicker} value={endDate} title="End Date" isDark={isDark} colors={colors} onCancel={() => setShowEndDatePicker(false)} onConfirm={(d: Date) => { setEndDate(d); setShowEndDatePicker(false); }} />
+        <CalendarModal visible={showEndDatePicker} value={endDate} title="End Date" isDark={isDark} colors={colors} minDate={`${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')}`} onCancel={() => setShowEndDatePicker(false)} onConfirm={(d: Date) => { setEndDate(d); setShowEndDatePicker(false); }} />
 
         {!isWatchSport && (
           <>
@@ -387,7 +426,8 @@ const styles = StyleSheet.create({
   suggestionText: { fontSize: 13 },
   locationConfirmed: { padding: 10, borderRadius: 10, marginBottom: 16 },
   locationConfirmedText: { fontSize: 13, fontWeight: '500' },
-  pickerBtn: { width: '100%', padding: 16, borderRadius: 12, borderWidth: 1, marginBottom: 20 },
+  pickerBtn: { width: '100%', padding: 16, borderRadius: 12, borderWidth: 1, marginBottom: 20, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  pickerIcon: { fontSize: 18 },
   pickerText: { fontSize: 15 },
   optionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
   optionBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1 },
@@ -398,17 +438,25 @@ const styles = StyleSheet.create({
   unlimitedText: { fontWeight: '500', fontSize: 14 },
   createBtn: { width: '100%', padding: 18, borderRadius: 12, backgroundColor: '#1D9E75', alignItems: 'center', marginTop: 8, marginBottom: 40 },
   createBtnText: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
-  timeModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-  timeModalContent: { width: 320, borderRadius: 20, padding: 24 },
-  timeModalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' },
-  timePickerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  // Modal styles
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 },
+  calendarContent: { width: '100%', borderRadius: 20, padding: 16 },
+  timeContent: { width: '100%', borderRadius: 20, padding: 24 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' },
+  modalButtons: { flexDirection: 'row', gap: 12, marginTop: 20 },
+  modalBtn: { flex: 1, padding: 14, borderRadius: 12, alignItems: 'center' },
+  modalBtnText: { fontSize: 15, fontWeight: '600' },
+  // Time picker styles
+  timeDisplay: { alignItems: 'center', marginBottom: 20 },
+  timeDisplayText: { fontSize: 48, fontWeight: 'bold' },
+  timePickerRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', gap: 16 },
   timeColumn: { flex: 1, alignItems: 'center' },
-  timeColumnLabel: { fontSize: 12, fontWeight: '500', marginBottom: 8 },
-  timeScroll: { height: 180 },
+  timeLabel: { fontSize: 12, fontWeight: '500', marginBottom: 8 },
+  timeScroll: { height: 160, width: '100%' },
   timeItem: { paddingVertical: 10, paddingHorizontal: 16, alignItems: 'center', marginVertical: 2 },
   timeItemText: { fontSize: 18, fontWeight: '500' },
-  timeColon: { fontSize: 24, fontWeight: 'bold', marginTop: 20 },
-  timeModalButtons: { flexDirection: 'row', gap: 12, marginTop: 20 },
-  timeModalBtn: { flex: 1, padding: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1 },
-  timeModalBtnText: { fontSize: 15, fontWeight: '600' },
+  timeSeparator: { fontSize: 32, fontWeight: 'bold', marginTop: 40 },
+  minutesGrid: { flexDirection: 'column', gap: 8, marginTop: 8 },
+  minuteBtn: { paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12, borderWidth: 1, alignItems: 'center' },
+  minuteBtnText: { fontSize: 16, fontWeight: '500' },
 });
