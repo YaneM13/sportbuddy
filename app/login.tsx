@@ -90,14 +90,14 @@ export default function LoginScreen() {
 
   const { checks, passed } = getPasswordStrength(password);
 
- useEffect(() => {
-  if (GoogleSignin) {
-    GoogleSignin.configure({
-      webClientId: '657761128514-l1ftdeql01ptbcr1r5dgktchur2gimva.apps.googleusercontent.com',
-      iosClientId: '657761128514-mgb5fbea2sv790f3gir1qrljb6a10j11.apps.googleusercontent.com',
-    });
-  }
-}, []);
+  useEffect(() => {
+    if (GoogleSignin) {
+      GoogleSignin.configure({
+        webClientId: '657761128514-l1ftdeql01ptbcr1r5dgktchur2gimva.apps.googleusercontent.com',
+        iosClientId: '657761128514-mgb5fbea2sv790f3gir1qrljb6a10j11.apps.googleusercontent.com',
+      });
+    }
+  }, []);
 
   async function handleGoogleSignIn() {
     if (!GoogleSignin) { Alert.alert('Error', 'Google Sign In not available'); return; }
@@ -188,8 +188,18 @@ export default function LoginScreen() {
     setErrorMsg('');
     if (!email || !password) { setErrorMsg('Please enter email and password'); return; }
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) { setErrorMsg(error.message); } else { router.replace('/'); }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) { setErrorMsg(error.message); setLoading(false); return; }
+
+    // Провери дали е потврден email
+    if (data.user && !data.user.email_confirmed_at) {
+      await supabase.auth.signOut();
+      setErrorMsg('Please confirm your email address before signing in. Check your inbox!');
+      setLoading(false);
+      return;
+    }
+
+    router.replace('/');
     setLoading(false);
   }
 

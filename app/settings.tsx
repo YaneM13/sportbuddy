@@ -4,7 +4,7 @@ import { Language, languageNames } from '@/lib/translations';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
   const [uploading, setUploading] = useState(false);
@@ -58,18 +58,30 @@ export default function SettingsScreen() {
   async function handleDeleteAccount() {
     Alert.alert(
       t('deleteAccount'),
-      'Are you sure? This action cannot be undone.',
+      'Are you sure? This action cannot be undone. All your events and data will be permanently deleted.',
       [
         { text: t('cancel'), style: 'cancel' },
         {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            const { error } = await supabase.rpc('delete_user');
-            if (error) Alert.alert('Error', error.message);
-            else {
+            try {
+              const { data: { session } } = await supabase.auth.getSession();
+              if (!session) return;
+
+              // Избриши ги евентите на корисникот
+              await supabase.from('events').delete().eq('created_by', session.user.id);
+              // Избриши ги партиципациите
+              await supabase.from('event_participants').delete().eq('user_id', session.user.id);
+              // Избриши ги нотификациите
+              await supabase.from('notifications').delete().eq('user_id', session.user.id);
+              // Избриши го профилот
+              await supabase.from('profiles').delete().eq('id', session.user.id);
+              // Одјави се
               await supabase.auth.signOut();
               router.replace('/');
+            } catch (error: any) {
+              Alert.alert('Error', error.message);
             }
           },
         },
@@ -144,6 +156,18 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Contact */}
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>📞 {t('contact')}</Text>
+      <View style={[styles.section, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}>
+        <TouchableOpacity
+          style={[styles.menuItem, styles.menuItemLast]}
+          onPress={() => Linking.openURL('https://sportbuddy.net')}
+        >
+          <Text style={[styles.menuItemText, { color: colors.text }]}>🌐 sportbuddy.net</Text>
+          <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>→</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Danger Zone */}
       <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t('dangerZone')}</Text>
       <View style={[styles.section, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}>
@@ -174,7 +198,7 @@ export default function SettingsScreen() {
               >
                 <Text style={[
                   styles.languageText,
-                  { color: colors.text },
+                  { color: currentLanguage === lang ? '#1D9E75' : colors.text },
                   currentLanguage === lang && styles.languageTextActive,
                 ]}>
                   {languageNames[lang]}

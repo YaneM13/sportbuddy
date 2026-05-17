@@ -12,6 +12,7 @@ export default function HomeScreen() {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const [showAvatarBanner, setShowAvatarBanner] = useState(false);
+  const [showCompleteProfileBanner, setShowCompleteProfileBanner] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
 
@@ -23,7 +24,7 @@ export default function HomeScreen() {
     supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) { fetchAvatar(session.user.id); fetchUnreadCount(session.user.id); }
-      else { setUnreadCount(0); setAvatarUrl(''); setShowAvatarBanner(false); setDisplayName(''); }
+      else { setUnreadCount(0); setAvatarUrl(''); setShowAvatarBanner(false); setShowCompleteProfileBanner(false); setDisplayName(''); }
     });
   }, []);
 
@@ -35,10 +36,24 @@ export default function HomeScreen() {
 
   async function fetchAvatar(userId: string) {
     const { data } = await supabase.from('profiles').select('avatar_url, first_name, last_name, nickname').eq('id', userId).single();
-    if (data?.avatar_url) { setAvatarUrl(data.avatar_url + '?t=' + Date.now()); setShowAvatarBanner(false); }
-    else setShowAvatarBanner(true);
+
+    if (data?.avatar_url) {
+      setAvatarUrl(data.avatar_url + '?t=' + Date.now());
+      setShowAvatarBanner(false);
+    } else {
+      setShowAvatarBanner(true);
+    }
+
     if (data?.nickname) setDisplayName('@' + data.nickname);
     else if (data?.first_name) setDisplayName(data.first_name + ' ' + (data.last_name || ''));
+
+    // Ако нема first_name — логиран преку Google/Apple
+    if (!data?.first_name && !data?.nickname) {
+      setShowCompleteProfileBanner(true);
+      setShowAvatarBanner(false);
+    } else {
+      setShowCompleteProfileBanner(false);
+    }
   }
 
   async function fetchUnreadCount(userId: string) {
@@ -50,7 +65,7 @@ export default function HomeScreen() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setAvatarUrl(''); setUnreadCount(0); setShowAvatarBanner(false); setDisplayName(''); setMenuVisible(false);
+    setAvatarUrl(''); setUnreadCount(0); setShowAvatarBanner(false); setShowCompleteProfileBanner(false); setDisplayName(''); setMenuVisible(false);
   };
 
   return (
@@ -79,10 +94,22 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {showAvatarBanner && (
+      {/* Complete Profile Banner */}
+      {showCompleteProfileBanner && (
+        <TouchableOpacity
+          style={styles.completeBanner}
+          onPress={() => { setShowCompleteProfileBanner(false); router.push('/personal-details' as any); }}
+        >
+          <Text style={styles.completeBannerText}>👤 {t('completeProfile')} →</Text>
+          <Text style={styles.bannerClose} onPress={() => setShowCompleteProfileBanner(false)}>✕</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Avatar Banner */}
+      {showAvatarBanner && !showCompleteProfileBanner && (
         <TouchableOpacity style={styles.avatarBanner} onPress={() => { setShowAvatarBanner(false); router.push('/settings' as any); }}>
           <Text style={styles.avatarBannerText}>📸 Add a profile photo so others can recognise you</Text>
-          <Text style={styles.avatarBannerClose} onPress={() => setShowAvatarBanner(false)}>✕</Text>
+          <Text style={styles.bannerClose} onPress={() => setShowAvatarBanner(false)}>✕</Text>
         </TouchableOpacity>
       )}
 
@@ -197,9 +224,11 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 10, fontWeight: 'bold', color: '#fff' },
   signInBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 99, borderWidth: 1, backgroundColor: 'transparent' },
   signInText: { fontSize: 14, fontWeight: '500' },
+  completeBanner: { backgroundColor: 'rgba(29,158,117,0.15)', borderRadius: 12, padding: 12, marginHorizontal: 24, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: 'rgba(29,158,117,0.5)' },
+  completeBannerText: { fontSize: 13, color: '#1D9E75', flex: 1, marginRight: 8, fontWeight: '500' },
   avatarBanner: { backgroundColor: 'rgba(24,95,165,0.3)', borderRadius: 12, padding: 12, marginHorizontal: 24, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: 'rgba(24,95,165,0.5)' },
   avatarBannerText: { fontSize: 13, color: '#B5D4F4', flex: 1, marginRight: 8 },
-  avatarBannerClose: { fontSize: 14, color: '#B5D4F4', fontWeight: 'bold', padding: 4 },
+  bannerClose: { fontSize: 14, color: '#888', fontWeight: 'bold', padding: 4 },
   centerContent: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   centerLogo: { width: 100, height: 100, borderRadius: 24, marginBottom: 24 },
   slogan: { fontSize: 32, fontWeight: 'bold', textAlign: 'center', lineHeight: 40 },
