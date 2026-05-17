@@ -176,7 +176,7 @@ export default function NotificationsScreen() {
               {joinRequests.length === 0 && <View style={styles.empty}><Text style={[styles.emptyText, { color: colors.textSecondary }]}>No join requests</Text></View>}
               {joinRequests.map((notif) => (
                 <View key={notif.id} style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}>
-                  <TouchableOpacity onPress={() => router.push({ pathname: '/user-profile', params: { userId: notif.participant_id } } as any)}>
+                  <TouchableOpacity onPress={() => router.push({ pathname: '/user-profile', params: { userId: notif.user_id } } as any)}>
                     <Text style={[styles.cardMessage, { color: colors.text }]}>{notif.message}</Text>
                   </TouchableOpacity>
                   <Text style={[styles.cardEvent, { color: colors.textSecondary }]}>Event: {notif.events?.title}</Text>

@@ -124,7 +124,12 @@ export default function EventsBySportScreen() {
     if (error) { Alert.alert(t('error'), error.message); return; }
 
     if (createdBy !== user.id) {
-      await supabase.from('notifications').insert({ user_id: createdBy, event_id: eventId, participant_id: participant.id, message: `${displayName} wants to join your event!` });
+      await supabase.from('notifications').insert({ 
+  user_id: createdBy, 
+  event_id: eventId, 
+  participant_id: user.id, // ← user_id на оној кој сака да се приклучи
+  message: `${displayName} wants to join your event!` 
+});
       const { data: creatorProfile } = await supabase.from('profiles').select('push_token').eq('id', createdBy).single();
       if (creatorProfile?.push_token) {
         await sendPushNotification(creatorProfile.push_token, 'New join request!', `${displayName} wants to join your event!`);

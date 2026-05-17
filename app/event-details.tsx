@@ -152,11 +152,11 @@ export default function EventDetailsScreen() {
     if (error) { Alert.alert(t('error'), error.message); return; }
 
     if (event.created_by !== user.id) {
-      await supabase.from('notifications').insert({
-        user_id: event.created_by,
-        event_id: id,
-        participant_id: participant.id,
-        message: `${displayName} wants to join your event!`
+      await supabase.from('notifications').insert({ 
+       user_id: event.created_by, 
+       event_id: id, 
+       participant_id: user.id,
+        message: `${displayName} wants to join your event!` 
       });
 
       const { data: creatorProfile } = await supabase.from('profiles').select('push_token').eq('id', event.created_by).single();
