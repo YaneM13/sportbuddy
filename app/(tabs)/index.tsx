@@ -108,7 +108,7 @@ export default function HomeScreen() {
       {/* Avatar Banner */}
       {showAvatarBanner && !showCompleteProfileBanner && (
         <TouchableOpacity style={styles.avatarBanner} onPress={() => { setShowAvatarBanner(false); router.push('/settings' as any); }}>
-          <Text style={styles.avatarBannerText}>📸 Add a profile photo so others can recognise you</Text>
+          <Text style={[styles.avatarBannerText, { color: isDark ? '#B5D4F4' : '#185FA5' }]}>📸 Add a profile photo so others can recognise you</Text>
           <Text style={styles.bannerClose} onPress={() => setShowAvatarBanner(false)}>✕</Text>
         </TouchableOpacity>
       )}

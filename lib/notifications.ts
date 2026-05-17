@@ -36,8 +36,10 @@ export async function registerForPushNotifications() {
   }
 
   const token = await Notifications.getExpoPushTokenAsync({
-    projectId: 'e7709b1f-aabd-49a4-86c9-f6c7ae3b16db',
-  });
+  projectId: process.env.EXPO_PUBLIC_APP_VARIANT === 'dev'
+    ? '0936013b-5797-45ac-b1cb-6f6e3134d385'
+    : 'e7709b1f-aabd-49a4-86c9-f6c7ae3b16db',
+});
 
   return token.data;
 }

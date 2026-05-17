@@ -29,7 +29,6 @@ export default function NotificationsScreen() {
     if (!userId) return;
 
     const channelName = `notifications-${userId}`;
-    supabase.removeChannel(supabase.channel(channelName));
 
     const subscription = supabase.channel(channelName)
       .on('postgres_changes', {
