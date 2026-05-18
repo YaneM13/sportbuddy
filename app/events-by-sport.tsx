@@ -35,7 +35,6 @@ export default function EventsBySportScreen() {
   const [user, setUser] = useState<any>(null);
   const [participantStatuses, setParticipantStatuses] = useState<{ [key: string]: string }>({});
   const pageRef = useRef(0);
-
   const catColors = categoryColors[category as string] || { light: { bg: '#F1EFE8', text: '#444441' }, dark: { bg: 'rgba(30,45,61,0.8)', text: '#888' } };
   const color = isDark ? catColors.dark : catColors.light;
 
@@ -52,56 +51,48 @@ export default function EventsBySportScreen() {
   }, [userLocation]));
 
   async function fetchEvents(reset = false) {
-  if (reset) {
-    pageRef.current = 0;
-    setHasMore(true);
-  }
-
-  const from = pageRef.current * PAGE_SIZE;
-  const to = from + PAGE_SIZE - 1;
-
-  const { data, error } = await supabase
-    .rpc('get_events_within_radius', {
-      user_lat: userLocation!.latitude,
-      user_lon: userLocation!.longitude,
-      radius_km: 20,
-      sport_filter: sport as string,
-      category_filter: null,
-    })
-    .range(from, to);
-
-  if (error) {
-    setEvents([]);
+    if (reset) {
+      pageRef.current = 0;
+      setHasMore(true);
+    }
+    const from = pageRef.current * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    const { data, error } = await supabase
+      .rpc('get_events_within_radius', {
+        user_lat: userLocation!.latitude,
+        user_lon: userLocation!.longitude,
+        radius_km: 20,
+        sport_filter: sport as string,
+        category_filter: null,
+      })
+      .range(from, to);
+    if (error) {
+      setEvents([]);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+    const filtered = data || [];
+    if (reset) {
+      setEvents(filtered);
+    } else {
+      setEvents(prev => [...prev, ...filtered]);
+    }
+    if (filtered.length < PAGE_SIZE) setHasMore(false);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const { data: participants } = await supabase
+        .from('event_participants')
+        .select('event_id, status')
+        .eq('user_id', session.user.id);
+      const statusMap: { [key: string]: string } = {};
+      (participants || []).forEach((p: any) => { statusMap[p.event_id] = p.status; });
+      setParticipantStatuses(statusMap);
+    }
     setLoading(false);
     setRefreshing(false);
-    return;
+    setLoadingMore(false);
   }
-
-  const filtered = data || [];
-
-  if (reset) {
-    setEvents(filtered);
-  } else {
-    setEvents(prev => [...prev, ...filtered]);
-  }
-
-  if (filtered.length < PAGE_SIZE) setHasMore(false);
-
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session) {
-    const { data: participants } = await supabase
-      .from('event_participants')
-      .select('event_id, status')
-      .eq('user_id', session.user.id);
-    const statusMap: { [key: string]: string } = {};
-    (participants || []).forEach((p: any) => { statusMap[p.event_id] = p.status; });
-    setParticipantStatuses(statusMap);
-  }
-
-  setLoading(false);
-  setRefreshing(false);
-  setLoadingMore(false);
-}
 
   async function loadMore() {
     if (loadingMore || !hasMore) return;
@@ -120,24 +111,42 @@ export default function EventsBySportScreen() {
       ? `${userProfile.first_name} ${userProfile.last_name}`
       : user.email;
 
+    // Провери конфликт на распоред
+    const { data: eventInfo } = await supabase
+      .from('events')
+      .select('date, time, end_date, end_time')
+      .eq('id', eventId)
+      .single();
+    if (eventInfo) {
+      const { data: hasConflict } = await supabase.rpc('check_schedule_conflict', {
+        p_user_id: user.id,
+        p_date: eventInfo.date,
+        p_start_time: eventInfo.time,
+        p_end_date: eventInfo.end_date,
+        p_end_time: eventInfo.end_time,
+      });
+      if (hasConflict) {
+        Alert.alert('Schedule Conflict! ⚠️', 'You already have an event at this time!');
+        return;
+      }
+    }
+
     const { data: participant, error } = await supabase.from('event_participants').insert({ event_id: eventId, user_id: user.id, status: 'pending' }).select().single();
     if (error) { Alert.alert(t('error'), error.message); return; }
 
     if (createdBy !== user.id) {
-      await supabase.from('notifications').insert({ 
-  user_id: createdBy,           // организатор
-  event_id: eventId,            
-  participant_id: participant.id, // враќаме стариот ID
-  sender_id: user.id,           // ← нов: user_id на оној кој се приклучува
-  message: `${displayName} wants to join your event!` 
-});
-
+      await supabase.from('notifications').insert({
+        user_id: createdBy,
+        event_id: eventId,
+        participant_id: participant.id,
+        sender_id: user.id,
+        message: `${displayName} wants to join your event!`
+      });
       const { data: creatorProfile } = await supabase.from('profiles').select('push_token').eq('id', createdBy).single();
       if (creatorProfile?.push_token) {
         await sendPushNotification(creatorProfile.push_token, 'New join request!', `${displayName} wants to join your event!`);
       }
     }
-
     setParticipantStatuses({ ...participantStatuses, [eventId]: 'pending' });
     Alert.alert('Request sent', 'The organiser will review your request!');
   }
@@ -170,21 +179,17 @@ export default function EventsBySportScreen() {
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
         <Text style={[styles.backText, { color: colors.accent }]}>{t('back')}</Text>
       </TouchableOpacity>
-
       <View style={[styles.sportBadge, { backgroundColor: color.bg }]}>
         <Text style={[styles.sportBadgeText, { color: color.text }]}>{sport}</Text>
       </View>
-
       <Text style={[styles.title, { color: colors.accent }]}>{sport} events</Text>
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t('pullToRefresh')}</Text>
-
       {events.length === 0 && (
         <View style={styles.empty}>
           <Text style={[styles.emptyText, { color: colors.text }]}>{t('noEventsNearby')}</Text>
           <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>{t('beFirstToCreate')}</Text>
         </View>
       )}
-
       {events.map((event) => {
         const distance = userLocation && event.latitude && event.longitude
           ? getDistanceKm(userLocation.latitude, userLocation.longitude, event.latitude, event.longitude).toFixed(1) : null;
@@ -212,17 +217,14 @@ export default function EventsBySportScreen() {
           </TouchableOpacity>
         );
       })}
-
       {loadingMore && (
         <View style={styles.loadingMore}>
           <ActivityIndicator size="small" color="#1D9E75" />
         </View>
       )}
-
       {!hasMore && events.length > 0 && (
         <Text style={[styles.noMore, { color: colors.textSecondary }]}>No more events</Text>
       )}
-
     </ScrollView>
   );
 }

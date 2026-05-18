@@ -247,6 +247,22 @@ export default function CreateEventScreen() {
       return;
     }
 
+    // Провери конфликт на распоред
+    const { data: { session: checkSession } } = await supabase.auth.getSession();
+    if (checkSession) {
+      const { data: hasConflict } = await supabase.rpc('check_schedule_conflict', {
+        p_user_id: checkSession.user.id,
+        p_date: formatDate(date),
+        p_start_time: formatTime(startTime),
+        p_end_date: formatDate(endDate),
+        p_end_time: formatTime(endTime),
+      });
+      if (hasConflict) {
+        Alert.alert('Schedule Conflict! ⚠️', 'You already have an event at this time!');
+        return;
+      }
+    }
+
     setLoading(true);
 
     let latitude = selectedLat, longitude = selectedLon;

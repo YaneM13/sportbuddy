@@ -52,50 +52,47 @@ export default function EventDetailsScreen() {
   }, []);
 
   async function fetchEventDetails(currentUser?: any) {
-  const { data: { session } } = await supabase.auth.getSession();
-  const sessionUser = currentUser || session?.user;
+    const { data: { session } } = await supabase.auth.getSession();
+    const sessionUser = currentUser || session?.user;
 
-  const { data: eventData, error } = await supabase
-    .from('events')
-    .select('*')
-    .eq('id', id)
-    .single();
-  if (error) { Alert.alert(t('error'), error.message); setLoading(false); return; }
-  setEvent(eventData);
+    const { data: eventData, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) { Alert.alert(t('error'), error.message); setLoading(false); return; }
+    setEvent(eventData);
 
-  const { data: allParticipants } = await supabase
-    .from('event_participants')
-    .select('*')
-    .eq('event_id', id);
+    const { data: allParticipants } = await supabase
+      .from('event_participants')
+      .select('*')
+      .eq('event_id', id);
 
-  // Земи профили посебно
-  const participantsWithProfiles = await Promise.all(
-    (allParticipants || []).map(async (p: any) => {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('first_name, last_name, nickname, avatar_url')
-        .eq('id', p.user_id)
-        .single();
-      return { ...p, profiles: profile };
-    })
-  );
-
-  const approved = participantsWithProfiles.filter((p: any) => p.status === 'approved');
-  const pending = participantsWithProfiles.filter((p: any) => p.status === 'pending');
-
-  setParticipants(approved);
-  setApprovedCount(approved.length);
-  setPendingCount(pending.length);
-
-  if (sessionUser) {
-    setUser(sessionUser);
-    const myParticipation = participantsWithProfiles.find(
-      (p: any) => p.user_id === sessionUser.id
+    const participantsWithProfiles = await Promise.all(
+      (allParticipants || []).map(async (p: any) => {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, nickname, avatar_url')
+          .eq('id', p.user_id)
+          .single();
+        return { ...p, profiles: profile };
+      })
     );
-    setJoinStatus(myParticipation?.status || null);
+
+    const approved = participantsWithProfiles.filter((p: any) => p.status === 'approved');
+    const pending = participantsWithProfiles.filter((p: any) => p.status === 'pending');
+
+    setParticipants(approved);
+    setApprovedCount(approved.length);
+    setPendingCount(pending.length);
+
+    if (sessionUser) {
+      setUser(sessionUser);
+      const myParticipation = participantsWithProfiles.find((p: any) => p.user_id === sessionUser.id);
+      setJoinStatus(myParticipation?.status || null);
+    }
+    setLoading(false);
   }
-  setLoading(false);
-}
 
   async function handleRemoveParticipant(participantId: string) {
     Alert.alert(
@@ -117,58 +114,78 @@ export default function EventDetailsScreen() {
   }
 
   async function handleJoin() {
-  if (!user) { Alert.alert('Sign in required', 'You must be signed in to join an event'); return; }
+    if (!user) { Alert.alert('Sign in required', 'You must be signed in to join an event'); return; }
 
-  const { data: blockData } = await supabase
-    .from('blocks')
-    .select('id')
-    .eq('blocked_by', event.created_by)
-    .eq('blocked_user', user.id)
-    .maybeSingle();
+    const { data: blockData } = await supabase
+      .from('blocks')
+      .select('id')
+      .eq('blocked_by', event.created_by)
+      .eq('blocked_user', user.id)
+      .maybeSingle();
 
-  if (blockData) {
-    Alert.alert('Unable to join', 'You cannot join this event.');
-    return;
-  }
-
-  const { data: eventData } = await supabase.from('events').select('max_players, approved_count').eq('id', id).single();
-  if (eventData?.max_players && eventData?.approved_count >= eventData?.max_players) {
-    Alert.alert('Event Full', 'This event is already full!');
-    return;
-  }
-
-  const { data: userProfile } = await supabase.from('profiles').select('first_name, last_name, nickname').eq('id', user.id).single();
-  const displayName = userProfile?.nickname
-    ? `@${userProfile.nickname}`
-    : userProfile?.first_name
-    ? `${userProfile.first_name} ${userProfile.last_name}`
-    : user.email;
-
-  const { data: participant, error } = await supabase
-    .from('event_participants')
-    .insert({ event_id: id, user_id: user.id, status: 'pending' })
-    .select()
-    .single();
-  if (error) { Alert.alert(t('error'), error.message); return; }
-
-  if (event.created_by !== user.id) {
-    await supabase.from('notifications').insert({ 
-      user_id: event.created_by,
-      event_id: id, 
-      participant_id: participant.id,
-      sender_id: user.id,
-      message: `${displayName} wants to join your event!` 
-    });
-
-    const { data: creatorProfile } = await supabase.from('profiles').select('push_token').eq('id', event.created_by).single();
-    if (creatorProfile?.push_token) {
-      await sendPushNotification(creatorProfile.push_token, 'New join request!', `${displayName} wants to join your event!`);
+    if (blockData) {
+      Alert.alert('Unable to join', 'You cannot join this event.');
+      return;
     }
-  }
 
-  setJoinStatus('pending');
-  Alert.alert('Request sent', 'The organiser will review your request!');
-}
+    const { data: eventData } = await supabase.from('events').select('max_players, approved_count').eq('id', id).single();
+    if (eventData?.max_players && eventData?.approved_count >= eventData?.max_players) {
+      Alert.alert('Event Full', 'This event is already full!');
+      return;
+    }
+
+    const { data: userProfile } = await supabase.from('profiles').select('first_name, last_name, nickname').eq('id', user.id).single();
+    const displayName = userProfile?.nickname
+      ? `@${userProfile.nickname}`
+      : userProfile?.first_name
+      ? `${userProfile.first_name} ${userProfile.last_name}`
+      : user.email;
+
+    // Провери конфликт на распоред
+    const { data: eventInfo } = await supabase
+      .from('events')
+      .select('date, time, end_date, end_time')
+      .eq('id', id)
+      .single();
+    if (eventInfo) {
+      const { data: hasConflict } = await supabase.rpc('check_schedule_conflict', {
+        p_user_id: user.id,
+        p_date: eventInfo.date,
+        p_start_time: eventInfo.time,
+        p_end_date: eventInfo.end_date,
+        p_end_time: eventInfo.end_time,
+      });
+      if (hasConflict) {
+        Alert.alert('Schedule Conflict! ⚠️', 'You already have an event at this time!');
+        return;
+      }
+    }
+
+    const { data: participant, error } = await supabase
+      .from('event_participants')
+      .insert({ event_id: id, user_id: user.id, status: 'pending' })
+      .select()
+      .single();
+    if (error) { Alert.alert(t('error'), error.message); return; }
+
+    if (event.created_by !== user.id) {
+      await supabase.from('notifications').insert({
+        user_id: event.created_by,
+        event_id: id,
+        participant_id: participant.id,
+        sender_id: user.id,
+        message: `${displayName} wants to join your event!`
+      });
+
+      const { data: creatorProfile } = await supabase.from('profiles').select('push_token').eq('id', event.created_by).single();
+      if (creatorProfile?.push_token) {
+        await sendPushNotification(creatorProfile.push_token, 'New join request!', `${displayName} wants to join your event!`);
+      }
+    }
+
+    setJoinStatus('pending');
+    Alert.alert('Request sent', 'The organiser will review your request!');
+  }
 
   function handleDirections() {
     if (!event?.latitude || !event?.longitude) { Alert.alert(t('error'), 'Location not available'); return; }
