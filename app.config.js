@@ -25,7 +25,7 @@ export default {
       }
     },
     android: {
-      googleServicesFile: "./google-services.json",
+      googleServicesFile: IS_DEV ? "./google-services-dev.json" : "./google-services.json",
       notification: {
         icon: "./assets/images/icon.png",
         color: "#1D9E75"
