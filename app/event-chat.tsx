@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function EventChatScreen() {
-  const { event_id, event_title } = useLocalSearchParams();
+  const { event_id, event_title: event_title_param } = useLocalSearchParams();
+  const event_title = Array.isArray(event_title_param) ? event_title_param[0] : event_title_param || 'Event';
   const { isDark, colors } = useTheme();
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
