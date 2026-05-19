@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1016763529128",
+    "project_id": "sportbuddy-dev",
+    "storage_bucket": "sportbuddy-dev.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1016763529128:android:a45a0a424ad4a05833cf9d",
+        "android_client_info": {
+          "package_name": "com.yane31.SportBuddyDev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAJruHMs9Py3HXzVnL83pWnvrOdHNJAjg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
