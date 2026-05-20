@@ -6,7 +6,7 @@ export default {
   expo: {
     name: IS_DEV ? "SportBuddy Dev" : "SportBuddy",
     slug: IS_DEV ? "sportbuddy-dev" : "SportBuddy",
-    version: "1.0.8",
+    version: "1.1.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: IS_DEV ? "sportbuddydev" : "sportbuddy",
