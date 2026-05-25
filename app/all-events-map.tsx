@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const screenHeight = Dimensions.get('window').height;
 
@@ -25,6 +26,7 @@ function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
 export default function AllEventsMapScreen() {
   const { isDark, colors } = useTheme();
   const { userLocation } = useLocation();
+  const insets = useSafeAreaInsets();
   const [allEvents, setAllEvents] = useState<any[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('team');
@@ -35,7 +37,6 @@ export default function AllEventsMapScreen() {
     if (userLocation) fetchEvents();
   }, [userLocation]);
 
-  // Филтрирај кога се менува категоријата
   useEffect(() => {
     if (selectedCategory === null) {
       setFilteredEvents(allEvents);
@@ -45,47 +46,44 @@ export default function AllEventsMapScreen() {
   }, [selectedCategory, allEvents]);
 
   async function fetchEvents() {
-  try {
-    if (!userLocation) return;
-    
-    const { data, error } = await supabase
-      .rpc('get_events_within_radius', {
-        user_lat: userLocation.latitude,
-        user_lon: userLocation.longitude,
-        radius_km: 20,
-        sport_filter: null,
-        category_filter: null,
-      });
+    try {
+      if (!userLocation) return;
 
-    if (error) {
-      console.log('RPC Error:', error);
-      // Fallback на стар начин ако функцијата не постои
-      const { data: fallbackData, error: fallbackError } = await supabase
-        .from('events')
-        .select('id, title, sport, category, location, latitude, longitude')
-        .eq('status', 'active');
+      const { data, error } = await supabase
+        .rpc('get_events_within_radius', {
+          user_lat: userLocation.latitude,
+          user_lon: userLocation.longitude,
+          radius_km: 20,
+          sport_filter: null,
+          category_filter: null,
+        });
 
-      if (fallbackError) { setMapError(true); setLoading(false); return; }
+      if (error) {
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('events')
+          .select('id, title, sport, category, location, latitude, longitude')
+          .eq('status', 'active');
 
-      const filtered = (fallbackData || []).filter((event: any) => {
-        if (!event.latitude || !event.longitude) return false;
-        return getDistanceKm(userLocation.latitude, userLocation.longitude, event.latitude, event.longitude) <= 20;
-      });
+        if (fallbackError) { setMapError(true); setLoading(false); return; }
 
-      setAllEvents(filtered);
-      setFilteredEvents(filtered.filter(e => e.category === selectedCategory));
-      setLoading(false);
-      return;
+        const filtered = (fallbackData || []).filter((event: any) => {
+          if (!event.latitude || !event.longitude) return false;
+          return getDistanceKm(userLocation.latitude, userLocation.longitude, event.latitude, event.longitude) <= 20;
+        });
+
+        setAllEvents(filtered);
+        setFilteredEvents(filtered.filter(e => e.category === selectedCategory));
+        setLoading(false);
+        return;
+      }
+
+      setAllEvents(data || []);
+      setFilteredEvents((data || []).filter((e: any) => e.category === selectedCategory));
+    } catch (e) {
+      setMapError(true);
     }
-
-    setAllEvents(data || []);
-    setFilteredEvents((data || []).filter((e: any) => e.category === selectedCategory));
-  } catch (e) {
-    console.log('Map error:', e);
-    setMapError(true);
+    setLoading(false);
   }
-  setLoading(false);
-}
 
   if (loading) return (
     <View style={[styles.centered, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}>
@@ -104,9 +102,12 @@ export default function AllEventsMapScreen() {
     </View>
   );
 
+  const headerHeight = 240;
+  const mapHeight = screenHeight - headerHeight - insets.bottom - insets.top;
+
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}>
-      <View style={[styles.header, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}>
+      <View style={[styles.header, { backgroundColor: isDark ? '#0F1923' : '#fff', paddingTop: insets.top + 16 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={[styles.backText, { color: colors.accent }]}>← Back</Text>
         </TouchableOpacity>
@@ -115,7 +116,6 @@ export default function AllEventsMapScreen() {
           {filteredEvents.length} events within 20km
         </Text>
 
-        {/* Филтер копчиња */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -145,7 +145,10 @@ export default function AllEventsMapScreen() {
       </View>
 
       {userLocation && !mapError && (
-        <View style={[styles.mapContainer, { borderColor: colors.cardBorder }]}>
+        <View style={[styles.mapContainer, {
+          height: mapHeight,
+          borderColor: colors.cardBorder,
+        }]}>
           <EventMap
             events={filteredEvents}
             userLatitude={userLocation.latitude}
@@ -160,7 +163,7 @@ export default function AllEventsMapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { padding: 24, paddingTop: 60 },
+  header: { padding: 24 },
   backBtn: { marginBottom: 16 },
   backText: { fontSize: 17, fontWeight: '500' },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 4 },
@@ -171,5 +174,5 @@ const styles = StyleSheet.create({
   filterBtnActive: { backgroundColor: '#1D9E75', borderColor: '#1D9E75' },
   filterBtnText: { fontSize: 13, fontWeight: '500' },
   filterBtnTextActive: { color: '#fff' },
-  mapContainer: { height: screenHeight - 240, margin: 16, borderRadius: 16, overflow: 'hidden', borderWidth: 0.5 },
+  mapContainer: { marginHorizontal: 16, marginBottom: 16, borderRadius: 16, overflow: 'hidden', borderWidth: 0.5 },
 });

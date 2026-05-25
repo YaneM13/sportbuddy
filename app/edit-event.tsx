@@ -1,10 +1,10 @@
 import BackButton from '@/components/BackButton';
 import { useLanguage, useTheme } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-;
 
 const categories = [
   { id: 'team', label: 'Team sports' },
@@ -84,6 +84,9 @@ export default function EditEventScreen() {
   const [category, setCategory] = useState('');
   const [sport, setSport] = useState('');
   const [location, setLocation] = useState('');
+  const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
+  const [selectedLat, setSelectedLat] = useState<number | null>(null);
+  const [selectedLon, setSelectedLon] = useState<number | null>(null);
   const [date, setDate] = useState(new Date());
   const [startTime, setStartTime] = useState(new Date());
   const [endTime, setEndTime] = useState(new Date());
@@ -93,18 +96,55 @@ export default function EditEventScreen() {
   const [players, setPlayers] = useState('');
   const [skillLevel, setSkillLevel] = useState('');
   const [loading, setLoading] = useState(false);
+  const searchTimeout = useRef<any>(null);
   const isWatchSport = category === 'watch';
 
   useEffect(() => { fetchEvent(); }, []);
+
+  useFocusEffect(useCallback(() => {
+    async function checkPickedLocation() {
+      try {
+        const picked = await AsyncStorage.getItem('pickedLocation');
+        if (picked) {
+          const { lat, lon, address } = JSON.parse(picked);
+          setSelectedLat(lat); setSelectedLon(lon); setLocation(address); setLocationSuggestions([]);
+          await AsyncStorage.removeItem('pickedLocation');
+        }
+      } catch (e) {}
+    }
+    checkPickedLocation();
+  }, []));
 
   async function fetchEvent() {
     const { data, error } = await supabase.from('events').select('*').eq('id', id).single();
     if (error) { Alert.alert('Error', error.message); return; }
     setTitle(data.title); setCategory(data.category); setSport(data.sport); setLocation(data.location);
+    setSelectedLat(data.latitude); setSelectedLon(data.longitude);
     setPlayers(data.max_players?.toString() || ''); setSkillLevel(data.skill_level || '');
     if (data.date) { const p = data.date.split('/'); setDate(new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0]))); }
     if (data.time) { const p = data.time.split(':'); const d = new Date(); d.setHours(parseInt(p[0]), parseInt(p[1])); setStartTime(d); }
     if (data.end_time) { const p = data.end_time.split(':'); const d = new Date(); d.setHours(parseInt(p[0]), parseInt(p[1])); setEndTime(d); }
+  }
+
+  async function searchLocation(query: string) {
+    setLocation(query); setSelectedLat(null); setSelectedLon(null);
+    if (query.length < 3) { setLocationSuggestions([]); return; }
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(async () => {
+      try {
+        const response = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lang=en`);
+        const json = await response.json();
+        setLocationSuggestions((json.features || []).map((f: any) => ({
+          place_id: f.properties.osm_id,
+          display_name: [f.properties.name, f.properties.street, f.properties.city, f.properties.country].filter(Boolean).join(', '),
+          lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0],
+        })));
+      } catch (e) { setLocationSuggestions([]); }
+    }, 500);
+  }
+
+  function selectLocation(item: any) {
+    setLocation(item.display_name); setSelectedLat(item.lat); setSelectedLon(item.lon); setLocationSuggestions([]);
   }
 
   const formatDate = (d: Date) => `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
@@ -117,10 +157,13 @@ export default function EditEventScreen() {
   }
 
   async function handleSave() {
+    if (loading) return;
     if (!title || !category || !sport || !location) { Alert.alert('Error', 'Please fill in all fields'); return; }
     setLoading(true);
     const { error } = await supabase.from('events').update({
       title, category, sport, location,
+      latitude: selectedLat,
+      longitude: selectedLon,
       date: formatDate(date), time: formatTime(startTime), end_time: formatTime(endTime),
       max_players: isWatchSport ? null : parseInt(players),
       skill_level: isWatchSport ? null : skillLevel,
@@ -131,10 +174,12 @@ export default function EditEventScreen() {
   }
 
   async function handleDelete() {
+    if (loading) return;
     Alert.alert('Delete event', 'Are you sure?',
       [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: async () => {
+        setLoading(true);
         const { error } = await supabase.from('events').delete().eq('id', id);
-        if (error) Alert.alert('Error', error.message);
+        if (error) { Alert.alert('Error', error.message); setLoading(false); }
         else { Alert.alert('Deleted', 'Event deleted'); router.replace('/find-event' as any); }
       }}]
     );
@@ -142,131 +187,162 @@ export default function EditEventScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-    <ScrollView
-      style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-    >
-      <BackButton onPress={handleBack} />
-      <Text style={[styles.title, { color: colors.accent }]}>Edit event</Text>
+      <ScrollView
+        style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
+        <BackButton onPress={handleBack} />
+        <Text style={[styles.title, { color: colors.accent }]}>Edit event</Text>
 
-      <Text style={[styles.label, { color: colors.textSecondary }]}>Title</Text>
-      <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]} value={title} onChangeText={setTitle} placeholderTextColor={colors.textSecondary} />
+        <Text style={[styles.label, { color: colors.textSecondary }]}>Title</Text>
+        <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]} value={title} onChangeText={setTitle} placeholderTextColor={colors.textSecondary} />
 
-      <Text style={[styles.label, { color: colors.textSecondary }]}>Category</Text>
-      <View style={styles.optionsRow}>
-        {categories.map((cat) => (
-          <TouchableOpacity key={cat.id} style={[styles.optionBtn, { borderColor: colors.inputBorder, backgroundColor: isDark ? colors.inputBg : '#fff' }, category === cat.id && styles.optionBtnActive]} onPress={() => { setCategory(cat.id); setSport(''); }}>
-            <Text style={[styles.optionText, { color: colors.text }, category === cat.id && styles.optionTextActive]}>{cat.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {category !== '' && (
-        <>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Sport</Text>
-          <View style={styles.optionsRow}>
-            {sportsByCategory[category].map((s: string) => (
-              <TouchableOpacity key={s} style={[styles.optionBtn, { borderColor: colors.inputBorder, backgroundColor: isDark ? colors.inputBg : '#fff' }, sport === s && styles.optionBtnActive]} onPress={() => setSport(s)}>
-                <Text style={[styles.optionText, { color: colors.text }, sport === s && styles.optionTextActive]}>{s}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </>
-      )}
-
-      <Text style={[styles.label, { color: colors.textSecondary }]}>Location</Text>
-      <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]} value={location} onChangeText={setLocation} placeholderTextColor={colors.textSecondary} />
-
-      {/* Date Picker */}
-      <Text style={[styles.label, { color: colors.textSecondary }]}>Date</Text>
-      <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]} onPress={() => setShowDatePicker(true)}>
-        <Text style={[styles.pickerText, { color: colors.text }]}>{formatDate(date)}</Text>
-      </TouchableOpacity>
-      <Modal visible={showDatePicker} transparent animationType="fade">
-        <View style={styles.timeModalOverlay}>
-          <View style={[styles.timeModalContent, { backgroundColor: isDark ? '#1E2D3D' : '#fff' }]}>
-            <Text style={[styles.timeModalTitle, { color: colors.text }]}>Date</Text>
-            <View style={styles.timePickerRow}>
-              <View style={styles.timeColumn}>
-                <Text style={[styles.timeColumnLabel, { color: colors.textSecondary }]}>Day</Text>
-                <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
-                  {Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0')).map((d) => (
-                    <TouchableOpacity key={d} style={[styles.timeItem, date.getDate().toString().padStart(2,'0') === d && { backgroundColor: colors.accent, borderRadius: 8 }]} onPress={() => { const nd = new Date(date); nd.setDate(parseInt(d)); setDate(nd); }}>
-                      <Text style={[styles.timeItemText, { color: date.getDate().toString().padStart(2,'0') === d ? '#fff' : colors.text }]}>{d}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-              <View style={styles.timeColumn}>
-                <Text style={[styles.timeColumnLabel, { color: colors.textSecondary }]}>Month</Text>
-                <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
-                  {['01','02','03','04','05','06','07','08','09','10','11','12'].map((m) => (
-                    <TouchableOpacity key={m} style={[styles.timeItem, (date.getMonth()+1).toString().padStart(2,'0') === m && { backgroundColor: colors.accent, borderRadius: 8 }]} onPress={() => { const nd = new Date(date); nd.setMonth(parseInt(m)-1); setDate(nd); }}>
-                      <Text style={[styles.timeItemText, { color: (date.getMonth()+1).toString().padStart(2,'0') === m ? '#fff' : colors.text }]}>{m}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-              <View style={styles.timeColumn}>
-                <Text style={[styles.timeColumnLabel, { color: colors.textSecondary }]}>Year</Text>
-                <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
-                  {[2025, 2026, 2027].map((y) => (
-                    <TouchableOpacity key={y} style={[styles.timeItem, date.getFullYear() === y && { backgroundColor: colors.accent, borderRadius: 8 }]} onPress={() => { const nd = new Date(date); nd.setFullYear(y); setDate(nd); }}>
-                      <Text style={[styles.timeItemText, { color: date.getFullYear() === y ? '#fff' : colors.text }]}>{y}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            </View>
-            <View style={styles.timeModalButtons}>
-              <TouchableOpacity style={[styles.timeModalBtn, { borderColor: colors.cardBorder }]} onPress={() => setShowDatePicker(false)}>
-                <Text style={[styles.timeModalBtnText, { color: colors.textSecondary }]}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.timeModalBtn, { backgroundColor: colors.accent }]} onPress={() => setShowDatePicker(false)}>
-                <Text style={[styles.timeModalBtnText, { color: '#fff' }]}>Confirm</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>Category</Text>
+        <View style={styles.optionsRow}>
+          {categories.map((cat) => (
+            <TouchableOpacity key={cat.id} style={[styles.optionBtn, { borderColor: colors.inputBorder, backgroundColor: isDark ? colors.inputBg : '#fff' }, category === cat.id && styles.optionBtnActive]} onPress={() => { setCategory(cat.id); setSport(''); }}>
+              <Text style={[styles.optionText, { color: colors.text }, category === cat.id && styles.optionTextActive]}>{cat.label}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
-      </Modal>
 
-      {/* Start Time */}
-      <Text style={[styles.label, { color: colors.textSecondary }]}>Start time</Text>
-      <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]} onPress={() => setShowStartTimePicker(true)}>
-        <Text style={[styles.pickerText, { color: colors.text }]}>{formatTime(startTime)}</Text>
-      </TouchableOpacity>
-      <TimePickerModal visible={showStartTimePicker} value={startTime} title="Start time" isDark={isDark} colors={colors} onCancel={() => setShowStartTimePicker(false)} onConfirm={(d: Date) => { setStartTime(d); setShowStartTimePicker(false); }} />
+        {category !== '' && (
+          <>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Sport</Text>
+            <View style={styles.optionsRow}>
+              {sportsByCategory[category].map((s: string) => (
+                <TouchableOpacity key={s} style={[styles.optionBtn, { borderColor: colors.inputBorder, backgroundColor: isDark ? colors.inputBg : '#fff' }, sport === s && styles.optionBtnActive]} onPress={() => setSport(s)}>
+                  <Text style={[styles.optionText, { color: colors.text }, sport === s && styles.optionTextActive]}>{s}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
 
-      {/* End Time */}
-      <Text style={[styles.label, { color: colors.textSecondary }]}>End time</Text>
-      <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]} onPress={() => setShowEndTimePicker(true)}>
-        <Text style={[styles.pickerText, { color: colors.text }]}>{formatTime(endTime)}</Text>
-      </TouchableOpacity>
-      <TimePickerModal visible={showEndTimePicker} value={endTime} title="End time" isDark={isDark} colors={colors} onCancel={() => setShowEndTimePicker(false)} onConfirm={(d: Date) => { setEndTime(d); setShowEndTimePicker(false); }} />
+        {/* Location со пребарување и Map копче */}
+        <Text style={[styles.label, { color: colors.textSecondary }]}>Location</Text>
+        <View style={styles.locationRow}>
+          <TextInput
+            style={[styles.input, styles.locationInput, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]}
+            value={location}
+            onChangeText={searchLocation}
+            placeholderTextColor={colors.textSecondary}
+            placeholder="Search location..."
+          />
+          <TouchableOpacity style={[styles.mapPickBtn, { backgroundColor: colors.accentLight }]} onPress={() => router.push('/pick-location' as any)}>
+            <Text style={[styles.mapPickBtnText, { color: colors.accentText }]}>📍 Map</Text>
+          </TouchableOpacity>
+        </View>
 
-      {!isWatchSport && (
-        <>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Number of players needed</Text>
-          <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]} value={players} onChangeText={setPlayers} keyboardType="numeric" placeholderTextColor={colors.textSecondary} />
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Skill level</Text>
-          <View style={styles.optionsRow}>
-            {skillLevels.map((level) => (
-              <TouchableOpacity key={level} style={[styles.optionBtn, { borderColor: colors.inputBorder, backgroundColor: isDark ? colors.inputBg : '#fff' }, skillLevel === level && styles.optionBtnActive]} onPress={() => setSkillLevel(level)}>
-                <Text style={[styles.optionText, { color: colors.text }, skillLevel === level && styles.optionTextActive]}>{level}</Text>
+        {locationSuggestions.length > 0 && (
+          <View style={[styles.suggestions, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            {locationSuggestions.map((item, index) => (
+              <TouchableOpacity key={index} style={[styles.suggestionItem, { borderBottomColor: colors.cardBorder }]} onPress={() => selectLocation(item)}>
+                <Text style={[styles.suggestionText, { color: colors.text }]} numberOfLines={2}>{item.display_name}</Text>
               </TouchableOpacity>
             ))}
           </View>
-        </>
-      )}
+        )}
+        {selectedLat && <View style={[styles.locationConfirmed, { backgroundColor: colors.accentLight }]}><Text style={[styles.locationConfirmedText, { color: colors.accentText }]}>✅ Location selected</Text></View>}
 
-      <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
-        <Text style={styles.saveBtnText}>{loading ? 'Saving...' : 'Save changes'}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
-        <Text style={styles.deleteBtnText}>Delete event</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        {/* Date Picker */}
+        <Text style={[styles.label, { color: colors.textSecondary }]}>Date</Text>
+        <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]} onPress={() => setShowDatePicker(true)}>
+          <Text style={[styles.pickerText, { color: colors.text }]}>{formatDate(date)}</Text>
+        </TouchableOpacity>
+        <Modal visible={showDatePicker} transparent animationType="fade">
+          <View style={styles.timeModalOverlay}>
+            <View style={[styles.timeModalContent, { backgroundColor: isDark ? '#1E2D3D' : '#fff' }]}>
+              <Text style={[styles.timeModalTitle, { color: colors.text }]}>Date</Text>
+              <View style={styles.timePickerRow}>
+                <View style={styles.timeColumn}>
+                  <Text style={[styles.timeColumnLabel, { color: colors.textSecondary }]}>Day</Text>
+                  <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
+                    {Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0')).map((d) => (
+                      <TouchableOpacity key={d} style={[styles.timeItem, date.getDate().toString().padStart(2,'0') === d && { backgroundColor: colors.accent, borderRadius: 8 }]} onPress={() => { const nd = new Date(date); nd.setDate(parseInt(d)); setDate(nd); }}>
+                        <Text style={[styles.timeItemText, { color: date.getDate().toString().padStart(2,'0') === d ? '#fff' : colors.text }]}>{d}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+                <View style={styles.timeColumn}>
+                  <Text style={[styles.timeColumnLabel, { color: colors.textSecondary }]}>Month</Text>
+                  <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
+                    {['01','02','03','04','05','06','07','08','09','10','11','12'].map((m) => (
+                      <TouchableOpacity key={m} style={[styles.timeItem, (date.getMonth()+1).toString().padStart(2,'0') === m && { backgroundColor: colors.accent, borderRadius: 8 }]} onPress={() => { const nd = new Date(date); nd.setMonth(parseInt(m)-1); setDate(nd); }}>
+                        <Text style={[styles.timeItemText, { color: (date.getMonth()+1).toString().padStart(2,'0') === m ? '#fff' : colors.text }]}>{m}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+                <View style={styles.timeColumn}>
+                  <Text style={[styles.timeColumnLabel, { color: colors.textSecondary }]}>Year</Text>
+                  <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
+                    {[2025, 2026, 2027].map((y) => (
+                      <TouchableOpacity key={y} style={[styles.timeItem, date.getFullYear() === y && { backgroundColor: colors.accent, borderRadius: 8 }]} onPress={() => { const nd = new Date(date); nd.setFullYear(y); setDate(nd); }}>
+                        <Text style={[styles.timeItemText, { color: date.getFullYear() === y ? '#fff' : colors.text }]}>{y}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
+              <View style={styles.timeModalButtons}>
+                <TouchableOpacity style={[styles.timeModalBtn, { borderColor: colors.cardBorder }]} onPress={() => setShowDatePicker(false)}>
+                  <Text style={[styles.timeModalBtnText, { color: colors.textSecondary }]}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.timeModalBtn, { backgroundColor: colors.accent }]} onPress={() => setShowDatePicker(false)}>
+                  <Text style={[styles.timeModalBtnText, { color: '#fff' }]}>Confirm</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Start Time */}
+        <Text style={[styles.label, { color: colors.textSecondary }]}>Start time</Text>
+        <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]} onPress={() => setShowStartTimePicker(true)}>
+          <Text style={[styles.pickerText, { color: colors.text }]}>{formatTime(startTime)}</Text>
+        </TouchableOpacity>
+        <TimePickerModal visible={showStartTimePicker} value={startTime} title="Start time" isDark={isDark} colors={colors} onCancel={() => setShowStartTimePicker(false)} onConfirm={(d: Date) => { setStartTime(d); setShowStartTimePicker(false); }} />
+
+        {/* End Time */}
+        <Text style={[styles.label, { color: colors.textSecondary }]}>End time</Text>
+        <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]} onPress={() => setShowEndTimePicker(true)}>
+          <Text style={[styles.pickerText, { color: colors.text }]}>{formatTime(endTime)}</Text>
+        </TouchableOpacity>
+        <TimePickerModal visible={showEndTimePicker} value={endTime} title="End time" isDark={isDark} colors={colors} onCancel={() => setShowEndTimePicker(false)} onConfirm={(d: Date) => { setEndTime(d); setShowEndTimePicker(false); }} />
+
+        {!isWatchSport && (
+          <>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Number of players needed</Text>
+            <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]} value={players} onChangeText={setPlayers} keyboardType="numeric" placeholderTextColor={colors.textSecondary} />
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Skill level</Text>
+            <View style={styles.optionsRow}>
+              {skillLevels.map((level) => (
+                <TouchableOpacity key={level} style={[styles.optionBtn, { borderColor: colors.inputBorder, backgroundColor: isDark ? colors.inputBg : '#fff' }, skillLevel === level && styles.optionBtnActive]} onPress={() => setSkillLevel(level)}>
+                  <Text style={[styles.optionText, { color: colors.text }, skillLevel === level && styles.optionTextActive]}>{level}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
+
+        <TouchableOpacity
+          style={[styles.saveBtn, loading && { opacity: 0.6 }]}
+          onPress={handleSave}
+          disabled={loading}
+        >
+          <Text style={styles.saveBtnText}>{loading ? 'Saving...' : 'Save changes'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.deleteBtn, loading && { opacity: 0.6 }]}
+          onPress={handleDelete}
+          disabled={loading}
+        >
+          <Text style={styles.deleteBtnText}>Delete event</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -277,6 +353,15 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 32 },
   label: { fontSize: 14, fontWeight: '500', marginBottom: 8 },
   input: { width: '100%', padding: 16, borderRadius: 12, borderWidth: 1, marginBottom: 20, fontSize: 15 },
+  locationRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
+  locationInput: { flex: 1, marginBottom: 8 },
+  mapPickBtn: { padding: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  mapPickBtnText: { fontSize: 13, fontWeight: '500' },
+  suggestions: { borderRadius: 12, borderWidth: 0.5, marginBottom: 8, overflow: 'hidden' },
+  suggestionItem: { padding: 14, borderBottomWidth: 0.5 },
+  suggestionText: { fontSize: 13 },
+  locationConfirmed: { padding: 10, borderRadius: 10, marginBottom: 16 },
+  locationConfirmedText: { fontSize: 13, fontWeight: '500' },
   pickerBtn: { width: '100%', padding: 16, borderRadius: 12, borderWidth: 1, marginBottom: 20 },
   pickerText: { fontSize: 15 },
   optionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },

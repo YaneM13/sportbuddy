@@ -4,11 +4,13 @@ import { supabase } from '@/lib/supabase';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function EventChatScreen() {
   const { event_id, event_title: event_title_param } = useLocalSearchParams();
   const event_title = Array.isArray(event_title_param) ? event_title_param[0] : event_title_param || 'Event';
   const { isDark, colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -89,10 +91,8 @@ export default function EventChatScreen() {
 
     if (!participants) return;
 
-    // Само корисници кои НИКОГАШ не добиле нотификација за овој чат
     const toNotify = participants.filter(p => !p.chat_notified);
-
-    if (toNotify.length === 0) return; // Сите веќе добиле — стоп!
+    if (toNotify.length === 0) return;
 
     const notifications = toNotify.map(p => ({
       user_id: p.user_id,
@@ -121,14 +121,13 @@ export default function EventChatScreen() {
       `${senderName}: ${msg.substring(0, 100)}`
     );
 
-    // Означи дека добиле нотификација — никогаш повеќе
     for (const uid of userIds) {
-  await supabase
-    .from('event_participants')
-    .update({ chat_notified: true })
-    .eq('user_id', uid)
-    .eq('event_id', event_id);
-}
+      await supabase
+        .from('event_participants')
+        .update({ chat_notified: true })
+        .eq('user_id', uid)
+        .eq('event_id', event_id);
+    }
   }
 
   async function handleSend() {
@@ -158,8 +157,8 @@ export default function EventChatScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: isDark ? '#0F1923' : '#fff' }]}
-      behavior='padding'
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 60}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <View style={[styles.header, { borderBottomColor: colors.cardBorder, backgroundColor: isDark ? '#0F1923' : '#fff' }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -187,9 +186,7 @@ export default function EventChatScreen() {
           return (
             <View style={[styles.messageRow, isMe && styles.messageRowMe]}>
               {!isMe && (
-                <TouchableOpacity
-                  onPress={() => router.push({ pathname: '/user-profile', params: { userId: item.user_id } } as any)}
-                >
+                <TouchableOpacity onPress={() => router.push({ pathname: '/user-profile', params: { userId: item.user_id } } as any)}>
                   <View style={styles.avatarSmall}>
                     {profile?.avatar_url
                       ? <Image source={{ uri: profile.avatar_url }} style={styles.avatarSmallImage} />
@@ -217,7 +214,11 @@ export default function EventChatScreen() {
         }}
       />
 
-      <View style={[styles.inputContainer, { borderTopColor: colors.cardBorder, backgroundColor: isDark ? '#0D1620' : '#fff' }]}>
+      <View style={[styles.inputContainer, {
+        borderTopColor: colors.cardBorder,
+        backgroundColor: isDark ? '#0D1620' : '#fff',
+        paddingBottom: insets.bottom > 0 ? insets.bottom : 16,
+      }]}>
         <TextInput
           style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]}
           placeholder="Type a message..."
@@ -262,7 +263,7 @@ const styles = StyleSheet.create({
   messageText: { fontSize: 15 },
   messageTime: { fontSize: 10, color: '#888', marginTop: 4, alignSelf: 'flex-end' },
   messageTimeMe: { color: 'rgba(255,255,255,0.7)' },
-  inputContainer: { flexDirection: 'row', padding: 12, paddingBottom: Platform.OS === 'android' ? 32 : 12, borderTopWidth: 0.5, alignItems: 'flex-end', gap: 8 },
+  inputContainer: { flexDirection: 'row', padding: 12, borderTopWidth: 0.5, alignItems: 'flex-end', gap: 8 },
   input: { flex: 1, padding: 12, borderRadius: 20, borderWidth: 1, fontSize: 15, maxHeight: 100 },
   sendBtn: { backgroundColor: '#1D9E75', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
   sendBtnDisabled: { backgroundColor: '#ccc' },

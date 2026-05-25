@@ -14,6 +14,7 @@ export default function NotificationsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'requests' | 'messages' | 'admin'>('requests');
   const [userId, setUserId] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   useEffect(() => {
     async function init() {
@@ -98,34 +99,47 @@ export default function NotificationsScreen() {
   }
 
   async function handleApprove(notification: any) {
+    if (processingId) return;
+    setProcessingId(notification.id + '_approve');
     const { data: eventData } = await supabase.from('events').select('max_players, approved_count').eq('id', notification.event_id).single();
     if (eventData?.max_players && eventData?.approved_count >= eventData?.max_players) {
       Alert.alert('Event Full', 'This event is already full!');
+      setProcessingId(null);
       return;
     }
     const { error } = await supabase.from('event_participants').update({ status: 'approved' }).eq('id', notification.participant_id);
-    if (error) { Alert.alert(t('error'), error.message); return; }
+    if (error) { Alert.alert(t('error'), error.message); setProcessingId(null); return; }
     await supabase.from('notifications').update({ is_read: true }).eq('id', notification.id);
     Alert.alert(t('success'), 'Player has been approved!');
     fetchNotifications();
+    setProcessingId(null);
   }
 
   async function handleReject(notification: any) {
+    if (processingId) return;
+    setProcessingId(notification.id + '_reject');
     const { error } = await supabase.from('event_participants').update({ status: 'rejected' }).eq('id', notification.participant_id);
-    if (error) { Alert.alert(t('error'), error.message); return; }
+    if (error) { Alert.alert(t('error'), error.message); setProcessingId(null); return; }
     await supabase.from('notifications').update({ is_read: true }).eq('id', notification.id);
     Alert.alert(t('success'), 'Player has been rejected!');
     fetchNotifications();
+    setProcessingId(null);
   }
 
   async function handleMessagePress(notif: any) {
+    if (processingId) return;
+    setProcessingId(notif.id);
     await supabase.from('notifications').update({ is_read: true }).eq('id', notif.id);
     router.push({ pathname: '/event-chat', params: { event_id: notif.event_id, event_title: notif.events?.title } } as any);
+    setProcessingId(null);
   }
 
   async function dismissAdminMessage(id: string) {
+    if (processingId) return;
+    setProcessingId(id);
     await supabase.from('admin_messages').delete().eq('id', id);
     setAdminMessages(prev => prev.filter(m => m.id !== id));
+    setProcessingId(null);
   }
 
   return (
@@ -175,17 +189,25 @@ export default function NotificationsScreen() {
             <>
               {joinRequests.length === 0 && <View style={styles.empty}><Text style={[styles.emptyText, { color: colors.textSecondary }]}>No join requests</Text></View>}
               {joinRequests.map((notif) => (
-                <View key={notif.id} style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}>
+                <View key={notif.id} style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }, processingId && { opacity: 0.6 }]}>
                   <TouchableOpacity onPress={() => router.push({ pathname: '/user-profile', params: { userId: notif.sender_id } } as any)}>
                     <Text style={[styles.cardMessage, { color: colors.text }]}>{notif.message}</Text>
                   </TouchableOpacity>
                   <Text style={[styles.cardEvent, { color: colors.textSecondary }]}>Event: {notif.events?.title}</Text>
                   <Text style={[styles.cardTime, { color: colors.textSecondary }]}>{new Date(notif.created_at).toLocaleDateString()}</Text>
                   <View style={styles.actions}>
-                    <TouchableOpacity style={styles.approveBtn} onPress={() => handleApprove(notif)}>
+                    <TouchableOpacity
+                      style={[styles.approveBtn, processingId && { opacity: 0.5 }]}
+                      onPress={() => handleApprove(notif)}
+                      disabled={!!processingId}
+                    >
                       <Text style={styles.approveBtnText}>{t('approve')}</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.rejectBtn} onPress={() => handleReject(notif)}>
+                    <TouchableOpacity
+                      style={[styles.rejectBtn, processingId && { opacity: 0.5 }]}
+                      onPress={() => handleReject(notif)}
+                      disabled={!!processingId}
+                    >
                       <Text style={styles.rejectBtnText}>{t('reject')}</Text>
                     </TouchableOpacity>
                   </View>
@@ -200,8 +222,9 @@ export default function NotificationsScreen() {
               {messages.map((notif) => (
                 <TouchableOpacity
                   key={notif.id}
-                  style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}
+                  style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }, processingId && { opacity: 0.6 }]}
                   onPress={() => handleMessagePress(notif)}
+                  disabled={!!processingId}
                 >
                   <Text style={[styles.cardMessage, { color: colors.text }]}>{notif.message}</Text>
                   <Text style={[styles.cardEvent, { color: colors.textSecondary }]}>Event: {notif.events?.title}</Text>
@@ -224,12 +247,16 @@ export default function NotificationsScreen() {
               {adminMessages.map((msg) => (
                 <View
                   key={msg.id}
-                  style={[styles.adminCard, { backgroundColor: isDark ? 'rgba(74,27,12,0.3)' : '#FAECE7', borderColor: '#E24B4A' }]}
+                  style={[styles.adminCard, { backgroundColor: isDark ? 'rgba(74,27,12,0.3)' : '#FAECE7', borderColor: '#E24B4A' }, processingId && { opacity: 0.6 }]}
                 >
                   <Text style={[styles.adminCardTitle, { color: isDark ? '#F5C4B3' : '#993C1D' }]}>⚠️ Warning from SportBuddy</Text>
                   <Text style={[styles.adminCardMessage, { color: colors.text }]}>{msg.message}</Text>
                   <Text style={[styles.cardTime, { color: colors.textSecondary }]}>{new Date(msg.created_at).toLocaleDateString()}</Text>
-                  <TouchableOpacity style={styles.dismissBtn} onPress={() => dismissAdminMessage(msg.id)}>
+                  <TouchableOpacity
+                    style={[styles.dismissBtn, processingId && { opacity: 0.5 }]}
+                    onPress={() => dismissAdminMessage(msg.id)}
+                    disabled={!!processingId}
+                  >
                     <Text style={styles.dismissBtnText}>✓ Dismiss</Text>
                   </TouchableOpacity>
                 </View>

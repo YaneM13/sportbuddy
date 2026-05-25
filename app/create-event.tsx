@@ -226,10 +226,21 @@ export default function CreateEventScreen() {
   }
 
   async function handleCreate() {
-    if (!title || !category || !sport || !location) { Alert.alert(t('error'), 'Please fill in all fields'); return; }
-    if (!isWatchSport && !players) { Alert.alert(t('error'), 'Please enter number of players'); return; }
-    if (!userLocation) { Alert.alert(t('error'), 'Location not available. Please try again.'); return; }
+  if (loading) return;
+  setLoading(true);
 
+  if (!title || !category || !sport || !location) { 
+    Alert.alert(t('error'), 'Please fill in all fields'); 
+    setLoading(false); return; 
+  }
+  if (!isWatchSport && !players) { 
+    Alert.alert(t('error'), 'Please enter number of players'); 
+    setLoading(false); return; 
+  }
+  if (!userLocation) { 
+    Alert.alert(t('error'), 'Location not available. Please try again.'); 
+    setLoading(false); return; 
+  }
     // Валидација — не може во минато
     const now = new Date();
     const eventDateTime = new Date(date);
