@@ -117,7 +117,7 @@ export default function EditEventScreen() {
 
   async function fetchEvent() {
     const { data, error } = await supabase.from('events').select('*').eq('id', id).single();
-    if (error) { Alert.alert('Error', error.message); return; }
+    if (error) { return; }
     setTitle(data.title); setCategory(data.category); setSport(data.sport); setLocation(data.location);
     setSelectedLat(data.latitude); setSelectedLon(data.longitude);
     setPlayers(data.max_players?.toString() || ''); setSkillLevel(data.skill_level || '');

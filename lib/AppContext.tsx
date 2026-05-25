@@ -47,15 +47,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function fetchLocation() {
-    // Ако локацијата е помлада од 5 минути, не бараме повторно
     if (userLocation && Date.now() - userLocation.fetchedAt < LOCATION_CACHE_MS) return;
 
     setLocationLoading(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') { setLocationLoading(false); return; }
+
+      // Прво земи ја Last Known Location — моментално!
+      const lastKnown = await Location.getLastKnownPositionAsync();
+      if (lastKnown) {
+        setUserLocation({
+          latitude: lastKnown.coords.latitude,
+          longitude: lastKnown.coords.longitude,
+          fetchedAt: Date.now(),
+        });
+        setLocationLoading(false); // Веднаш прикажи евенти
+      }
+
+      // Потоа ажурирај со прецизна локација во позадина
       const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced, // Побрзо од High на Android
+        accuracy: Location.Accuracy.Balanced,
       });
       setUserLocation({
         latitude: loc.coords.latitude,
