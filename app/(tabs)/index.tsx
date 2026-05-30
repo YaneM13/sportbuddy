@@ -38,7 +38,7 @@ export default function HomeScreen() {
     const { data } = await supabase.from('profiles').select('avatar_url, first_name, last_name, nickname').eq('id', userId).single();
 
     if (data?.avatar_url) {
-      setAvatarUrl(data.avatar_url + '?t=' + Date.now());
+      setAvatarUrl(data.avatar_url);
       setShowAvatarBanner(false);
     } else {
       setShowAvatarBanner(true);

@@ -1,8 +1,11 @@
 import { useTheme } from '@/lib/AppContext';
 import { supabase } from '@/lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+const PROFILE_CACHE_KEY = 'myProfile_cache';
 
 export default function MyProfileScreen() {
   const { isDark, colors } = useTheme();
@@ -10,41 +13,67 @@ export default function MyProfileScreen() {
   const [profile, setProfile] = useState<any>(null);
   const [avatarUrl, setAvatarUrl] = useState('');
   const [stats, setStats] = useState({ eventsCreated: 0, eventsJoined: 0, averageRating: 0, totalRatings: 0 });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useFocusEffect(useCallback(() => { fetchProfile(); }, []));
 
   async function fetchProfile() {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) { router.back(); return; }
-  setUser(session.user);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { router.back(); return; }
+    setUser(session.user);
 
-  // Сите повици паралелно!
-  const [
-    { data: profileData },
-    { count: eventsCreated },
-    { count: eventsJoined },
-    { data: ratingsData },
-  ] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', session.user.id).single(),
-    supabase.from('events').select('*', { count: 'exact', head: true }).eq('created_by', session.user.id),
-    supabase.from('event_participants').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id).eq('status', 'approved'),
-    supabase.from('ratings').select('rating').eq('rated_user', session.user.id),
-  ]);
+    // Прво прикажи кеширани податоци — моментално!
+    try {
+      const cached = await AsyncStorage.getItem(PROFILE_CACHE_KEY);
+      if (cached) {
+        const cachedData = JSON.parse(cached);
+        setProfile(cachedData.profile);
+        setAvatarUrl(cachedData.avatarUrl || '');
+        setStats(cachedData.stats);
+        setLoading(false); // Веднаш прикажи без spinner
+      } else {
+        setLoading(true); // Само прв пат
+      }
+    } catch (e) {
+      setLoading(true);
+    }
 
-  setProfile(profileData);
-  if (profileData?.avatar_url) setAvatarUrl(profileData.avatar_url + '?t=' + Date.now());
+    // Потоа ажурирај од база во позадина
+    const [
+      { data: profileData },
+      { count: eventsCreated },
+      { count: eventsJoined },
+      { data: ratingsData },
+    ] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', session.user.id).single(),
+      supabase.from('events').select('*', { count: 'exact', head: true }).eq('created_by', session.user.id),
+      supabase.from('event_participants').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id).eq('status', 'approved'),
+      supabase.from('ratings').select('rating').eq('rated_user', session.user.id),
+    ]);
 
-  const totalRatings = ratingsData?.length || 0;
-  const averageRating = totalRatings > 0 ? ratingsData!.reduce((sum: number, r: any) => sum + r.rating, 0) / totalRatings : 0;
-  setStats({ 
-    eventsCreated: eventsCreated || 0, 
-    eventsJoined: eventsJoined || 0, 
-    averageRating: Math.round(averageRating * 10) / 10, 
-    totalRatings 
-  });
-  setLoading(false);
-}
+    const totalRatings = ratingsData?.length || 0;
+    const averageRating = totalRatings > 0 ? ratingsData!.reduce((sum: number, r: any) => sum + r.rating, 0) / totalRatings : 0;
+    const newStats = {
+      eventsCreated: eventsCreated || 0,
+      eventsJoined: eventsJoined || 0,
+      averageRating: Math.round(averageRating * 10) / 10,
+      totalRatings
+    };
+
+    setProfile(profileData);
+    if (profileData?.avatar_url) setAvatarUrl(profileData.avatar_url);
+    setStats(newStats);
+    setLoading(false);
+
+    // Зачувај во кеш за следниот пат
+    try {
+      await AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({
+        profile: profileData,
+        avatarUrl: profileData?.avatar_url || '',
+        stats: newStats,
+      }));
+    } catch (e) {}
+  }
 
   const getInitials = (email: string) => email.substring(0, 2).toUpperCase();
   const renderStars = (rating: number) => [1,2,3,4,5].map((star) => (

@@ -54,7 +54,7 @@ export default function ProfileTab() {
         <>
           <View style={styles.profileHeader}>
             {profile?.avatar_url ? (
-              <Image source={{ uri: profile.avatar_url + '?t=' + Date.now() }} style={styles.avatarImage} />
+              <Image source={{ uri: profile.avatar_url}} style={styles.avatarImage} />
             ) : (
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>{getInitials(user.email)}</Text>
