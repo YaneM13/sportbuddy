@@ -10,12 +10,25 @@ interface Event {
   sport: string;
   latitude: number;
   longitude: number;
+  gender?: string;
 }
 
 interface EventMapProps {
   events: Event[];
   userLatitude: number;
   userLongitude: number;
+}
+
+function getPinColor(gender?: string) {
+  if (gender === 'male') return '#185FA5';
+  if (gender === 'female') return '#E24B4A';
+  return '#1D9E75';
+}
+
+function getGenderLabel(gender?: string) {
+  if (gender === 'male') return '♂️ Male';
+  if (gender === 'female') return '♀️ Female';
+  return '⚥ Mixed';
 }
 
 export default function EventMap({ events, userLatitude, userLongitude }: EventMapProps) {
@@ -51,6 +64,7 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
             key={e.id}
             coordinate={{ latitude: e.latitude, longitude: e.longitude }}
             tracksViewChanges={false}
+            pinColor={getPinColor(e.gender)}
             onPress={() => {
               if (Platform.OS === 'android') {
                 setSelectedEvent(e);
@@ -63,8 +77,11 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
                 <View style={styles.callout}>
                   <Text style={styles.calloutTitle}>{e.title}</Text>
                   <Text style={styles.calloutSport}>{e.sport}</Text>
+                  <Text style={[styles.calloutGender, { color: getPinColor(e.gender) }]}>
+                    {getGenderLabel(e.gender)}
+                  </Text>
                   <Text style={styles.calloutLocation} numberOfLines={2}>{e.location}</Text>
-                  <View style={styles.calloutBtn}>
+                  <View style={[styles.calloutBtn, { backgroundColor: getPinColor(e.gender) }]}>
                     <Text style={styles.calloutBtnText}>View details</Text>
                   </View>
                 </View>
@@ -79,9 +96,12 @@ export default function EventMap({ events, userLatitude, userLongitude }: EventM
         <View style={styles.bottomSheet}>
           <Text style={styles.calloutTitle}>{selectedEvent.title}</Text>
           <Text style={styles.calloutSport}>{selectedEvent.sport}</Text>
+          <Text style={[styles.calloutGender, { color: getPinColor(selectedEvent.gender) }]}>
+            {getGenderLabel(selectedEvent.gender)}
+          </Text>
           <Text style={styles.calloutLocation} numberOfLines={2}>{selectedEvent.location}</Text>
           <TouchableOpacity
-            style={styles.calloutBtn}
+            style={[styles.calloutBtn, { backgroundColor: getPinColor(selectedEvent.gender) }]}
             onPress={() => router.push({ pathname: '/event-details', params: { id: selectedEvent.id } } as any)}
           >
             <Text style={styles.calloutBtnText}>View details</Text>
@@ -123,8 +143,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   calloutTitle: { fontSize: 15, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 4 },
-  calloutSport: { fontSize: 12, color: '#1D9E75', fontWeight: '500', marginBottom: 4 },
+  calloutSport: { fontSize: 12, color: '#1D9E75', fontWeight: '500', marginBottom: 2 },
+  calloutGender: { fontSize: 12, fontWeight: '500', marginBottom: 4 },
   calloutLocation: { fontSize: 12, color: '#888', marginBottom: 10 },
-  calloutBtn: { backgroundColor: '#1D9E75', padding: 8, borderRadius: 8, alignItems: 'center' },
+  calloutBtn: { padding: 8, borderRadius: 8, alignItems: 'center' },
   calloutBtnText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
 });

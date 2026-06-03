@@ -22,6 +22,24 @@ const categoryColors: any = {
   watch: { light: { bg: '#FAECE7', text: '#993C1D' }, dark: { bg: 'rgba(74,27,12,0.8)', text: '#F5C4B3' } },
 };
 
+function getGenderColor(gender: string) {
+  if (gender === 'male') return '#185FA5';
+  if (gender === 'female') return '#E24B4A';
+  return '#1D9E75';
+}
+
+function getGenderBg(gender: string, isDark: boolean) {
+  if (gender === 'male') return isDark ? 'rgba(12,30,53,0.8)' : '#E6F1FB';
+  if (gender === 'female') return isDark ? 'rgba(74,12,12,0.8)' : '#FCEBEB';
+  return isDark ? 'rgba(15,61,46,0.8)' : '#E1F5EE';
+}
+
+function getGenderLabel(gender: string) {
+  if (gender === 'male') return '♂️ Male';
+  if (gender === 'female') return '♀️ Female';
+  return '⚥ Mixed';
+}
+
 export default function EventsBySportScreen() {
   const { t } = useLanguage();
   const { isDark, colors } = useTheme();
@@ -111,7 +129,6 @@ export default function EventsBySportScreen() {
       ? `${userProfile.first_name} ${userProfile.last_name}`
       : user.email;
 
-    // Провери конфликт на распоред
     const { data: eventInfo } = await supabase
       .from('events')
       .select('date, time, end_date, end_time')
@@ -196,10 +213,21 @@ export default function EventsBySportScreen() {
         return (
           <TouchableOpacity
             key={event.id}
-            style={[styles.card, { backgroundColor: isDark ? '#1E2D3D' : '#fff', borderColor: colors.cardBorder }]}
+            style={[styles.card, { 
+              backgroundColor: isDark ? '#1E2D3D' : '#fff', 
+              borderColor: event.gender ? getGenderColor(event.gender) : colors.cardBorder,
+              borderWidth: event.gender ? 1 : 0.5,
+            }]}
             onPress={() => router.push({ pathname: '/event-details', params: { id: event.id } } as any)}
           >
             <View style={styles.cardHeader}>
+              {event.gender && (
+                <View style={[styles.genderBadge, { backgroundColor: getGenderBg(event.gender, isDark) }]}>
+                  <Text style={[styles.genderText, { color: getGenderColor(event.gender) }]}>
+                    {getGenderLabel(event.gender)}
+                  </Text>
+                </View>
+              )}
               {event.skill_level && <View style={[styles.skillBadge, { backgroundColor: isDark ? 'rgba(65,57,12,0.8)' : '#F1EFE8' }]}><Text style={[styles.skillText, { color: isDark ? '#FAC775' : '#444441' }]}>{event.skill_level}</Text></View>}
               {distance && <View style={[styles.distanceBadge, { backgroundColor: isDark ? 'rgba(12,30,53,0.8)' : '#E6F1FB' }]}><Text style={[styles.distanceText, { color: isDark ? '#B5D4F4' : '#185FA5' }]}>{distance} km</Text></View>}
               {user && user.id === event.created_by && <View style={[styles.ownerBadge, { backgroundColor: isDark ? 'rgba(38,33,92,0.8)' : '#EEEDFE' }]}><Text style={[styles.ownerText, { color: isDark ? '#CECBF6' : '#534AB7' }]}>My event</Text></View>}
@@ -242,8 +270,10 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', marginTop: 60 },
   emptyText: { fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
   emptySubtext: { fontSize: 14, textAlign: 'center' },
-  card: { borderRadius: 16, borderWidth: 0.5, padding: 16, marginBottom: 16 },
+  card: { borderRadius: 16, padding: 16, marginBottom: 16 },
   cardHeader: { flexDirection: 'row', gap: 8, marginBottom: 10, flexWrap: 'wrap' },
+  genderBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99 },
+  genderText: { fontSize: 12, fontWeight: '600' },
   skillBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99 },
   skillText: { fontSize: 12, fontWeight: '500' },
   distanceBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99 },

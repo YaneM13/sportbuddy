@@ -8,8 +8,8 @@ import { Calendar } from 'react-native-calendars';
 
 const sportsByCategory: any = {
   team: ['Football', 'Basketball', 'Basketball 3x3', 'Volleyball', 'Beach Volleyball', 'Rugby', 'Cricket', 'Handball'],
-  individual: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Padel', 'Swimming', 'Chess'],
-  water: ['Kayaking', 'Paddleboarding', 'Rafting', 'Fishing'],
+  individual: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Padel', 'Chess', 'Billiards'],
+  water: ['Kayaking', 'Paddleboarding', 'Rafting', 'Fishing', 'Swimming', 'Surfing'],
   watch: ['Stadium', 'Sports bar / Cafe', 'Open air'],
 };
 
@@ -37,9 +37,7 @@ function CalendarModal({ visible, value, onConfirm, onCancel, isDark, colors, ti
             current={selected}
             minDate={minDate || toCalendarDate(new Date())}
             onDayPress={(day: any) => setSelected(day.dateString)}
-            markedDates={{
-              [selected]: { selected: true, selectedColor: '#1D9E75' }
-            }}
+            markedDates={{ [selected]: { selected: true, selectedColor: '#1D9E75' } }}
             theme={{
               backgroundColor: isDark ? '#1E2D3D' : '#fff',
               calendarBackground: isDark ? '#1E2D3D' : '#fff',
@@ -83,50 +81,32 @@ function TimePickerModal({ visible, value, onConfirm, onCancel, isDark, colors, 
       <View style={styles.modalOverlay}>
         <View style={[styles.timeContent, { backgroundColor: isDark ? '#1E2D3D' : '#fff' }]}>
           <Text style={[styles.modalTitle, { color: colors.text }]}>{title}</Text>
-
-          {/* Поубав time picker со голем display */}
           <View style={styles.timeDisplay}>
-            <Text style={[styles.timeDisplayText, { color: '#1D9E75' }]}>
-              {selectedHour}:{selectedMinute}
-            </Text>
+            <Text style={[styles.timeDisplayText, { color: '#1D9E75' }]}>{selectedHour}:{selectedMinute}</Text>
           </View>
-
           <View style={styles.timePickerRow}>
-            {/* Hours */}
             <View style={styles.timeColumn}>
               <Text style={[styles.timeLabel, { color: colors.textSecondary }]}>Hour</Text>
               <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
                 {HOURS.map((h) => (
-                  <TouchableOpacity
-                    key={h}
-                    style={[styles.timeItem, selectedHour === h && { backgroundColor: '#1D9E75', borderRadius: 10 }]}
-                    onPress={() => setSelectedHour(h)}
-                  >
+                  <TouchableOpacity key={h} style={[styles.timeItem, selectedHour === h && { backgroundColor: '#1D9E75', borderRadius: 10 }]} onPress={() => setSelectedHour(h)}>
                     <Text style={[styles.timeItemText, { color: selectedHour === h ? '#fff' : colors.text }]}>{h}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
             </View>
-
             <Text style={[styles.timeSeparator, { color: '#1D9E75' }]}>:</Text>
-
-            {/* Minutes */}
             <View style={styles.timeColumn}>
               <Text style={[styles.timeLabel, { color: colors.textSecondary }]}>Min</Text>
               <View style={styles.minutesGrid}>
                 {MINUTES.map((m) => (
-                  <TouchableOpacity
-                    key={m}
-                    style={[styles.minuteBtn, { borderColor: colors.cardBorder }, selectedMinute === m && { backgroundColor: '#1D9E75', borderColor: '#1D9E75' }]}
-                    onPress={() => setSelectedMinute(m)}
-                  >
+                  <TouchableOpacity key={m} style={[styles.minuteBtn, { borderColor: colors.cardBorder }, selectedMinute === m && { backgroundColor: '#1D9E75', borderColor: '#1D9E75' }]} onPress={() => setSelectedMinute(m)}>
                     <Text style={[styles.minuteBtnText, { color: selectedMinute === m ? '#fff' : colors.text }]}>{m}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
             </View>
           </View>
-
           <View style={styles.modalButtons}>
             <TouchableOpacity style={[styles.modalBtn, { borderColor: colors.cardBorder, borderWidth: 1 }]} onPress={onCancel}>
               <Text style={[styles.modalBtnText, { color: colors.textSecondary }]}>Cancel</Text>
@@ -153,6 +133,7 @@ export default function CreateEventScreen() {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [sport, setSport] = useState('');
+  const [gender, setGender] = useState('mixed');
   const [location, setLocation] = useState('');
   const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
   const [selectedLat, setSelectedLat] = useState<number | null>(null);
@@ -185,6 +166,12 @@ export default function CreateEventScreen() {
     { id: 'Beginner', label: t('beginner') },
     { id: 'Intermediate', label: t('intermediate') },
     { id: 'Advanced', label: t('advanced') },
+  ];
+
+  const genderOptions = [
+    { id: 'male', label: '♂️ Male', color: '#185FA5' },
+    { id: 'female', label: '♀️ Female', color: '#E24B4A' },
+    { id: 'mixed', label: '⚥ Mixed', color: '#1D9E75' },
   ];
 
   useFocusEffect(useCallback(() => {
@@ -226,39 +213,37 @@ export default function CreateEventScreen() {
   }
 
   async function handleCreate() {
-  if (loading) return;
-  setLoading(true);
+    if (loading) return;
+    setLoading(true);
 
-  if (!title || !category || !sport || !location) { 
-    Alert.alert(t('error'), 'Please fill in all fields'); 
-    setLoading(false); return; 
-  }
-  if (!isWatchSport && !players) { 
-    Alert.alert(t('error'), 'Please enter number of players'); 
-    setLoading(false); return; 
-  }
-  if (!userLocation) { 
-    Alert.alert(t('error'), 'Location not available. Please try again.'); 
-    setLoading(false); return; 
-  }
-    // Валидација — не може во минато
+    if (!title || !category || !sport || !location) {
+      Alert.alert(t('error'), 'Please fill in all fields');
+      setLoading(false); return;
+    }
+    if (!isWatchSport && !players) {
+      Alert.alert(t('error'), 'Please enter number of players');
+      setLoading(false); return;
+    }
+    if (!userLocation) {
+      Alert.alert(t('error'), 'Location not available. Please try again.');
+      setLoading(false); return;
+    }
+
     const now = new Date();
     const eventDateTime = new Date(date);
     eventDateTime.setHours(startTime.getHours(), startTime.getMinutes());
     if (eventDateTime <= now) {
       Alert.alert(t('error'), 'Event cannot be in the past!');
-      return;
+      setLoading(false); return;
     }
 
-    // Валидација — крај мора да биде по почетокот
     const endDateTime = new Date(endDate);
     endDateTime.setHours(endTime.getHours(), endTime.getMinutes());
     if (endDateTime <= eventDateTime) {
       Alert.alert(t('error'), 'End time must be after start time!');
-      return;
+      setLoading(false); return;
     }
 
-    // Провери конфликт на распоред
     const { data: { session: checkSession } } = await supabase.auth.getSession();
     if (checkSession) {
       const { data: hasConflict } = await supabase.rpc('check_schedule_conflict', {
@@ -270,11 +255,9 @@ export default function CreateEventScreen() {
       });
       if (hasConflict) {
         Alert.alert('Schedule Conflict! ⚠️', 'You already have an event at this time!');
-        return;
+        setLoading(false); return;
       }
     }
-
-    setLoading(true);
 
     let latitude = selectedLat, longitude = selectedLon;
     if (!latitude || !longitude) {
@@ -284,8 +267,7 @@ export default function CreateEventScreen() {
       const distance = getDistanceKm(userLocation.latitude, userLocation.longitude, latitude, longitude);
       if (distance > 20) {
         Alert.alert(t('error'), 'Event location must be within 20km of your current location');
-        setLoading(false);
-        return;
+        setLoading(false); return;
       }
     }
 
@@ -294,7 +276,7 @@ export default function CreateEventScreen() {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     const { data: newEvent, error } = await supabase.from('events').insert({
-      title, description, category, sport, location,
+      title, description, category, sport, location, gender,
       date: formatDate(date),
       end_date: formatDate(endDate),
       time: formatTime(startTime),
@@ -426,6 +408,24 @@ export default function CreateEventScreen() {
           </>
         )}
 
+        {/* Gender */}
+        <Text style={[styles.label, { color: colors.textSecondary }]}>Gender</Text>
+        <View style={styles.optionsRow}>
+          {genderOptions.map((g) => (
+            <TouchableOpacity
+              key={g.id}
+              style={[
+                styles.optionBtn,
+                { borderColor: gender === g.id ? g.color : colors.inputBorder, backgroundColor: isDark ? colors.inputBg : '#fff' },
+                gender === g.id && { backgroundColor: g.color, borderColor: g.color }
+              ]}
+              onPress={() => setGender(g.id)}
+            >
+              <Text style={[styles.optionText, { color: gender === g.id ? '#fff' : colors.text }]}>{g.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         <TouchableOpacity style={styles.createBtn} onPress={handleCreate} disabled={loading}>
           <Text style={styles.createBtnText}>{loading ? t('creating') : t('createEvent')}</Text>
         </TouchableOpacity>
@@ -465,7 +465,6 @@ const styles = StyleSheet.create({
   unlimitedText: { fontWeight: '500', fontSize: 14 },
   createBtn: { width: '100%', padding: 18, borderRadius: 12, backgroundColor: '#1D9E75', alignItems: 'center', marginTop: 8, marginBottom: 40 },
   createBtnText: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
-  // Modal styles
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 },
   calendarContent: { width: '100%', borderRadius: 20, padding: 16 },
   timeContent: { width: '100%', borderRadius: 20, padding: 24 },
@@ -473,7 +472,6 @@ const styles = StyleSheet.create({
   modalButtons: { flexDirection: 'row', gap: 12, marginTop: 20 },
   modalBtn: { flex: 1, padding: 14, borderRadius: 12, alignItems: 'center' },
   modalBtnText: { fontSize: 15, fontWeight: '600' },
-  // Time picker styles
   timeDisplay: { alignItems: 'center', marginBottom: 20 },
   timeDisplayText: { fontSize: 48, fontWeight: 'bold' },
   timePickerRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', gap: 16 },

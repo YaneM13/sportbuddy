@@ -15,14 +15,20 @@ const categories = [
 
 const sportsByCategory: any = {
   team: ['Football', 'Basketball', 'Basketball 3x3', 'Volleyball', 'Beach Volleyball', 'Rugby', 'Cricket', 'Handball'],
-  individual: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Padel', 'Swimming'],
-  water: ['Kayaking', 'Paddleboarding', 'Rafting', 'Fishing'],
+  individual: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Padel', 'Chess', 'Billiards'],
+  water: ['Kayaking', 'Paddleboarding', 'Rafting', 'Fishing', 'Swimming', 'Surfing'],
   watch: ['Stadium', 'Sports bar / Cafe', 'Open air'],
 };
 
 const skillLevels = ['Beginner', 'Intermediate', 'Advanced'];
 const HOURS = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
 const MINUTES = ['00', '15', '30', '45'];
+
+const genderOptions = [
+  { id: 'male', label: '♂️ Male', color: '#185FA5' },
+  { id: 'female', label: '♀️ Female', color: '#E24B4A' },
+  { id: 'mixed', label: '⚥ Mixed', color: '#1D9E75' },
+];
 
 function TimePickerModal({ visible, value, onConfirm, onCancel, isDark, colors, title }: any) {
   const [selectedHour, setSelectedHour] = useState(value.getHours().toString().padStart(2, '0'));
@@ -83,6 +89,7 @@ export default function EditEventScreen() {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
   const [sport, setSport] = useState('');
+  const [gender, setGender] = useState('mixed');
   const [location, setLocation] = useState('');
   const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
   const [selectedLat, setSelectedLat] = useState<number | null>(null);
@@ -121,6 +128,7 @@ export default function EditEventScreen() {
     setTitle(data.title); setCategory(data.category); setSport(data.sport); setLocation(data.location);
     setSelectedLat(data.latitude); setSelectedLon(data.longitude);
     setPlayers(data.max_players?.toString() || ''); setSkillLevel(data.skill_level || '');
+    setGender(data.gender || 'mixed');
     if (data.date) { const p = data.date.split('/'); setDate(new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0]))); }
     if (data.time) { const p = data.time.split(':'); const d = new Date(); d.setHours(parseInt(p[0]), parseInt(p[1])); setStartTime(d); }
     if (data.end_time) { const p = data.end_time.split(':'); const d = new Date(); d.setHours(parseInt(p[0]), parseInt(p[1])); setEndTime(d); }
@@ -161,7 +169,7 @@ export default function EditEventScreen() {
     if (!title || !category || !sport || !location) { Alert.alert('Error', 'Please fill in all fields'); return; }
     setLoading(true);
     const { error } = await supabase.from('events').update({
-      title, category, sport, location,
+      title, category, sport, location, gender,
       latitude: selectedLat,
       longitude: selectedLon,
       date: formatDate(date), time: formatTime(startTime), end_time: formatTime(endTime),
@@ -180,7 +188,7 @@ export default function EditEventScreen() {
         setLoading(true);
         const { error } = await supabase.from('events').delete().eq('id', id);
         if (error) { Alert.alert('Error', error.message); setLoading(false); }
-        else { Alert.alert('Deleted', 'Event deleted'); router.replace('/find-event' as any); }
+        else { router.replace('/find-event' as any); }
       }}]
     );
   }
@@ -220,7 +228,6 @@ export default function EditEventScreen() {
           </>
         )}
 
-        {/* Location со пребарување и Map копче */}
         <Text style={[styles.label, { color: colors.textSecondary }]}>Location</Text>
         <View style={styles.locationRow}>
           <TextInput
@@ -246,7 +253,6 @@ export default function EditEventScreen() {
         )}
         {selectedLat && <View style={[styles.locationConfirmed, { backgroundColor: colors.accentLight }]}><Text style={[styles.locationConfirmedText, { color: colors.accentText }]}>✅ Location selected</Text></View>}
 
-        {/* Date Picker */}
         <Text style={[styles.label, { color: colors.textSecondary }]}>Date</Text>
         <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]} onPress={() => setShowDatePicker(true)}>
           <Text style={[styles.pickerText, { color: colors.text }]}>{formatDate(date)}</Text>
@@ -299,14 +305,12 @@ export default function EditEventScreen() {
           </View>
         </Modal>
 
-        {/* Start Time */}
         <Text style={[styles.label, { color: colors.textSecondary }]}>Start time</Text>
         <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]} onPress={() => setShowStartTimePicker(true)}>
           <Text style={[styles.pickerText, { color: colors.text }]}>{formatTime(startTime)}</Text>
         </TouchableOpacity>
         <TimePickerModal visible={showStartTimePicker} value={startTime} title="Start time" isDark={isDark} colors={colors} onCancel={() => setShowStartTimePicker(false)} onConfirm={(d: Date) => { setStartTime(d); setShowStartTimePicker(false); }} />
 
-        {/* End Time */}
         <Text style={[styles.label, { color: colors.textSecondary }]}>End time</Text>
         <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]} onPress={() => setShowEndTimePicker(true)}>
           <Text style={[styles.pickerText, { color: colors.text }]}>{formatTime(endTime)}</Text>
@@ -327,6 +331,24 @@ export default function EditEventScreen() {
             </View>
           </>
         )}
+
+        {/* Gender */}
+        <Text style={[styles.label, { color: colors.textSecondary }]}>Gender</Text>
+        <View style={styles.optionsRow}>
+          {genderOptions.map((g) => (
+            <TouchableOpacity
+              key={g.id}
+              style={[
+                styles.optionBtn,
+                { borderColor: gender === g.id ? g.color : colors.inputBorder, backgroundColor: isDark ? colors.inputBg : '#fff' },
+                gender === g.id && { backgroundColor: g.color, borderColor: g.color }
+              ]}
+              onPress={() => setGender(g.id)}
+            >
+              <Text style={[styles.optionText, { color: gender === g.id ? '#fff' : colors.text }]}>{g.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <TouchableOpacity
           style={[styles.saveBtn, loading && { opacity: 0.6 }]}
@@ -355,14 +377,7 @@ const styles = StyleSheet.create({
   input: { width: '100%', padding: 16, borderRadius: 12, borderWidth: 1, marginBottom: 20, fontSize: 15 },
   locationRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
   locationInput: { flex: 1, marginBottom: 8 },
-  mapPickBtn: { 
-  padding: 16, 
-  borderRadius: 12, 
-  alignItems: 'center', 
-  justifyContent: 'center',
-  backgroundColor: '#E1F5EE',
-  minWidth: 70,
-},
+  mapPickBtn: { padding: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#E1F5EE', minWidth: 70 },
   mapPickBtnText: { fontSize: 13, fontWeight: '500' },
   suggestions: { borderRadius: 12, borderWidth: 0.5, marginBottom: 8, overflow: 'hidden' },
   suggestionItem: { padding: 14, borderBottomWidth: 0.5 },

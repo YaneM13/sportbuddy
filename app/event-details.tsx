@@ -241,6 +241,11 @@ export default function EventDetailsScreen() {
         <Text style={[styles.detail, { color: colors.text }]}>📍 {event?.location}</Text>
         <Text style={[styles.detail, { color: colors.text }]}>📅 {event?.date} at {event?.time} — {event?.end_time}</Text>
         {event?.skill_level && <Text style={[styles.detail, { color: colors.text }]}>⭐ {event?.skill_level}</Text>}
+        {event?.gender && (
+        <Text style={[styles.detail, { color: event.gender === 'male' ? '#185FA5' : event.gender === 'female' ? '#E24B4A' : '#1D9E75' }]}>
+        {event.gender === 'male' ? '♂️ Male only' : event.gender === 'female' ? '♀️ Female only' : '⚥ Mixed'}
+        </Text>
+         )}
         {event?.max_players ? (
           <TouchableOpacity onPress={() => router.push({ pathname: '/event-participants', params: { event_id: event?.id } } as any)}>
             <Text style={[styles.detail, { color: colors.accent }]}>👥 {approvedCount} / {event?.max_players} players →</Text>
