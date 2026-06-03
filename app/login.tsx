@@ -46,11 +46,14 @@ const allSports = [
   { id: 'Roller Skating', category: 'individual' },
   { id: 'Cycling', category: 'individual' },
   { id: 'Padel', category: 'individual' },
-  { id: 'Swimming', category: 'individual' },
+  { id: 'Chess', category: 'individual' },
+  { id: 'Billiards', category: 'individual' },
   { id: 'Kayaking', category: 'water' },
   { id: 'Paddleboarding', category: 'water' },
   { id: 'Rafting', category: 'water' },
   { id: 'Fishing', category: 'water' },
+  { id: 'Swimming', category: 'water' },
+  { id: 'Surfing', category: 'water' },
 ];
 
 const categoryColors: any = {

@@ -18,7 +18,7 @@ const categories = [
     emoji: '🏃',
     color: { bg: '#E6F1FB', text: '#185FA5', border: '#B5D4F4' },
     darkColor: { bg: 'rgba(12,30,53,0.8)', text: '#B5D4F4', border: '#185FA5' },
-    sports: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Padel', 'Swimming','Chess'],
+    sports: ['Tennis', 'Ping Pong', 'Roller Skating', 'Cycling', 'Padel', 'Chess', 'Billiards'],
   },
   {
     id: 'water',
@@ -26,7 +26,7 @@ const categories = [
     emoji: '🌊',
     color: { bg: '#EEEDFE', text: '#534AB7', border: '#CECBF6' },
     darkColor: { bg: 'rgba(38,33,92,0.8)', text: '#CECBF6', border: '#534AB7' },
-    sports: ['Kayaking', 'Paddleboarding', 'Rafting', 'Fishing'],
+    sports: ['Kayaking', 'Paddleboarding', 'Rafting', 'Fishing', 'Swimming', 'Surfing'],
   },
   {
     id: 'watch',
