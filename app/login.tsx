@@ -102,6 +102,15 @@ export default function LoginScreen() {
     }
   }, []);
 
+  async function checkProfileAndRedirect(userId: string) {
+    const { data: profile } = await supabase.from('profiles').select('first_name').eq('id', userId).single();
+    if (!profile?.first_name) {
+      router.replace('/personal-details' as any);
+    } else {
+      router.replace('/');
+    }
+  }
+
   async function handleGoogleSignIn() {
     if (!GoogleSignin) { Alert.alert('Error', 'Google Sign In not available'); return; }
     setGoogleLoading(true);
@@ -112,13 +121,13 @@ export default function LoginScreen() {
       const idToken = userInfo.data?.idToken;
       if (!idToken) { setErrorMsg('Google sign in failed'); setGoogleLoading(false); return; }
 
-      const { error } = await supabase.auth.signInWithIdToken({
+      const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
         token: idToken,
       });
 
       if (error) { setErrorMsg(error.message); setGoogleLoading(false); return; }
-      router.replace('/');
+      if (data.user) await checkProfileAndRedirect(data.user.id);
     } catch (error: any) {
       if (error.code !== '-5') setErrorMsg('Google sign in failed. Please try again.');
     }
@@ -137,12 +146,13 @@ export default function LoginScreen() {
       });
       const { identityToken } = credential;
       if (!identityToken) { setErrorMsg('Apple sign in failed'); setAppleLoading(false); return; }
-      const { error } = await supabase.auth.signInWithIdToken({
+
+      const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'apple',
         token: identityToken,
       });
       if (error) { setErrorMsg(error.message); setAppleLoading(false); return; }
-      router.replace('/');
+      if (data.user) await checkProfileAndRedirect(data.user.id);
     } catch (error: any) {
       if (error.code !== 'ERR_REQUEST_CANCELED') {
         setErrorMsg('Apple sign in failed. Please try again.');
@@ -171,35 +181,34 @@ export default function LoginScreen() {
   }
 
   async function handleRegister() {
-  setErrorMsg('');
-  if (!firstName || !lastName || !nickname) { setErrorMsg('Please fill in all fields'); return; }
-  if (!favoriteSport) { setErrorMsg('Please select your favorite sport'); return; }
-  setLoading(true);
-  
-  const { data, error } = await supabase.auth.signUp({
-    email, password,
-    options: {
-      emailRedirectTo: 'sportbuddy://email-confirmed',
-      data: { first_name: firstName, last_name: lastName, nickname, favorite_sport: favoriteSport }
-    }
-  });
-  
-  if (error) { setErrorMsg(error.message); setLoading(false); return; }
-  
-  // Зачувај ги податоците во profiles табелата
-  if (data.user) {
-    await supabase.from('profiles').upsert({
-      id: data.user.id,
-      first_name: firstName,
-      last_name: lastName,
-      nickname,
-      favorite_sport: favoriteSport,
+    setErrorMsg('');
+    if (!firstName || !lastName || !nickname) { setErrorMsg('Please fill in all fields'); return; }
+    if (!favoriteSport) { setErrorMsg('Please select your favorite sport'); return; }
+    setLoading(true);
+
+    const { data, error } = await supabase.auth.signUp({
+      email, password,
+      options: {
+        emailRedirectTo: 'sportbuddy://email-confirmed',
+        data: { first_name: firstName, last_name: lastName, nickname, favorite_sport: favoriteSport }
+      }
     });
-    router.push('/terms' as any);
+
+    if (error) { setErrorMsg(error.message); setLoading(false); return; }
+
+    if (data.user) {
+      await supabase.from('profiles').upsert({
+        id: data.user.id,
+        first_name: firstName,
+        last_name: lastName,
+        nickname,
+        favorite_sport: favoriteSport,
+      });
+      router.push('/terms' as any);
+    }
+
+    setLoading(false);
   }
-  
-  setLoading(false);
-}
 
   async function handleLogin() {
     setErrorMsg('');
@@ -208,7 +217,6 @@ export default function LoginScreen() {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) { setErrorMsg(error.message); setLoading(false); return; }
 
-    // Провери дали е потврден email
     if (data.user && !data.user.email_confirmed_at) {
       await supabase.auth.signOut();
       setErrorMsg('Please confirm your email address before signing in. Check your inbox!');
